@@ -5,6 +5,7 @@ use crate::scoring::Score;
 #[derive(Clone)]
 pub struct Scriptures {
     pub verses: Vec<Verse>,
+    pub playable_verses: Vec<Verse>,
     pub books: Vec<BookInfo>,
     chapter_order: Vec<ChapterRef>,
 }
@@ -32,6 +33,10 @@ impl Scriptures {
             .find(|item| item.name == book)
             .map(|item| item.chapters.clone())
             .unwrap_or_default()
+    }
+
+    pub fn total_verse_count(&self) -> usize {
+        self.verses.len()
     }
 
     fn from_flat_verses(flat_verses: Vec<FlatVerse>) -> Self {
@@ -67,6 +72,7 @@ impl Scriptures {
         }
 
         Self {
+            playable_verses: playable_verses(&verses),
             verses,
             books,
             chapter_order,
@@ -78,6 +84,64 @@ impl Scriptures {
             .iter()
             .position(|item| item.book == book && item.chapter == chapter)
     }
+}
+
+fn playable_verses(verses: &[Verse]) -> Vec<Verse> {
+    let filtered = verses
+        .iter()
+        .filter(|verse| is_playable_verse(&verse.text))
+        .cloned()
+        .collect::<Vec<_>>();
+
+    if filtered.is_empty() {
+        verses.to_vec()
+    } else {
+        filtered
+    }
+}
+
+fn is_playable_verse(text: &str) -> bool {
+    let normalized_words = normalized_words(text);
+
+    if normalized_words.len() < 16 {
+        return false;
+    }
+
+    let distinct_words = normalized_words
+        .iter()
+        .collect::<std::collections::BTreeSet<_>>()
+        .len();
+
+    if distinct_words < 10 {
+        return false;
+    }
+
+    let lower = text.to_lowercase();
+    let filler_hits = [
+        "and it came to pass",
+        "now behold",
+        "and now",
+        "yea",
+        "therefore",
+    ]
+    .iter()
+    .filter(|phrase| lower.matches(*phrase).count() > 0)
+    .count();
+
+    let distinct_ratio = distinct_words as f32 / normalized_words.len() as f32;
+    filler_hits <= 2 || distinct_ratio >= 0.72
+}
+
+fn normalized_words(text: &str) -> Vec<String> {
+    text.split_whitespace()
+        .map(|word| {
+            word.chars()
+                .filter(|character| character.is_alphanumeric() || *character == '\'')
+                .collect::<String>()
+                .to_lowercase()
+        })
+        .filter(|word| !word.is_empty())
+        .collect()
 }
 
 #[derive(Clone, PartialEq)]
@@ -151,6 +215,43 @@ mod tests {
         assert_eq!(scriptures.books[1].name, "2 Nephi");
         assert_eq!(scriptures.books[1].chapters, vec![1, 2]);
         assert_eq!(scriptures.verses.len(), 5);
+    }
+
+    #[test]
+    fn builds_a_filtered_playable_verse_pool() {
+        let scriptures = Scriptures::from_flat_json(
+            r#"{
+              "verses": [
+                { "reference": "1 Nephi 1:1", "text": "Amen." },
+                { "reference": "1 Nephi 1:2", "text": "And it came to pass, yea, and now therefore it came to pass, yea, and now therefore it came to pass again." },
+                { "reference": "1 Nephi 1:3", "text": "Nephi records the learning of his father, the mercy of God, and the purposes that shaped his journey through the wilderness." }
+              ]
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(scriptures.verses.len(), 3);
+        assert_eq!(scriptures.playable_verses.len(), 1);
+        assert_eq!(scriptures.playable_verses[0].reference.chapter, 1);
+        assert_eq!(
+            scriptures.playable_verses[0].text,
+            "Nephi records the learning of his father, the mercy of God, and the purposes that shaped his journey through the wilderness."
+        );
+    }
+
+    #[test]
+    fn falls_back_to_all_verses_if_filter_removes_everything() {
+        let scriptures = Scriptures::from_flat_json(
+            r#"{
+              "verses": [
+                { "reference": "1 Nephi 1:1", "text": "Amen." },
+                { "reference": "1 Nephi 1:2", "text": "Yea." }
+              ]
+            }"#,
+        )
+        .unwrap();
+
+        assert_eq!(scriptures.playable_verses.len(), 2);
     }
 
     #[test]

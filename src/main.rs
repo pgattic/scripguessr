@@ -31,7 +31,7 @@ fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        span { "Book of Mormon · 5 rounds · book and chapter" }
+                        span { "Book of Mormon · 5 rounds · {snapshot.scriptures.playable_verses.len()} of {snapshot.scriptures.total_verse_count()} verses in play" }
                     }
                     div { class: "pill", "Total {snapshot.total_score()} / {ROUNDS_PER_GAME as u32 * MAX_SCORE}" }
                 }
@@ -271,9 +271,10 @@ impl Game {
     fn restart(&mut self) {
         self.rounds = (0..ROUNDS_PER_GAME)
             .map(|_| {
-                let index = self.rng.random_range(0..self.scriptures.verses.len());
+                let verse_pool = &self.scriptures.playable_verses;
+                let index = self.rng.random_range(0..verse_pool.len());
                 Round {
-                    verse: self.scriptures.verses[index].clone(),
+                    verse: verse_pool[index].clone(),
                     guess: None,
                 }
             })
