@@ -5,8 +5,10 @@ use crate::scoring::Score;
 #[derive(Clone)]
 pub struct Scriptures {
     pub verses: Vec<Verse>,
-    pub playable_verses: Vec<Verse>,
     pub books: Vec<BookInfo>,
+    easy_verses: Vec<Verse>,
+    normal_verses: Vec<Verse>,
+    hard_verses: Vec<Verse>,
     chapter_order: Vec<ChapterRef>,
 }
 
@@ -37,6 +39,18 @@ impl Scriptures {
 
     pub fn total_verse_count(&self) -> usize {
         self.verses.len()
+    }
+
+    pub fn verse_count_for_difficulty(&self, difficulty: Difficulty) -> usize {
+        self.verses_for_difficulty(difficulty).len()
+    }
+
+    pub fn verses_for_difficulty(&self, difficulty: Difficulty) -> &[Verse] {
+        match difficulty {
+            Difficulty::Easy => &self.easy_verses,
+            Difficulty::Normal => &self.normal_verses,
+            Difficulty::Hard => &self.hard_verses,
+        }
     }
 
     fn from_flat_verses(flat_verses: Vec<FlatVerse>) -> Self {
@@ -72,7 +86,9 @@ impl Scriptures {
         }
 
         Self {
-            playable_verses: playable_verses(&verses),
+            easy_verses: filtered_verses(&verses, Difficulty::Easy),
+            normal_verses: filtered_verses(&verses, Difficulty::Normal),
+            hard_verses: filtered_verses(&verses, Difficulty::Hard),
             verses,
             books,
             chapter_order,
@@ -86,10 +102,29 @@ impl Scriptures {
     }
 }
 
-fn playable_verses(verses: &[Verse]) -> Vec<Verse> {
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Difficulty {
+    Easy,
+    Normal,
+    Hard,
+}
+
+impl Difficulty {
+    pub const ALL: [Self; 3] = [Self::Easy, Self::Normal, Self::Hard];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Easy => "Easy",
+            Self::Normal => "Normal",
+            Self::Hard => "Hard",
+        }
+    }
+}
+
+fn filtered_verses(verses: &[Verse], difficulty: Difficulty) -> Vec<Verse> {
     let filtered = verses
         .iter()
-        .filter(|verse| is_playable_verse(&verse.text))
+        .filter(|verse| is_playable_verse(&verse.text, difficulty))
         .cloned()
         .collect::<Vec<_>>();
 
@@ -100,10 +135,16 @@ fn playable_verses(verses: &[Verse]) -> Vec<Verse> {
     }
 }
 
-fn is_playable_verse(text: &str) -> bool {
+fn is_playable_verse(text: &str, difficulty: Difficulty) -> bool {
     let normalized_words = normalized_words(text);
+    let word_count = normalized_words.len();
+    let minimum_words = match difficulty {
+        Difficulty::Easy => 24,
+        Difficulty::Normal => 16,
+        Difficulty::Hard => 8,
+    };
 
-    if normalized_words.len() < 16 {
+    if word_count < minimum_words {
         return false;
     }
 
@@ -112,7 +153,13 @@ fn is_playable_verse(text: &str) -> bool {
         .collect::<std::collections::BTreeSet<_>>()
         .len();
 
-    if distinct_words < 10 {
+    let minimum_distinct_words = match difficulty {
+        Difficulty::Easy => 16,
+        Difficulty::Normal => 10,
+        Difficulty::Hard => 6,
+    };
+
+    if distinct_words < minimum_distinct_words {
         return false;
     }
 
@@ -128,8 +175,12 @@ fn is_playable_verse(text: &str) -> bool {
     .filter(|phrase| lower.matches(*phrase).count() > 0)
     .count();
 
-    let distinct_ratio = distinct_words as f32 / normalized_words.len() as f32;
-    filler_hits <= 2 || distinct_ratio >= 0.72
+    let distinct_ratio = distinct_words as f32 / word_count as f32;
+    match difficulty {
+        Difficulty::Easy => filler_hits <= 1 || distinct_ratio >= 0.8,
+        Difficulty::Normal => filler_hits <= 2 || distinct_ratio >= 0.72,
+        Difficulty::Hard => filler_hits <= 2 || distinct_ratio >= 0.62,
+    }
 }
 
 fn normalized_words(text: &str) -> Vec<String> {
@@ -218,25 +269,23 @@ mod tests {
     }
 
     #[test]
-    fn builds_a_filtered_playable_verse_pool() {
+    fn builds_filtered_verse_pools_by_difficulty() {
         let scriptures = Scriptures::from_flat_json(
             r#"{
               "verses": [
                 { "reference": "1 Nephi 1:1", "text": "Amen." },
+                { "reference": "1 Nephi 1:2", "text": "Nephi keeps a record about his family, their journey, and the mercies of the Lord." },
                 { "reference": "1 Nephi 1:2", "text": "And it came to pass, yea, and now therefore it came to pass, yea, and now therefore it came to pass again." },
-                { "reference": "1 Nephi 1:3", "text": "Nephi records the learning of his father, the mercy of God, and the purposes that shaped his journey through the wilderness." }
+                { "reference": "1 Nephi 1:3", "text": "Nephi records the learning of his father, the mercy of God, and the purposes that shaped his journey through the wilderness with faith and patience." }
               ]
             }"#,
         )
         .unwrap();
 
-        assert_eq!(scriptures.verses.len(), 3);
-        assert_eq!(scriptures.playable_verses.len(), 1);
-        assert_eq!(scriptures.playable_verses[0].reference.chapter, 1);
-        assert_eq!(
-            scriptures.playable_verses[0].text,
-            "Nephi records the learning of his father, the mercy of God, and the purposes that shaped his journey through the wilderness."
-        );
+        assert_eq!(scriptures.verses.len(), 4);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Easy), 1);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Normal), 1);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Hard), 2);
     }
 
     #[test]
@@ -251,7 +300,9 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(scriptures.playable_verses.len(), 2);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Easy), 2);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Normal), 2);
+        assert_eq!(scriptures.verse_count_for_difficulty(Difficulty::Hard), 2);
     }
 
     #[test]

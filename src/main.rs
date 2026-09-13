@@ -6,10 +6,9 @@ mod scoring;
 mod scriptures;
 
 use scoring::{MAX_SCORE, Score};
-use scriptures::{BookInfo, Reference, Scriptures, Verse};
+use scriptures::{BookInfo, Difficulty, Reference, Scriptures, Verse};
 
 const DATA: &str = include_str!("../data/book-of-mormon-flat.json");
-const ROUNDS_PER_GAME: usize = 5;
 
 fn main() {
     dioxus::launch(App);
@@ -31,14 +30,20 @@ fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        span { "Book of Mormon · 5 rounds · {snapshot.scriptures.playable_verses.len()} of {snapshot.scriptures.total_verse_count()} verses in play" }
+                        span { "Book of Mormon · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {snapshot.scriptures.total_verse_count()} verses in play" }
                     }
-                    div { class: "pill", "Total {snapshot.total_score()} / {ROUNDS_PER_GAME as u32 * MAX_SCORE}" }
+                    if snapshot.screen == Screen::Playing {
+                        div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
+                    }
                 }
 
-                div { class: "layout",
-                    VersePanel { game: game }
-                    GuessPanel { game: game }
+                if snapshot.screen == Screen::Setup {
+                    SetupPanel { game: game }
+                } else {
+                    div { class: "layout",
+                        VersePanel { game: game }
+                        GuessPanel { game: game }
+                    }
                 }
             }
         }
@@ -53,7 +58,7 @@ fn VersePanel(game: Signal<Game>) -> Element {
     rsx! {
         section { class: "panel verse-panel",
             div { class: "verse-label",
-                span { "Round {round_number} of {ROUNDS_PER_GAME}" }
+                span { "Round {round_number} of {snapshot.settings.round_count}" }
                 span { "Book of Mormon" }
             }
 
@@ -87,13 +92,18 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 }
                 div { class: "ready",
                     span { class: "muted", "Final score" }
-                    strong { "{snapshot.total_score()} / {ROUNDS_PER_GAME as u32 * MAX_SCORE}" }
+                    strong { "{snapshot.total_score()} / {snapshot.max_total_score()}" }
                 }
                 div { class: "actions",
                     button {
                         class: "button",
                         onclick: move |_| game.write().restart(),
                         "Play again"
+                    }
+                    button {
+                        class: "button secondary",
+                        onclick: move |_| game.write().change_settings(),
+                        "Change settings"
                     }
                 }
             } else {
@@ -222,6 +232,66 @@ fn GuessPanel(game: Signal<Game>) -> Element {
 }
 
 #[component]
+fn SetupPanel(game: Signal<Game>) -> Element {
+    let snapshot = game.read().clone();
+
+    rsx! {
+        section { class: "panel setup-panel",
+            div { class: "picker-header",
+                h2 { "New game" }
+                span { class: "muted", "Book of Mormon" }
+            }
+
+            div { class: "setup-group",
+                span { class: "setup-label", "Rounds" }
+                div { class: "segmented",
+                    for round_count in [5_usize, 10] {
+                        button {
+                            class: if snapshot.settings.round_count == round_count { "segment active" } else { "segment" },
+                            onclick: move |_| game.write().set_round_count(round_count),
+                            "{round_count}"
+                        }
+                    }
+                }
+            }
+
+            div { class: "setup-group",
+                span { class: "setup-label", "Difficulty" }
+                div { class: "segmented",
+                    for difficulty in Difficulty::ALL {
+                        button {
+                            class: if snapshot.settings.difficulty == difficulty { "segment active" } else { "segment" },
+                            onclick: move |_| game.write().set_difficulty(difficulty),
+                            "{difficulty.label()}"
+                        }
+                    }
+                }
+            }
+
+            div { class: "setup-group",
+                span { class: "setup-label", "Canon" }
+                div { class: "grid",
+                    button { class: "choice active", "Book of Mormon" }
+                }
+            }
+
+            div { class: "ready",
+                span { class: "muted", "Verse pool" }
+                strong { "{snapshot.scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {snapshot.scriptures.total_verse_count()} verses" }
+            }
+
+            div { class: "actions",
+                button {
+                    class: "button",
+                    onclick: move |_| game.write().start_game(),
+                    "Start"
+                }
+            }
+        }
+    }
+}
+
+#[component]
 fn ResultPanel(result: GuessResult, answer: Reference) -> Element {
     let label = result.score.distance_label();
 
@@ -262,6 +332,8 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
 #[derive(Clone)]
 struct Game {
     scriptures: Scriptures,
+    settings: GameSettings,
+    screen: Screen,
     rounds: Vec<Round>,
     current_round_index: usize,
     selected_canon: bool,
@@ -274,8 +346,10 @@ struct Game {
 
 impl Game {
     fn new(scriptures: Scriptures) -> Self {
-        let mut game = Self {
+        Self {
             scriptures,
+            settings: GameSettings::default(),
+            screen: Screen::Setup,
             rounds: Vec::new(),
             current_round_index: 0,
             selected_canon: false,
@@ -284,15 +358,20 @@ impl Game {
             active_step: GuessStep::Canon,
             finished: false,
             rng: SmallRng::from_os_rng(),
-        };
-        game.restart();
-        game
+        }
+    }
+
+    fn start_game(&mut self) {
+        self.screen = Screen::Playing;
+        self.restart();
     }
 
     fn restart(&mut self) {
-        self.rounds = (0..ROUNDS_PER_GAME)
+        self.rounds = (0..self.settings.round_count)
             .map(|_| {
-                let verse_pool = &self.scriptures.playable_verses;
+                let verse_pool = self
+                    .scriptures
+                    .verses_for_difficulty(self.settings.difficulty);
                 let index = self.rng.random_range(0..verse_pool.len());
                 Round {
                     verse: verse_pool[index].clone(),
@@ -308,12 +387,32 @@ impl Game {
         self.finished = false;
     }
 
+    fn change_settings(&mut self) {
+        self.screen = Screen::Setup;
+        self.finished = false;
+        self.rounds.clear();
+        self.current_round_index = 0;
+        self.clear_guess();
+    }
+
+    fn set_round_count(&mut self, round_count: usize) {
+        self.settings.round_count = round_count;
+    }
+
+    fn set_difficulty(&mut self, difficulty: Difficulty) {
+        self.settings.difficulty = difficulty;
+    }
+
     fn current_round(&self) -> &Round {
         &self.rounds[self.current_round_index]
     }
 
     fn is_last_round(&self) -> bool {
         self.current_round_index + 1 == self.rounds.len()
+    }
+
+    fn max_total_score(&self) -> u32 {
+        self.settings.round_count as u32 * MAX_SCORE
     }
 
     fn select_canon(&mut self) {
@@ -404,6 +503,27 @@ impl Game {
     fn chapters_for(&self, book: &str) -> Vec<u16> {
         self.scriptures.chapters_for(book)
     }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+struct GameSettings {
+    round_count: usize,
+    difficulty: Difficulty,
+}
+
+impl Default for GameSettings {
+    fn default() -> Self {
+        Self {
+            round_count: 5,
+            difficulty: Difficulty::Normal,
+        }
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum Screen {
+    Setup,
+    Playing,
 }
 
 #[derive(Clone, Copy, PartialEq)]

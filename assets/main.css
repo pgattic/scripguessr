@@ -134,6 +134,43 @@ button {
   padding: 18px;
 }
 
+.setup-panel {
+  width: min(520px, 100%);
+  padding: 18px;
+}
+
+.setup-group {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.setup-label {
+  color: #4f493f;
+  font-weight: 700;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.segment {
+  min-height: 42px;
+  border: 1px solid #d8cebb;
+  border-radius: 8px;
+  background: #fffaf1;
+  color: #27231f;
+  cursor: pointer;
+}
+
+.segment:hover,
+.segment.active {
+  border-color: #1f6b58;
+  background: #e7f1eb;
+}
+
 .picker-header {
   display: flex;
   align-items: center;
