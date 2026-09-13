@@ -60,13 +60,6 @@ fn VersePanel(game: Signal<Game>) -> Element {
             if snapshot.finished {
                 h2 { "Final score" }
                 p { class: "verse", "{snapshot.total_score()} points" }
-                div { class: "actions",
-                    button {
-                        class: "button",
-                        onclick: move |_| game.write().restart(),
-                        "Play again"
-                    }
-                }
                 RoundSummary { rounds: snapshot.rounds.clone() }
             } else {
                 blockquote { class: "verse", "{snapshot.current_round().verse.text}" }
@@ -81,118 +74,136 @@ fn GuessPanel(game: Signal<Game>) -> Element {
     let selected_canon = snapshot.selected_canon;
     let selected_book = snapshot.selected_book.clone();
     let selected_chapter = snapshot.selected_chapter;
-    let guessed = snapshot.current_round().guess.is_some();
+    let guessed = !snapshot.finished && snapshot.current_round().guess.is_some();
     let step = snapshot.active_step;
     let can_submit = selected_canon && selected_book.is_some() && selected_chapter.is_some();
 
     rsx! {
         aside { class: "panel picker",
-            div { class: "picker-header",
-                h2 { "Guess location" }
-                span { class: "muted", "{step.label()}" }
-            }
-
-            if selected_canon {
-                nav { class: "breadcrumbs", aria_label: "Guess path",
+            if snapshot.finished {
+                div { class: "picker-header",
+                    h2 { "Game complete" }
+                    span { class: "muted", "{snapshot.total_score()} pts" }
+                }
+                div { class: "ready",
+                    span { class: "muted", "Final score" }
+                    strong { "{snapshot.total_score()} / {ROUNDS_PER_GAME as u32 * MAX_SCORE}" }
+                }
+                div { class: "actions",
                     button {
-                        class: if step == GuessStep::Canon { "crumb current" } else { "crumb set" },
-                        disabled: guessed,
-                        onclick: move |_| game.write().edit_canon(),
-                        "Book of Mormon"
+                        class: "button",
+                        onclick: move |_| game.write().restart(),
+                        "Play again"
                     }
-                    if let Some(book) = selected_book.clone() {
-                        span { class: "crumb-separator", "/" }
+                }
+            } else {
+                div { class: "picker-header",
+                    h2 { "Guess location" }
+                    span { class: "muted", "{step.label()}" }
+                }
+
+                if selected_canon {
+                    nav { class: "breadcrumbs", aria_label: "Guess path",
                         button {
-                            class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
+                            class: if step == GuessStep::Canon { "crumb current" } else { "crumb set" },
                             disabled: guessed,
-                            onclick: move |_| game.write().edit_book(),
-                            "{book}"
+                            onclick: move |_| game.write().edit_canon(),
+                            "Book of Mormon"
                         }
-                    }
-                    if let Some(chapter) = selected_chapter {
-                        span { class: "crumb-separator", "/" }
-                        button {
-                            class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
-                            disabled: guessed,
-                            onclick: move |_| game.write().edit_chapter(),
-                            "Chapter {chapter}"
+                        if let Some(book) = selected_book.clone() {
+                            span { class: "crumb-separator", "/" }
+                            button {
+                                class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
+                                disabled: guessed,
+                                onclick: move |_| game.write().edit_book(),
+                                "{book}"
+                            }
+                        }
+                        if let Some(chapter) = selected_chapter {
+                            span { class: "crumb-separator", "/" }
+                            button {
+                                class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
+                                disabled: guessed,
+                                onclick: move |_| game.write().edit_chapter(),
+                                "Chapter {chapter}"
+                            }
                         }
                     }
                 }
-            }
 
-            match step {
-                GuessStep::Canon => rsx! {
-                    div { class: "grid",
-                        button {
-                            class: if selected_canon { "choice active" } else { "choice" },
-                            disabled: guessed,
-                            onclick: move |_| game.write().select_canon(),
-                            "Book of Mormon"
+                match step {
+                    GuessStep::Canon => rsx! {
+                        div { class: "grid",
+                            button {
+                                class: if selected_canon { "choice active" } else { "choice" },
+                                disabled: guessed,
+                                onclick: move |_| game.write().select_canon(),
+                                "Book of Mormon"
+                            }
                         }
-                    }
-                },
-                GuessStep::Book => rsx! {
-                    div { class: "grid book-grid",
-                        for book in snapshot.books() {
-                            {
-                                let book_name = book.name.clone();
-                                let active = selected_book.as_ref() == Some(&book_name);
-                                rsx! {
-                                    button {
-                                        class: if active { "choice active" } else { "choice" },
-                                        disabled: guessed,
-                                        onclick: move |_| game.write().select_book(book_name.clone()),
-                                        "{book.name}"
+                    },
+                    GuessStep::Book => rsx! {
+                        div { class: "grid book-grid",
+                            for book in snapshot.books() {
+                                {
+                                    let book_name = book.name.clone();
+                                    let active = selected_book.as_ref() == Some(&book_name);
+                                    rsx! {
+                                        button {
+                                            class: if active { "choice active" } else { "choice" },
+                                            disabled: guessed,
+                                            onclick: move |_| game.write().select_book(book_name.clone()),
+                                            "{book.name}"
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
-                },
-                GuessStep::Chapter => {
-                    let book_name = selected_book.clone().unwrap_or_default();
-                    rsx! {
-                        div { class: "grid chapter-grid",
-                            for chapter in snapshot.chapters_for(&book_name) {
-                                button {
-                                    class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
-                                    disabled: guessed,
-                                    onclick: move |_| game.write().select_chapter(chapter),
-                                    "{chapter}"
+                    },
+                    GuessStep::Chapter => {
+                        let book_name = selected_book.clone().unwrap_or_default();
+                        rsx! {
+                            div { class: "grid chapter-grid",
+                                for chapter in snapshot.chapters_for(&book_name) {
+                                    button {
+                                        class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
+                                        disabled: guessed,
+                                        onclick: move |_| game.write().select_chapter(chapter),
+                                        "{chapter}"
+                                    }
                                 }
                             }
                         }
-                    }
-                },
-                GuessStep::Ready => rsx! {
-                    div { class: "ready",
-                        span { class: "muted", "Ready to submit" }
-                        if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
-                            strong { "{book} {chapter}" }
+                    },
+                    GuessStep::Ready => rsx! {
+                        div { class: "ready",
+                            span { class: "muted", "Ready to submit" }
+                            if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
+                                strong { "{book} {chapter}" }
+                            }
                         }
                     }
                 }
-            }
 
-            if can_submit {
-                div { class: "actions",
-                    button {
-                        class: "button",
-                        disabled: guessed,
-                        onclick: move |_| game.write().submit_guess(),
-                        "Submit guess"
+                if can_submit {
+                    div { class: "actions",
+                        button {
+                            class: "button",
+                            disabled: guessed,
+                            onclick: move |_| game.write().submit_guess(),
+                            "Submit guess"
+                        }
                     }
                 }
-            }
 
-            if let Some(result) = snapshot.current_round().guess.clone() {
-                ResultPanel { result: result, answer: snapshot.current_round().verse.reference.clone() }
-                div { class: "actions",
-                    button {
-                        class: "button",
-                        onclick: move |_| game.write().next_round(),
-                        if snapshot.is_last_round() { "Finish game" } else { "Next round" }
+                if let Some(result) = snapshot.current_round().guess.clone() {
+                    ResultPanel { result: result, answer: snapshot.current_round().verse.reference.clone() }
+                    div { class: "actions",
+                        button {
+                            class: "button",
+                            onclick: move |_| game.write().next_round(),
+                            if snapshot.is_last_round() { "Finish game" } else { "Next round" }
+                        }
                     }
                 }
             }
