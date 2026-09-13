@@ -103,30 +103,40 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 }
 
                 if selected_canon {
-                    nav { class: "breadcrumbs", aria_label: "Guess path",
-                        button {
-                            class: if step == GuessStep::Canon { "crumb current" } else { "crumb set" },
-                            disabled: guessed,
-                            onclick: move |_| game.write().edit_canon(),
-                            "Book of Mormon"
-                        }
-                        if let Some(book) = selected_book.clone() {
-                            span { class: "crumb-separator", "/" }
+                    div { class: "breadcrumb-bar",
+                        nav { class: "breadcrumbs", aria_label: "Guess path",
                             button {
                                 class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
                                 disabled: guessed,
-                                onclick: move |_| game.write().edit_book(),
-                                "{book}"
+                                onclick: move |_| game.write().open_canon(),
+                                "Book of Mormon"
+                            }
+                            if let Some(book) = selected_book.clone() {
+                                span { class: "crumb-separator", "/" }
+                                button {
+                                    class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
+                                    disabled: guessed,
+                                    onclick: move |_| game.write().open_book(),
+                                    "{book}"
+                                }
+                            }
+                            if let Some(chapter) = selected_chapter {
+                                span { class: "crumb-separator", "/" }
+                                button {
+                                    class: if step == GuessStep::Ready { "crumb current" } else { "crumb set" },
+                                    disabled: guessed,
+                                    onclick: move |_| game.write().open_chapter(),
+                                    "Chapter {chapter}"
+                                }
                             }
                         }
-                        if let Some(chapter) = selected_chapter {
-                            span { class: "crumb-separator", "/" }
-                            button {
-                                class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
-                                disabled: guessed,
-                                onclick: move |_| game.write().edit_chapter(),
-                                "Chapter {chapter}"
-                            }
+                        button {
+                            class: "clear-guess",
+                            disabled: guessed,
+                            aria_label: "Clear guess",
+                            title: "Clear guess",
+                            onclick: move |_| game.write().clear_guess(),
+                            "×"
                         }
                     }
                 }
@@ -324,20 +334,29 @@ impl Game {
         self.active_step = GuessStep::Ready;
     }
 
-    fn edit_canon(&mut self) {
-        self.active_step = GuessStep::Canon;
-    }
-
-    fn edit_book(&mut self) {
+    fn open_canon(&mut self) {
         if self.selected_canon {
             self.active_step = GuessStep::Book;
         }
     }
 
-    fn edit_chapter(&mut self) {
+    fn open_book(&mut self) {
         if self.selected_book.is_some() {
             self.active_step = GuessStep::Chapter;
         }
+    }
+
+    fn open_chapter(&mut self) {
+        if self.selected_chapter.is_some() {
+            self.active_step = GuessStep::Ready;
+        }
+    }
+
+    fn clear_guess(&mut self) {
+        self.selected_canon = false;
+        self.selected_book = None;
+        self.selected_chapter = None;
+        self.active_step = GuessStep::Canon;
     }
 
     fn submit_guess(&mut self) {
