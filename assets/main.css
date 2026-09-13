@@ -148,6 +148,50 @@ button {
   font-size: 1rem;
 }
 
+.breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #ded5c4;
+}
+
+.crumb {
+  min-height: 34px;
+  max-width: 100%;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: transparent;
+  color: #676158;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+
+.crumb.set {
+  border-color: #cfc5b2;
+  background: #fffaf1;
+  color: #27231f;
+}
+
+.crumb.current {
+  border-color: #1f6b58;
+  background: #e7f1eb;
+  color: #183a31;
+  font-weight: 700;
+}
+
+.crumb:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.crumb-separator {
+  color: #9a9286;
+}
+
 .grid {
   display: grid;
   gap: 8px;
@@ -179,6 +223,15 @@ button {
 .selected {
   margin: 14px 0 0;
   color: #4f493f;
+}
+
+.ready {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border: 1px solid #ded5c4;
+  border-radius: 8px;
+  background: #fffaf1;
 }
 
 .result {

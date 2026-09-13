@@ -82,71 +82,107 @@ fn VersePanel(game: Signal<Game>) -> Element {
 #[component]
 fn GuessPanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
+    let selected_canon = snapshot.selected_canon;
     let selected_book = snapshot.selected_book.clone();
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
+    let step = snapshot.guess_step();
 
     rsx! {
         aside { class: "panel picker",
             div { class: "picker-header",
                 h2 { "Guess location" }
-                span { class: "muted", "Canon" }
+                span { class: "muted", "{step.label()}" }
             }
 
-            div { class: "grid",
-                button { class: "choice active", "Book of Mormon" }
+            nav { class: "breadcrumbs", aria_label: "Guess path",
+                button {
+                    class: if selected_canon { "crumb set" } else { "crumb current" },
+                    disabled: guessed,
+                    onclick: move |_| game.write().edit_canon(),
+                    "Book of Mormon"
+                }
+                span { class: "crumb-separator", "/" }
+                button {
+                    class: if selected_book.is_some() { "crumb set" } else { "crumb current" },
+                    disabled: guessed || !selected_canon,
+                    onclick: move |_| game.write().edit_book(),
+                    if let Some(book) = selected_book.clone() {
+                        "{book}"
+                    } else {
+                        "Book"
+                    }
+                }
+                span { class: "crumb-separator", "/" }
+                button {
+                    class: if selected_chapter.is_some() { "crumb set" } else { "crumb current" },
+                    disabled: guessed || selected_book.is_none(),
+                    onclick: move |_| game.write().edit_chapter(),
+                    if let Some(chapter) = selected_chapter {
+                        "Chapter {chapter}"
+                    } else {
+                        "Chapter"
+                    }
+                }
             }
 
-            div { class: "picker-header", style: "margin-top: 18px;",
-                h2 { "Book" }
-            }
-            div { class: "grid book-grid",
-                for book in snapshot.books() {
-                    {
-                        let book_name = book.name.clone();
-                        let active = selected_book.as_ref() == Some(&book_name);
-                        rsx! {
-                            button {
-                                class: if active { "choice active" } else { "choice" },
-                                disabled: guessed,
-                                onclick: move |_| game.write().select_book(book_name.clone()),
-                                "{book.name}"
+            match step {
+                GuessStep::Canon => rsx! {
+                    div { class: "grid",
+                        button {
+                            class: "choice",
+                            disabled: guessed,
+                            onclick: move |_| game.write().select_canon(),
+                            "Book of Mormon"
+                        }
+                    }
+                },
+                GuessStep::Book => rsx! {
+                    div { class: "grid book-grid",
+                        for book in snapshot.books() {
+                            {
+                                let book_name = book.name.clone();
+                                rsx! {
+                                    button {
+                                        class: "choice",
+                                        disabled: guessed,
+                                        onclick: move |_| game.write().select_book(book_name.clone()),
+                                        "{book.name}"
+                                    }
+                                }
                             }
                         }
                     }
-                }
-            }
-
-            if let Some(book_name) = selected_book.clone() {
-                div { class: "picker-header", style: "margin-top: 18px;",
-                    h2 { "Chapter" }
-                    span { class: "muted", "{book_name}" }
-                }
-                div { class: "grid chapter-grid",
-                    for chapter in snapshot.chapters_for(&book_name) {
-                        button {
-                            class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
-                            disabled: guessed,
-                            onclick: move |_| game.write().select_chapter(chapter),
-                            "{chapter}"
+                },
+                GuessStep::Chapter => {
+                    let book_name = selected_book.clone().unwrap_or_default();
+                    rsx! {
+                        div { class: "grid chapter-grid",
+                            for chapter in snapshot.chapters_for(&book_name) {
+                                button {
+                                    class: "choice",
+                                    disabled: guessed,
+                                    onclick: move |_| game.write().select_chapter(chapter),
+                                    "{chapter}"
+                                }
+                            }
                         }
                     }
-                }
-            }
-
-            p { class: "selected",
-                "Selected: "
-                if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
-                    strong { "{book} {chapter}" }
-                } else {
-                    span { "choose a book and chapter" }
+                },
+                GuessStep::Ready => rsx! {
+                    div { class: "ready",
+                        span { class: "muted", "Ready to submit" }
+                        if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
+                            strong { "{book} {chapter}" }
+                        }
+                    }
                 }
             }
 
             div { class: "actions",
                 button {
                     class: "button",
-                    disabled: guessed || selected_book.is_none() || selected_chapter.is_none(),
+                    disabled: guessed || !selected_canon || selected_book.is_none() || selected_chapter.is_none(),
                     onclick: move |_| game.write().submit_guess(),
                     "Submit guess"
                 }
@@ -191,6 +227,7 @@ struct Game {
     scriptures: Scriptures,
     rounds: Vec<Round>,
     current_round_index: usize,
+    selected_canon: bool,
     selected_book: Option<String>,
     selected_chapter: Option<u16>,
     finished: bool,
@@ -203,6 +240,7 @@ impl Game {
             scriptures,
             rounds: Vec::new(),
             current_round_index: 0,
+            selected_canon: false,
             selected_book: None,
             selected_chapter: None,
             finished: false,
@@ -223,6 +261,7 @@ impl Game {
             })
             .collect();
         self.current_round_index = 0;
+        self.selected_canon = false;
         self.selected_book = None;
         self.selected_chapter = None;
         self.finished = false;
@@ -236,6 +275,22 @@ impl Game {
         self.current_round_index + 1 == self.rounds.len()
     }
 
+    fn guess_step(&self) -> GuessStep {
+        if !self.selected_canon {
+            GuessStep::Canon
+        } else if self.selected_book.is_none() {
+            GuessStep::Book
+        } else if self.selected_chapter.is_none() {
+            GuessStep::Chapter
+        } else {
+            GuessStep::Ready
+        }
+    }
+
+    fn select_canon(&mut self) {
+        self.selected_canon = true;
+    }
+
     fn select_book(&mut self, book: String) {
         self.selected_book = Some(book);
         self.selected_chapter = None;
@@ -245,7 +300,29 @@ impl Game {
         self.selected_chapter = Some(chapter);
     }
 
+    fn edit_canon(&mut self) {
+        self.selected_canon = false;
+        self.selected_book = None;
+        self.selected_chapter = None;
+    }
+
+    fn edit_book(&mut self) {
+        if self.selected_canon {
+            self.selected_book = None;
+            self.selected_chapter = None;
+        }
+    }
+
+    fn edit_chapter(&mut self) {
+        if self.selected_book.is_some() {
+            self.selected_chapter = None;
+        }
+    }
+
     fn submit_guess(&mut self) {
+        if !self.selected_canon {
+            return;
+        }
         let Some(book) = self.selected_book.clone() else {
             return;
         };
@@ -266,6 +343,7 @@ impl Game {
             self.finished = true;
         } else {
             self.current_round_index += 1;
+            self.selected_canon = false;
             self.selected_book = None;
             self.selected_chapter = None;
         }
@@ -289,6 +367,25 @@ impl Game {
             .find(|item| item.name == book)
             .map(|item| item.chapters.clone())
             .unwrap_or_default()
+    }
+}
+
+#[derive(Clone, Copy, PartialEq)]
+enum GuessStep {
+    Canon,
+    Book,
+    Chapter,
+    Ready,
+}
+
+impl GuessStep {
+    fn label(self) -> &'static str {
+        match self {
+            GuessStep::Canon => "Canon",
+            GuessStep::Book => "Book",
+            GuessStep::Chapter => "Chapter",
+            GuessStep::Ready => "Review",
+        }
     }
 }
 
