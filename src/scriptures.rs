@@ -3,6 +3,70 @@ use serde::{Deserialize, Serialize};
 use crate::scoring::Score;
 
 #[derive(Clone, PartialEq)]
+pub struct ScriptureLibrary {
+    canons: Vec<CanonScriptures>,
+}
+
+impl ScriptureLibrary {
+    pub fn from_flat_json_sources(
+        sources: impl IntoIterator<Item = (Canon, &'static str)>,
+    ) -> Result<Self, serde_json::Error> {
+        let canons = sources
+            .into_iter()
+            .map(|(canon, data)| {
+                Scriptures::from_flat_json(data)
+                    .map(|scriptures| CanonScriptures { canon, scriptures })
+            })
+            .collect::<Result<Vec<_>, _>>()?;
+
+        Ok(Self { canons })
+    }
+
+    pub fn scriptures(&self, canon: Canon) -> &Scriptures {
+        self.canons
+            .iter()
+            .find(|item| item.canon == canon)
+            .map(|item| &item.scriptures)
+            .expect("bundled scripture library includes every canon")
+    }
+}
+
+#[derive(Clone, PartialEq)]
+struct CanonScriptures {
+    canon: Canon,
+    scriptures: Scriptures,
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+pub enum Canon {
+    BookOfMormon,
+    DoctrineAndCovenants,
+    PearlOfGreatPrice,
+    OldTestament,
+    NewTestament,
+}
+
+impl Canon {
+    pub const ALL: [Self; 5] = [
+        Self::BookOfMormon,
+        Self::DoctrineAndCovenants,
+        Self::PearlOfGreatPrice,
+        Self::OldTestament,
+        Self::NewTestament,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::BookOfMormon => "Book of Mormon",
+            Self::DoctrineAndCovenants => "Doctrine and Covenants",
+            Self::PearlOfGreatPrice => "Pearl of Great Price",
+            Self::OldTestament => "Old Testament",
+            Self::NewTestament => "New Testament",
+        }
+    }
+}
+
+#[derive(Clone, PartialEq)]
 pub struct Scriptures {
     pub verses: Vec<Verse>,
     pub books: Vec<BookInfo>,

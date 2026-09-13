@@ -2,19 +2,19 @@ use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 
 use crate::scoring::{MAX_SCORE, Score};
-use crate::scriptures::{Difficulty, Scriptures, Verse};
+use crate::scriptures::{Canon, Difficulty, ScriptureLibrary, Scriptures, Verse};
 use crate::stats::{FinishedGame, FinishedRound, Stats};
 
 #[derive(Clone)]
 pub struct Game {
-    pub scriptures: Scriptures,
+    pub library: ScriptureLibrary,
     pub settings: GameSettings,
     pub stats: Stats,
     pub last_game_new_best: bool,
     pub screen: Screen,
     pub rounds: Vec<Round>,
     pub current_round_index: usize,
-    pub selected_canon: bool,
+    pub selected_canon: Option<Canon>,
     pub selected_book: Option<String>,
     pub selected_chapter: Option<u16>,
     pub active_step: GuessStep,
@@ -24,7 +24,7 @@ pub struct Game {
 
 impl PartialEq for Game {
     fn eq(&self, other: &Self) -> bool {
-        self.scriptures == other.scriptures
+        self.library == other.library
             && self.settings == other.settings
             && self.stats == other.stats
             && self.last_game_new_best == other.last_game_new_best
@@ -40,16 +40,16 @@ impl PartialEq for Game {
 }
 
 impl Game {
-    pub fn new(scriptures: Scriptures) -> Self {
+    pub fn new(library: ScriptureLibrary) -> Self {
         Self {
-            scriptures,
+            library,
             settings: GameSettings::default(),
             stats: Stats::load(),
             last_game_new_best: false,
             screen: Screen::Setup,
             rounds: Vec::new(),
             current_round_index: 0,
-            selected_canon: false,
+            selected_canon: None,
             selected_book: None,
             selected_chapter: None,
             active_step: GuessStep::Canon,
@@ -67,18 +67,20 @@ impl Game {
         self.last_game_new_best = false;
         self.rounds = (0..self.settings.round_count)
             .map(|_| {
-                let verse_pool = self
-                    .scriptures
-                    .verses_for_difficulty(self.settings.difficulty);
-                let index = self.rng.random_range(0..verse_pool.len());
-                Round {
-                    verse: verse_pool[index].clone(),
-                    guess: None,
-                }
+                let verse_pool_len = self
+                    .scriptures()
+                    .verses_for_difficulty(self.settings.difficulty)
+                    .len();
+                let index = self.rng.random_range(0..verse_pool_len);
+                let verse = self
+                    .scriptures()
+                    .verses_for_difficulty(self.settings.difficulty)[index]
+                    .clone();
+                Round { verse, guess: None }
             })
             .collect();
         self.current_round_index = 0;
-        self.selected_canon = false;
+        self.selected_canon = None;
         self.selected_book = None;
         self.selected_chapter = None;
         self.active_step = GuessStep::Canon;
@@ -102,6 +104,13 @@ impl Game {
         self.settings.difficulty = difficulty;
     }
 
+    pub fn set_canon(&mut self, canon: Canon) {
+        if self.settings.canon != canon {
+            self.settings.canon = canon;
+            self.clear_guess();
+        }
+    }
+
     pub fn current_round(&self) -> &Round {
         &self.rounds[self.current_round_index]
     }
@@ -114,8 +123,12 @@ impl Game {
         self.settings.round_count as u32 * MAX_SCORE
     }
 
-    pub fn select_canon(&mut self) {
-        self.selected_canon = true;
+    pub fn select_canon(&mut self, canon: Canon) {
+        if self.selected_canon != Some(canon) {
+            self.selected_book = None;
+            self.selected_chapter = None;
+        }
+        self.selected_canon = Some(canon);
         self.active_step = GuessStep::Book;
     }
 
@@ -133,7 +146,7 @@ impl Game {
     }
 
     pub fn open_canon(&mut self) {
-        if self.selected_canon {
+        if self.selected_canon.is_some() {
             self.active_step = GuessStep::Book;
         }
     }
@@ -151,14 +164,14 @@ impl Game {
     }
 
     pub fn clear_guess(&mut self) {
-        self.selected_canon = false;
+        self.selected_canon = None;
         self.selected_book = None;
         self.selected_chapter = None;
         self.active_step = GuessStep::Canon;
     }
 
     pub fn submit_guess(&mut self) {
-        if !self.selected_canon {
+        if self.selected_canon.is_none() {
             return;
         }
         let Some(book) = self.selected_book.clone() else {
@@ -168,7 +181,7 @@ impl Game {
             return;
         };
         let answer = self.current_round().verse.reference.clone();
-        let score = self.scriptures.score(&answer, &book, chapter);
+        let score = self.scriptures().score(&answer, &book, chapter);
         self.rounds[self.current_round_index].guess = Some(GuessResult {
             book,
             chapter,
@@ -186,7 +199,7 @@ impl Game {
             self.record_finished_game();
         } else {
             self.current_round_index += 1;
-            self.selected_canon = false;
+            self.selected_canon = None;
             self.selected_book = None;
             self.selected_chapter = None;
             self.active_step = GuessStep::Canon;
@@ -201,7 +214,11 @@ impl Game {
     }
 
     pub fn chapters_for(&self, book: &str) -> Vec<u16> {
-        self.scriptures.chapters_for(book)
+        self.scriptures().chapters_for(book)
+    }
+
+    pub fn scriptures(&self) -> &Scriptures {
+        self.library.scriptures(self.settings.canon)
     }
 
     fn record_finished_game(&mut self) {
@@ -231,6 +248,7 @@ impl Game {
 pub struct GameSettings {
     pub round_count: usize,
     pub difficulty: Difficulty,
+    pub canon: Canon,
 }
 
 impl Default for GameSettings {
@@ -238,6 +256,7 @@ impl Default for GameSettings {
         Self {
             round_count: 5,
             difficulty: Difficulty::Normal,
+            canon: Canon::BookOfMormon,
         }
     }
 }

@@ -1,17 +1,31 @@
 use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::scriptures::{Difficulty, Reference, Scriptures};
+use crate::scriptures::{Canon, Difficulty, Reference, ScriptureLibrary};
 use crate::stats::Stats;
 
-const DATA: &str = include_str!("../data/book-of-mormon-flat.json");
+const BOOK_OF_MORMON_DATA: &str = include_str!("../data/book-of-mormon-flat.json");
+const DOCTRINE_AND_COVENANTS_DATA: &str = include_str!("../data/doctrine-and-covenants-flat.json");
+const PEARL_OF_GREAT_PRICE_DATA: &str = include_str!("../data/pearl-of-great-price-flat.json");
+const OLD_TESTAMENT_DATA: &str = include_str!("../data/old-testament-flat.json");
+const NEW_TESTAMENT_DATA: &str = include_str!("../data/new-testament-flat.json");
 
 #[component]
 pub fn App() -> Element {
     let game = use_signal(|| {
-        Game::new(Scriptures::from_flat_json(DATA).expect("bundled scripture data is valid"))
+        Game::new(
+            ScriptureLibrary::from_flat_json_sources([
+                (Canon::BookOfMormon, BOOK_OF_MORMON_DATA),
+                (Canon::DoctrineAndCovenants, DOCTRINE_AND_COVENANTS_DATA),
+                (Canon::PearlOfGreatPrice, PEARL_OF_GREAT_PRICE_DATA),
+                (Canon::OldTestament, OLD_TESTAMENT_DATA),
+                (Canon::NewTestament, NEW_TESTAMENT_DATA),
+            ])
+            .expect("bundled scripture data is valid"),
+        )
     });
     let snapshot = game.read().clone();
+    let scriptures = snapshot.scriptures();
 
     rsx! {
         document::Stylesheet {
@@ -22,7 +36,7 @@ pub fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        span { "Book of Mormon · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {snapshot.scriptures.total_verse_count()} verses in play" }
+                        span { "{snapshot.settings.canon.label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses in play" }
                     }
                     if snapshot.screen == Screen::Playing {
                         div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
@@ -46,12 +60,13 @@ pub fn App() -> Element {
 fn VersePanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
     let round_number = snapshot.current_round_index + 1;
+    let canon_label = snapshot.settings.canon.label();
 
     rsx! {
         section { class: "panel verse-panel",
             div { class: "verse-label",
                 span { "Round {round_number} of {snapshot.settings.round_count}" }
-                span { "Book of Mormon" }
+                span { "{canon_label}" }
             }
 
             if snapshot.finished {
@@ -119,7 +134,8 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
     let step = snapshot.active_step;
-    let can_submit = selected_canon && selected_book.is_some() && selected_chapter.is_some();
+    let can_submit =
+        selected_canon.is_some() && selected_book.is_some() && selected_chapter.is_some();
 
     rsx! {
         div { class: "picker-header",
@@ -127,9 +143,10 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             span { class: "muted", "{step.label()}" }
         }
 
-        if selected_canon {
+        if selected_canon.is_some() {
             Breadcrumbs {
                 game,
+                canon: snapshot.settings.canon,
                 selected_book: selected_book.clone(),
                 selected_chapter,
                 guessed,
@@ -140,17 +157,19 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         match step {
             GuessStep::Canon => rsx! {
                 div { class: "grid",
-                    button {
-                        class: if selected_canon { "choice active" } else { "choice" },
-                        disabled: guessed,
-                        onclick: move |_| game.write().select_canon(),
-                        "Book of Mormon"
+                    for canon in [snapshot.settings.canon] {
+                        button {
+                            class: if selected_canon == Some(canon) { "choice active" } else { "choice" },
+                            disabled: guessed,
+                            onclick: move |_| game.write().select_canon(canon),
+                            "{canon.label()}"
+                        }
                     }
                 }
             },
             GuessStep::Book => rsx! {
                 div { class: "grid book-grid",
-                    for book in snapshot.scriptures.books.clone() {
+                    for book in snapshot.scriptures().books.clone() {
                         {
                             let book_name = book.name.clone();
                             let active = selected_book.as_ref() == Some(&book_name);
@@ -218,6 +237,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
 #[component]
 fn Breadcrumbs(
     game: Signal<Game>,
+    canon: Canon,
     selected_book: Option<String>,
     selected_chapter: Option<u16>,
     guessed: bool,
@@ -230,7 +250,7 @@ fn Breadcrumbs(
                     class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
                     disabled: guessed,
                     onclick: move |_| game.write().open_canon(),
-                    "Book of Mormon"
+                    "{canon.label()}"
                 }
                 if let Some(book) = selected_book {
                     span { class: "crumb-separator", "/" }
@@ -266,12 +286,13 @@ fn Breadcrumbs(
 #[component]
 fn SetupPanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
+    let scriptures = snapshot.scriptures();
 
     rsx! {
         section { class: "panel setup-panel",
             div { class: "picker-header",
                 h2 { "New game" }
-                span { class: "muted", "Book of Mormon" }
+                span { class: "muted", "{snapshot.settings.canon.label()}" }
             }
 
             div { class: "setup-group",
@@ -303,13 +324,19 @@ fn SetupPanel(game: Signal<Game>) -> Element {
             div { class: "setup-group",
                 span { class: "setup-label", "Canon" }
                 div { class: "grid",
-                    button { class: "choice active", "Book of Mormon" }
+                    for canon in Canon::ALL {
+                        button {
+                            class: if snapshot.settings.canon == canon { "choice active" } else { "choice" },
+                            onclick: move |_| game.write().set_canon(canon),
+                            "{canon.label()}"
+                        }
+                    }
                 }
             }
 
             div { class: "ready",
                 span { class: "muted", "Verse pool" }
-                strong { "{snapshot.scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {snapshot.scriptures.total_verse_count()} verses" }
+                strong { "{scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses" }
             }
 
             StatsPanel { stats: snapshot.stats.clone() }
