@@ -1,0 +1,10 @@
+[application]
+name = "ScripGuessr"
+default_platform = "web"
+out_dir = "dist"
+
+[web.app]
+title = "ScripGuessr"
+
+[web.watcher]
+watch_path = ["src", "assets", "data"]
