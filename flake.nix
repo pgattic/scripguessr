@@ -9,6 +9,8 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
+      flake.nixosModules.default = import ./nix/module.nix;
+
       systems = [
         "x86_64-linux"
         "aarch64-linux"
@@ -44,6 +46,8 @@
               cargo fmt --all
             '';
           };
+
+          packages.default = pkgs.callPackage ./nix/package.nix { };
 
           packages.dev = pkgs.writeShellApplication {
             name = "scripguessr-dev";

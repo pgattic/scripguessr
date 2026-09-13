@@ -1,0 +1,42 @@
+# Deploying ScripGuessr on NixOS
+
+ScripGuessr ships a NixOS module as `nixosModules.default`. The module builds the
+Dioxus web app as a static site, serves it on localhost with `static-web-server`,
+and leaves your reverse proxy configuration in your host config.
+
+## Example
+
+```nix
+{
+  inputs.scripguessr.url = "github:your-user/scripguessr";
+
+  outputs =
+    { nixpkgs, scripguessr, ... }:
+    {
+      nixosConfigurations.your-server = nixpkgs.lib.nixosSystem {
+        system = "x86_64-linux";
+        modules = [
+          scripguessr.nixosModules.default
+          {
+            services.scripguessr = {
+              enable = true;
+              port = 8087;
+            };
+
+            services.nginx = {
+              enable = true;
+              virtualHosts."scripguessr.example.com" = {
+                enableACME = true;
+                forceSSL = true;
+                locations."/".proxyPass = "http://127.0.0.1:8087";
+              };
+            };
+          }
+        ];
+      };
+    };
+}
+```
+
+If another reverse proxy already owns TLS, point it at
+`http://127.0.0.1:8087`.

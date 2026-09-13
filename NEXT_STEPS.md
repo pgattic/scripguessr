@@ -11,6 +11,7 @@
 - Added a game setup flow for round count, canon, and difficulty.
 - Added local stats for best score, average score, rounds played, and weakest books.
 - Split the app into focused modules for UI, game state, scoring, scripture data, and stats.
+- Added a NixOS service module and deployment notes for hosting behind a reverse proxy.
 
 ## Current Priority
 
