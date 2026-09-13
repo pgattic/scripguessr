@@ -70,16 +70,6 @@ fn VersePanel(game: Signal<Game>) -> Element {
                 RoundSummary { rounds: snapshot.rounds.clone() }
             } else {
                 blockquote { class: "verse", "{snapshot.current_round().verse.text}" }
-
-                if snapshot.current_round().guess.is_some() {
-                    div { class: "actions",
-                        button {
-                            class: "button",
-                            onclick: move |_| game.write().next_round(),
-                            if snapshot.is_last_round() { "Finish game" } else { "Next round" }
-                        }
-                    }
-                }
             }
         }
     }
@@ -198,6 +188,13 @@ fn GuessPanel(game: Signal<Game>) -> Element {
 
             if let Some(result) = snapshot.current_round().guess.clone() {
                 ResultPanel { result: result, answer: snapshot.current_round().verse.reference.clone() }
+                div { class: "actions",
+                    button {
+                        class: "button",
+                        onclick: move |_| game.write().next_round(),
+                        if snapshot.is_last_round() { "Finish game" } else { "Next round" }
+                    }
+                }
             }
         }
     }
