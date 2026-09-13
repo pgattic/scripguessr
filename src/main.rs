@@ -86,7 +86,8 @@ fn GuessPanel(game: Signal<Game>) -> Element {
     let selected_book = snapshot.selected_book.clone();
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
-    let step = snapshot.guess_step();
+    let step = snapshot.active_step;
+    let can_submit = selected_canon && selected_book.is_some() && selected_chapter.is_some();
 
     rsx! {
         aside { class: "panel picker",
@@ -95,33 +96,31 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 span { class: "muted", "{step.label()}" }
             }
 
-            nav { class: "breadcrumbs", aria_label: "Guess path",
-                button {
-                    class: if selected_canon { "crumb set" } else { "crumb current" },
-                    disabled: guessed,
-                    onclick: move |_| game.write().edit_canon(),
-                    "Book of Mormon"
-                }
-                span { class: "crumb-separator", "/" }
-                button {
-                    class: if selected_book.is_some() { "crumb set" } else { "crumb current" },
-                    disabled: guessed || !selected_canon,
-                    onclick: move |_| game.write().edit_book(),
-                    if let Some(book) = selected_book.clone() {
-                        "{book}"
-                    } else {
-                        "Book"
+            if selected_canon {
+                nav { class: "breadcrumbs", aria_label: "Guess path",
+                    button {
+                        class: if step == GuessStep::Canon { "crumb current" } else { "crumb set" },
+                        disabled: guessed,
+                        onclick: move |_| game.write().edit_canon(),
+                        "Book of Mormon"
                     }
-                }
-                span { class: "crumb-separator", "/" }
-                button {
-                    class: if selected_chapter.is_some() { "crumb set" } else { "crumb current" },
-                    disabled: guessed || selected_book.is_none(),
-                    onclick: move |_| game.write().edit_chapter(),
+                    if let Some(book) = selected_book.clone() {
+                        span { class: "crumb-separator", "/" }
+                        button {
+                            class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
+                            disabled: guessed,
+                            onclick: move |_| game.write().edit_book(),
+                            "{book}"
+                        }
+                    }
                     if let Some(chapter) = selected_chapter {
-                        "Chapter {chapter}"
-                    } else {
-                        "Chapter"
+                        span { class: "crumb-separator", "/" }
+                        button {
+                            class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
+                            disabled: guessed,
+                            onclick: move |_| game.write().edit_chapter(),
+                            "Chapter {chapter}"
+                        }
                     }
                 }
             }
@@ -130,7 +129,7 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 GuessStep::Canon => rsx! {
                     div { class: "grid",
                         button {
-                            class: "choice",
+                            class: if selected_canon { "choice active" } else { "choice" },
                             disabled: guessed,
                             onclick: move |_| game.write().select_canon(),
                             "Book of Mormon"
@@ -142,9 +141,10 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                         for book in snapshot.books() {
                             {
                                 let book_name = book.name.clone();
+                                let active = selected_book.as_ref() == Some(&book_name);
                                 rsx! {
                                     button {
-                                        class: "choice",
+                                        class: if active { "choice active" } else { "choice" },
                                         disabled: guessed,
                                         onclick: move |_| game.write().select_book(book_name.clone()),
                                         "{book.name}"
@@ -160,7 +160,7 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                         div { class: "grid chapter-grid",
                             for chapter in snapshot.chapters_for(&book_name) {
                                 button {
-                                    class: "choice",
+                                    class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
                                     disabled: guessed,
                                     onclick: move |_| game.write().select_chapter(chapter),
                                     "{chapter}"
@@ -179,12 +179,14 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 }
             }
 
-            div { class: "actions",
-                button {
-                    class: "button",
-                    disabled: guessed || !selected_canon || selected_book.is_none() || selected_chapter.is_none(),
-                    onclick: move |_| game.write().submit_guess(),
-                    "Submit guess"
+            if can_submit {
+                div { class: "actions",
+                    button {
+                        class: "button",
+                        disabled: guessed,
+                        onclick: move |_| game.write().submit_guess(),
+                        "Submit guess"
+                    }
                 }
             }
 
@@ -230,6 +232,7 @@ struct Game {
     selected_canon: bool,
     selected_book: Option<String>,
     selected_chapter: Option<u16>,
+    active_step: GuessStep,
     finished: bool,
     rng: SmallRng,
 }
@@ -243,6 +246,7 @@ impl Game {
             selected_canon: false,
             selected_book: None,
             selected_chapter: None,
+            active_step: GuessStep::Canon,
             finished: false,
             rng: SmallRng::from_os_rng(),
         };
@@ -264,6 +268,7 @@ impl Game {
         self.selected_canon = false;
         self.selected_book = None;
         self.selected_chapter = None;
+        self.active_step = GuessStep::Canon;
         self.finished = false;
     }
 
@@ -275,47 +280,37 @@ impl Game {
         self.current_round_index + 1 == self.rounds.len()
     }
 
-    fn guess_step(&self) -> GuessStep {
-        if !self.selected_canon {
-            GuessStep::Canon
-        } else if self.selected_book.is_none() {
-            GuessStep::Book
-        } else if self.selected_chapter.is_none() {
-            GuessStep::Chapter
-        } else {
-            GuessStep::Ready
-        }
-    }
-
     fn select_canon(&mut self) {
         self.selected_canon = true;
+        self.active_step = GuessStep::Book;
     }
 
     fn select_book(&mut self, book: String) {
+        if self.selected_book.as_ref() != Some(&book) {
+            self.selected_chapter = None;
+        }
         self.selected_book = Some(book);
-        self.selected_chapter = None;
+        self.active_step = GuessStep::Chapter;
     }
 
     fn select_chapter(&mut self, chapter: u16) {
         self.selected_chapter = Some(chapter);
+        self.active_step = GuessStep::Ready;
     }
 
     fn edit_canon(&mut self) {
-        self.selected_canon = false;
-        self.selected_book = None;
-        self.selected_chapter = None;
+        self.active_step = GuessStep::Canon;
     }
 
     fn edit_book(&mut self) {
         if self.selected_canon {
-            self.selected_book = None;
-            self.selected_chapter = None;
+            self.active_step = GuessStep::Book;
         }
     }
 
     fn edit_chapter(&mut self) {
         if self.selected_book.is_some() {
-            self.selected_chapter = None;
+            self.active_step = GuessStep::Chapter;
         }
     }
 
@@ -346,6 +341,7 @@ impl Game {
             self.selected_canon = false;
             self.selected_book = None;
             self.selected_chapter = None;
+            self.active_step = GuessStep::Canon;
         }
     }
 
