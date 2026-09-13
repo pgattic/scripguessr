@@ -246,6 +246,27 @@ button {
   font-weight: 800;
 }
 
+.distance {
+  margin: 0 0 14px;
+  color: #1f6b58;
+  font-weight: 700;
+}
+
+.result-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.result-grid div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #e2d9c8;
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
 .round-list {
   display: grid;
   gap: 8px;
@@ -290,6 +311,10 @@ button {
   }
 
   .round-row {
+    grid-template-columns: 1fr;
+  }
+
+  .result-grid {
     grid-template-columns: 1fr;
   }
 }

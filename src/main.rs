@@ -1,11 +1,15 @@
 use dioxus::prelude::*;
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use serde::Deserialize;
+
+mod scoring;
+mod scriptures;
+
+use scoring::{MAX_SCORE, Score};
+use scriptures::{BookInfo, Reference, Scriptures, Verse};
 
 const DATA: &str = include_str!("../data/book-of-mormon-flat.json");
 const ROUNDS_PER_GAME: usize = 5;
-const MAX_SCORE: u32 = 1000;
 
 fn main() {
     dioxus::launch(App);
@@ -13,7 +17,9 @@ fn main() {
 
 #[component]
 fn App() -> Element {
-    let game = use_signal(|| Game::new(load_scriptures()));
+    let game = use_signal(|| {
+        Game::new(Scriptures::from_flat_json(DATA).expect("bundled scripture data is valid"))
+    });
     let snapshot = game.read().clone();
 
     rsx! {
@@ -199,12 +205,23 @@ fn GuessPanel(game: Signal<Game>) -> Element {
 
 #[component]
 fn ResultPanel(result: GuessResult, answer: Reference) -> Element {
+    let label = result.score.distance_label();
+
     rsx! {
         div { class: "result",
             h2 { "Result" }
-            p { class: "score", "{result.score}" }
-            p { "Actual: " strong { "{answer.book} {answer.chapter}" } }
-            p { "Guess: " strong { "{result.book} {result.chapter}" } }
+            p { class: "score", "{result.score.points}" }
+            p { class: "distance", "{label}" }
+            div { class: "result-grid",
+                div {
+                    span { class: "muted", "Actual" }
+                    strong { "{answer.book} {answer.chapter}" }
+                }
+                div {
+                    span { class: "muted", "Guess" }
+                    strong { "{result.book} {result.chapter}" }
+                }
+            }
         }
     }
 }
@@ -217,7 +234,7 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
                 div { class: "round-row",
                     strong { "Round {index + 1}" }
                     span { "{round.verse.reference.book} {round.verse.reference.chapter}" }
-                    span { "{round.guess.as_ref().map(|guess| guess.score).unwrap_or_default()} pts" }
+                    span { "{round.guess.as_ref().map(|guess| guess.score.points).unwrap_or_default()} pts" }
                 }
             }
         }
@@ -348,7 +365,7 @@ impl Game {
     fn total_score(&self) -> u32 {
         self.rounds
             .iter()
-            .filter_map(|round| round.guess.as_ref().map(|guess| guess.score))
+            .filter_map(|round| round.guess.as_ref().map(|guess| guess.score.points))
             .sum()
     }
 
@@ -357,12 +374,7 @@ impl Game {
     }
 
     fn chapters_for(&self, book: &str) -> Vec<u16> {
-        self.scriptures
-            .books
-            .iter()
-            .find(|item| item.name == book)
-            .map(|item| item.chapters.clone())
-            .unwrap_or_default()
+        self.scriptures.chapters_for(book)
     }
 }
 
@@ -385,49 +397,6 @@ impl GuessStep {
     }
 }
 
-#[derive(Clone)]
-struct Scriptures {
-    verses: Vec<Verse>,
-    books: Vec<BookInfo>,
-    chapter_order: Vec<ChapterRef>,
-}
-
-impl Scriptures {
-    fn score(&self, answer: &Reference, guess_book: &str, guess_chapter: u16) -> u32 {
-        let Some(answer_index) = self.chapter_index(&answer.book, answer.chapter) else {
-            return 0;
-        };
-        let Some(guess_index) = self.chapter_index(guess_book, guess_chapter) else {
-            return 0;
-        };
-        let distance = answer_index.abs_diff(guess_index) as u32;
-
-        if distance == 0 {
-            MAX_SCORE
-        } else {
-            MAX_SCORE.saturating_sub(distance * 22)
-        }
-    }
-
-    fn chapter_index(&self, book: &str, chapter: u16) -> Option<usize> {
-        self.chapter_order
-            .iter()
-            .position(|item| item.book == book && item.chapter == chapter)
-    }
-}
-
-#[derive(Clone, PartialEq)]
-struct BookInfo {
-    name: String,
-    chapters: Vec<u16>,
-}
-
-#[derive(Clone, PartialEq)]
-struct ChapterRef {
-    book: String,
-    chapter: u16,
-}
-
 #[derive(Clone, PartialEq)]
 struct Round {
     verse: Verse,
@@ -438,80 +407,5 @@ struct Round {
 struct GuessResult {
     book: String,
     chapter: u16,
-    score: u32,
-}
-
-#[derive(Clone, PartialEq)]
-struct Verse {
-    reference: Reference,
-    text: String,
-}
-
-#[derive(Clone, PartialEq)]
-struct Reference {
-    book: String,
-    chapter: u16,
-}
-
-#[derive(Deserialize)]
-struct FlatScriptures {
-    verses: Vec<FlatVerse>,
-}
-
-#[derive(Deserialize)]
-struct FlatVerse {
-    reference: String,
-    text: String,
-}
-
-fn load_scriptures() -> Scriptures {
-    let flat: FlatScriptures = serde_json::from_str(DATA).expect("bundled scripture data is valid");
-    let mut verses = Vec::new();
-    let mut books = Vec::<BookInfo>::new();
-    let mut chapter_order = Vec::<ChapterRef>::new();
-
-    for item in flat.verses {
-        let Some(reference) = parse_reference(&item.reference) else {
-            continue;
-        };
-
-        if books.last().map(|book| &book.name) != Some(&reference.book) {
-            books.push(BookInfo {
-                name: reference.book.clone(),
-                chapters: Vec::new(),
-            });
-        }
-
-        let book = books.last_mut().expect("book was just inserted if missing");
-        if book.chapters.last() != Some(&reference.chapter) {
-            book.chapters.push(reference.chapter);
-            chapter_order.push(ChapterRef {
-                book: reference.book.clone(),
-                chapter: reference.chapter,
-            });
-        }
-
-        verses.push(Verse {
-            reference,
-            text: item.text,
-        });
-    }
-
-    Scriptures {
-        verses,
-        books,
-        chapter_order,
-    }
-}
-
-fn parse_reference(reference: &str) -> Option<Reference> {
-    let (book_and_chapter, _verse) = reference.rsplit_once(':')?;
-    let last_space = book_and_chapter.rfind(' ')?;
-    let (book, chapter) = book_and_chapter.split_at(last_space);
-    let chapter = chapter.trim().parse().ok()?;
-
-    Some(Reference {
-        book: book.to_string(),
-        chapter,
-    })
+    score: Score,
 }
