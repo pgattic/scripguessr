@@ -4,9 +4,11 @@ use rand::{Rng, SeedableRng};
 
 mod scoring;
 mod scriptures;
+mod stats;
 
 use scoring::{MAX_SCORE, Score};
 use scriptures::{BookInfo, Difficulty, Reference, Scriptures, Verse};
+use stats::{FinishedGame, FinishedRound, Stats};
 
 const DATA: &str = include_str!("../data/book-of-mormon-flat.json");
 
@@ -93,6 +95,12 @@ fn GuessPanel(game: Signal<Game>) -> Element {
                 div { class: "ready",
                     span { class: "muted", "Final score" }
                     strong { "{snapshot.total_score()} / {snapshot.max_total_score()}" }
+                }
+                if snapshot.last_game_new_best {
+                    div { class: "callout",
+                        strong { "New best" }
+                        span { "That score tops your saved history." }
+                    }
                 }
                 div { class: "actions",
                     button {
@@ -280,11 +288,56 @@ fn SetupPanel(game: Signal<Game>) -> Element {
                 strong { "{snapshot.scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {snapshot.scriptures.total_verse_count()} verses" }
             }
 
+            StatsPanel { stats: snapshot.stats.clone() }
+
             div { class: "actions",
                 button {
                     class: "button",
                     onclick: move |_| game.write().start_game(),
                     "Start"
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn StatsPanel(stats: Stats) -> Element {
+    rsx! {
+        div { class: "stats-panel",
+            div { class: "picker-header",
+                h2 { "Stats" }
+                span { class: "muted", "{stats.games_played} games" }
+            }
+
+            if stats.games_played == 0 {
+                p { class: "muted", "No completed games yet." }
+            } else {
+                div { class: "stat-grid",
+                    div {
+                        span { class: "muted", "Best" }
+                        if let Some(best) = stats.best_score {
+                            strong { "{best.score} / {best.possible_score}" }
+                            span { class: "muted", "{best.score_percent()}%" }
+                        }
+                    }
+                    div {
+                        span { class: "muted", "Average" }
+                        strong { "{stats.average_percent().unwrap_or_default()}%" }
+                        span { class: "muted", "{stats.rounds_played} rounds" }
+                    }
+                }
+
+                if !stats.weakest_books(3).is_empty() {
+                    div { class: "weak-books",
+                        span { class: "setup-label", "Weakest books" }
+                        for (book, book_stats) in stats.weakest_books(3) {
+                            div { class: "weak-book-row",
+                                span { "{book}" }
+                                span { class: "muted", "{book_stats.average_percent().unwrap_or_default()}%" }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -333,6 +386,8 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
 struct Game {
     scriptures: Scriptures,
     settings: GameSettings,
+    stats: Stats,
+    last_game_new_best: bool,
     screen: Screen,
     rounds: Vec<Round>,
     current_round_index: usize,
@@ -349,6 +404,8 @@ impl Game {
         Self {
             scriptures,
             settings: GameSettings::default(),
+            stats: Stats::load(),
+            last_game_new_best: false,
             screen: Screen::Setup,
             rounds: Vec::new(),
             current_round_index: 0,
@@ -367,6 +424,7 @@ impl Game {
     }
 
     fn restart(&mut self) {
+        self.last_game_new_best = false;
         self.rounds = (0..self.settings.round_count)
             .map(|_| {
                 let verse_pool = self
@@ -390,6 +448,7 @@ impl Game {
     fn change_settings(&mut self) {
         self.screen = Screen::Setup;
         self.finished = false;
+        self.last_game_new_best = false;
         self.rounds.clear();
         self.current_round_index = 0;
         self.clear_guess();
@@ -478,8 +537,13 @@ impl Game {
     }
 
     fn next_round(&mut self) {
+        if self.finished {
+            return;
+        }
+
         if self.is_last_round() {
             self.finished = true;
+            self.record_finished_game();
         } else {
             self.current_round_index += 1;
             self.selected_canon = false;
@@ -487,6 +551,28 @@ impl Game {
             self.selected_chapter = None;
             self.active_step = GuessStep::Canon;
         }
+    }
+
+    fn record_finished_game(&mut self) {
+        let finished_game = FinishedGame {
+            difficulty: self.settings.difficulty,
+            score: self.total_score(),
+            possible_score: self.max_total_score(),
+            rounds: self
+                .rounds
+                .iter()
+                .filter_map(|round| {
+                    let guess = round.guess.as_ref()?;
+                    Some(FinishedRound {
+                        answer_book: round.verse.reference.book.clone(),
+                        score: guess.score.points,
+                        possible_score: MAX_SCORE,
+                    })
+                })
+                .collect(),
+        };
+
+        self.last_game_new_best = self.stats.record_game(finished_game);
     }
 
     fn total_score(&self) -> u32 {

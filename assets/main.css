@@ -305,6 +305,60 @@ button {
   background: #fffaf1;
 }
 
+.callout {
+  display: grid;
+  gap: 4px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #1f6b58;
+  border-radius: 8px;
+  background: #e7f1eb;
+  color: #183a31;
+}
+
+.stats-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #ded5c4;
+}
+
+.stats-panel .picker-header {
+  margin-bottom: 0;
+}
+
+.stat-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.stat-grid div {
+  display: grid;
+  gap: 4px;
+  padding: 10px;
+  border: 1px solid #e2d9c8;
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
+.weak-books {
+  display: grid;
+  gap: 8px;
+}
+
+.weak-book-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #e2d9c8;
+  border-radius: 8px;
+  background: #fffaf1;
+}
+
 .result {
   margin-top: 16px;
   padding: 16px;
@@ -386,6 +440,10 @@ button {
   }
 
   .result-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-grid {
     grid-template-columns: 1fr;
   }
 }
