@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Scriptures {
     pub verses: Vec<Verse>,
     pub books: Vec<BookInfo>,
