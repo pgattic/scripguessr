@@ -1,16 +1,14 @@
 {
   lib,
   stdenv,
-  rustPlatform,
+  craneLib,
   binaryen,
-  cargo,
   dioxus-cli,
   lld,
-  rustc,
   wasm-bindgen-cli,
 }:
 
-stdenv.mkDerivation {
+let
   pname = "scripguessr";
   version = "0.1.0";
 
@@ -27,36 +25,61 @@ stdenv.mkDerivation {
       && relative != "result";
   };
 
-  cargoDeps = rustPlatform.importCargoLock {
-    lockFile = ../Cargo.lock;
+  commonArgs = {
+    inherit pname version src;
+    strictDeps = true;
+    nativeBuildInputs = [ lld ];
   };
 
-  nativeBuildInputs = [
-    rustPlatform.cargoSetupHook
-    binaryen
-    cargo
-    dioxus-cli
-    lld
-    rustc
-    wasm-bindgen-cli
-  ];
+  serverCargoArtifacts = craneLib.buildDepsOnly commonArgs;
 
-  dontConfigure = true;
+  server = craneLib.buildPackage (
+    commonArgs
+    // {
+      cargoArtifacts = serverCargoArtifacts;
+      doCheck = false;
+    }
+  );
 
-  buildPhase = ''
-    runHook preBuild
-    export HOME="$TMPDIR"
-    export CARGO_NET_OFFLINE=true
-    dx build --release --platform web --locked
-    cargo build --release --locked
-    runHook postBuild
-  '';
+  webArgs = commonArgs // {
+    pname = "${pname}-web";
+    nativeBuildInputs = [
+      binaryen
+      dioxus-cli
+      lld
+      wasm-bindgen-cli
+    ];
+    CARGO_BUILD_TARGET = "wasm32-unknown-unknown";
+    CARGO_BUILD_RUSTFLAGS = ''--cfg getrandom_backend="wasm_js"'';
+    cargoExtraArgs = "--features web";
+  };
+
+  webCargoArtifacts = craneLib.buildDepsOnly webArgs;
+
+  web = craneLib.mkCargoDerivation (
+    webArgs
+    // {
+      cargoArtifacts = webCargoArtifacts;
+      buildPhaseCargoCommand = "dx build --release --platform web --locked";
+      checkPhaseCargoCommand = "";
+
+      installPhaseCommand = ''
+        mkdir -p "$out/share/scripguessr/public"
+        cp -R target/dx/scripguessr/release/web/public/. "$out/share/scripguessr/public/"
+      '';
+    }
+  );
+in
+stdenv.mkDerivation {
+  inherit pname version;
+
+  dontUnpack = true;
 
   installPhase = ''
     runHook preInstall
     mkdir -p "$out/bin" "$out/share/scripguessr/public"
-    cp target/release/scripguessr "$out/bin/"
-    cp -R target/dx/scripguessr/release/web/public/. "$out/share/scripguessr/public/"
+    cp ${server}/bin/scripguessr "$out/bin/"
+    cp -R ${web}/share/scripguessr/public/. "$out/share/scripguessr/public/"
     runHook postInstall
   '';
 

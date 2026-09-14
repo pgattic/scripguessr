@@ -4,6 +4,7 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-parts.url = "github:hercules-ci/flake-parts";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs =
@@ -20,6 +21,9 @@
 
       perSystem =
         { config, pkgs, ... }:
+        let
+          craneLib = inputs.crane.mkLib pkgs;
+        in
         {
           devShells.default = pkgs.mkShell {
             packages = with pkgs; [
@@ -47,7 +51,7 @@
             '';
           };
 
-          packages.default = pkgs.callPackage ./nix/package.nix { };
+          packages.default = pkgs.callPackage ./nix/package.nix { inherit craneLib; };
           packages.scripguessr = config.packages.default;
 
           packages.dev = pkgs.writeShellApplication {
