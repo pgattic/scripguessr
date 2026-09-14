@@ -101,6 +101,17 @@ impl Scriptures {
             .unwrap_or_default()
     }
 
+    pub fn verses_for_chapter(&self, reference: &Reference) -> Vec<Verse> {
+        self.verses
+            .iter()
+            .filter(|verse| {
+                verse.reference.book == reference.book
+                    && verse.reference.chapter == reference.chapter
+            })
+            .cloned()
+            .collect()
+    }
+
     pub fn total_verse_count(&self) -> usize {
         self.verses.len()
     }
@@ -275,6 +286,7 @@ pub struct Verse {
 pub struct Reference {
     pub book: String,
     pub chapter: u16,
+    pub verse: u16,
 }
 
 #[derive(Clone, PartialEq)]
@@ -295,14 +307,16 @@ struct FlatVerse {
 }
 
 fn parse_reference(reference: &str) -> Option<Reference> {
-    let (book_and_chapter, _verse) = reference.rsplit_once(':')?;
+    let (book_and_chapter, verse) = reference.rsplit_once(':')?;
     let last_space = book_and_chapter.rfind(' ')?;
     let (book, chapter) = book_and_chapter.split_at(last_space);
     let chapter = chapter.trim().parse().ok()?;
+    let verse = verse.parse().ok()?;
 
     Some(Reference {
         book: book.to_string(),
         chapter,
+        verse,
     })
 }
 
@@ -375,6 +389,7 @@ mod tests {
         let answer = Reference {
             book: "1 Nephi".to_string(),
             chapter: 2,
+            verse: 1,
         };
 
         let score = scriptures.score(&answer, "2 Nephi", 1);
@@ -389,8 +404,25 @@ mod tests {
         let answer = Reference {
             book: "1 Nephi".to_string(),
             chapter: 1,
+            verse: 1,
         };
 
         assert_eq!(scriptures.score(&answer, "Jacob", 1).points, 0);
+    }
+
+    #[test]
+    fn finds_verses_for_containing_chapter() {
+        let scriptures = Scriptures::from_flat_json(SAMPLE_DATA).unwrap();
+        let reference = Reference {
+            book: "1 Nephi".to_string(),
+            chapter: 1,
+            verse: 1,
+        };
+
+        let verses = scriptures.verses_for_chapter(&reference);
+
+        assert_eq!(verses.len(), 2);
+        assert_eq!(verses[0].reference.verse, 1);
+        assert_eq!(verses[1].reference.verse, 2);
     }
 }

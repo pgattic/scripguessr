@@ -2,8 +2,8 @@
 
 ## Near Term
 
-- Polish the round review so each guess clearly shows the actual location, the guessed location, points, and chapter distance.
-- Keep the scoring model explicit and tested, including exact guesses, nearby chapters, far guesses, and cross-book adjacency.
+- Add richer game modes, including Bible-only, restoration scripture-only, and all standard works.
+- Keep the scoring model explicit and tested, including exact guesses, close guesses, far guesses, and cross-book adjacency.
 
 ## Done
 
@@ -12,7 +12,8 @@
 - Added local stats for best score, average score, rounds played, and weakest books.
 - Split the app into focused modules for UI, game state, scoring, scripture data, and stats.
 - Added a NixOS service module and deployment notes for hosting behind a reverse proxy.
+- Polished round review with exact references, guess/answer comparison, chapter distance, and a containing-chapter reader.
 
 ## Current Priority
 
-Add more useful round review context after each guess.
+Add mixed-canon game modes.

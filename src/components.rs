@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::scriptures::{Canon, Difficulty, Reference, ScriptureLibrary};
+use crate::scriptures::{Canon, Difficulty, Reference, ScriptureLibrary, Verse};
 use crate::stats::Stats;
 
 const BOOK_OF_MORMON_DATA: &str = include_str!("../data/book-of-mormon-flat.json");
@@ -222,7 +222,11 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         }
 
         if let Some(result) = snapshot.current_round().guess.clone() {
-            ResultPanel { result: result, answer: snapshot.current_round().verse.reference.clone() }
+            ResultPanel {
+                result: result,
+                answer: snapshot.current_round().verse.reference.clone(),
+                chapter_verses: snapshot.scriptures().verses_for_chapter(&snapshot.current_round().verse.reference),
+            }
             div { class: "actions",
                 button {
                     class: "button",
@@ -396,8 +400,10 @@ fn StatsPanel(stats: Stats) -> Element {
 }
 
 #[component]
-fn ResultPanel(result: GuessResult, answer: Reference) -> Element {
+fn ResultPanel(result: GuessResult, answer: Reference, chapter_verses: Vec<Verse>) -> Element {
+    let mut reader_open = use_signal(|| false);
     let label = result.score.distance_label();
+    let chapter_title = format!("{} {}", answer.book, answer.chapter);
 
     rsx! {
         div { class: "result",
@@ -407,11 +413,60 @@ fn ResultPanel(result: GuessResult, answer: Reference) -> Element {
             div { class: "result-grid",
                 div {
                     span { class: "muted", "Actual" }
-                    strong { "{answer.book} {answer.chapter}" }
+                    strong { "{answer.book} {answer.chapter}:{answer.verse}" }
                 }
                 div {
                     span { class: "muted", "Guess" }
                     strong { "{result.book} {result.chapter}" }
+                }
+            }
+            div { class: "actions compact-actions",
+                button {
+                    class: "button secondary",
+                    onclick: move |_| reader_open.set(true),
+                    "Read chapter"
+                }
+            }
+            if reader_open() {
+                ChapterReader {
+                    title: chapter_title.clone(),
+                    answer_verse: answer.verse,
+                    verses: chapter_verses.clone(),
+                    on_close: move |_| reader_open.set(false),
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn ChapterReader(
+    title: String,
+    answer_verse: u16,
+    verses: Vec<Verse>,
+    on_close: EventHandler<MouseEvent>,
+) -> Element {
+    rsx! {
+        div { class: "dialog-backdrop",
+            div { class: "chapter-dialog", role: "dialog", aria_modal: "true",
+                div { class: "dialog-header",
+                    h2 { "{title}" }
+                    button {
+                        class: "clear-guess",
+                        aria_label: "Close chapter reader",
+                        title: "Close",
+                        onclick: move |event| on_close.call(event),
+                        "×"
+                    }
+                }
+                div { class: "chapter-reader",
+                    for verse in verses {
+                        p {
+                            class: if verse.reference.verse == answer_verse { "chapter-verse answer-verse" } else { "chapter-verse" },
+                            sup { "{verse.reference.verse}" }
+                            "{verse.text}"
+                        }
+                    }
                 }
             }
         }
@@ -425,7 +480,7 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
             for (index, round) in rounds.into_iter().enumerate() {
                 div { class: "round-row",
                     strong { "Round {index + 1}" }
-                    span { "{round.verse.reference.book} {round.verse.reference.chapter}" }
+                    span { "{round.verse.reference.book} {round.verse.reference.chapter}:{round.verse.reference.verse}" }
                     span { "{round.guess.as_ref().map(|guess| guess.score.points).unwrap_or_default()} pts" }
                 }
             }
