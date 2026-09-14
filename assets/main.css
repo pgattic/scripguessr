@@ -262,6 +262,40 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.scope-book-tools {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.scope-search {
+  min-height: 42px;
+  min-width: 0;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+}
+
+.scope-search:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+
+.scope-book-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.scope-book-actions .button {
+  min-height: 42px;
+}
+
 .book-select-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
@@ -729,5 +763,17 @@ button {
 
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .scope-book-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .scope-book-actions {
+    justify-content: stretch;
+  }
+
+  .scope-book-actions .button {
+    flex: 1 1 120px;
   }
 }

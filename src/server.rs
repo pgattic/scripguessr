@@ -190,6 +190,7 @@ async fn create_game(
                 text: verse.text.clone(),
             })
             .collect(),
+        scope: request.scope.clone(),
         metadata: metadata_for(&state.library, request.difficulty, &request.scope),
         playable_verse_count: playable_count,
         total_verse_count: total_verse_count(&state.library, &request.scope),

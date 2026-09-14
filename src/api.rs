@@ -14,6 +14,7 @@ pub struct NewGameRequest {
 pub struct NewGameResponse {
     pub game_id: String,
     pub rounds: Vec<RoundPrompt>,
+    pub scope: GameScope,
     pub metadata: Vec<CanonMetadata>,
     pub playable_verse_count: usize,
     pub total_verse_count: usize,

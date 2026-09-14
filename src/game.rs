@@ -13,6 +13,7 @@ pub struct Game {
     pub game_id: Option<String>,
     pub metadata: Vec<CanonMetadata>,
     pub metadata_difficulty: Difficulty,
+    pub metadata_scope: GameScope,
     pub playable_verse_count: usize,
     pub total_verse_count: usize,
     pub settings: GameSettings,
@@ -33,13 +34,15 @@ pub struct Game {
 
 impl Game {
     pub fn new() -> Self {
+        let settings = GameSettings::default();
         Self {
             game_id: None,
             metadata: Vec::new(),
             metadata_difficulty: Difficulty::Normal,
+            metadata_scope: settings.scope.clone(),
             playable_verse_count: 0,
             total_verse_count: 0,
-            settings: GameSettings::default(),
+            settings,
             stats: Stats::load(),
             last_game_new_best: false,
             screen: Screen::Setup,
@@ -78,6 +81,7 @@ impl Game {
         }
 
         self.metadata_difficulty = response.difficulty;
+        self.metadata_scope = response.scope;
         self.metadata = response.metadata;
         self.playable_verse_count = response.playable_verse_count;
         self.total_verse_count = response.total_verse_count;
@@ -85,14 +89,13 @@ impl Game {
     }
 
     pub fn metadata_ready(&self) -> bool {
+        self.metadata_current() && self.playable_verse_count > 0
+    }
+
+    pub fn metadata_current(&self) -> bool {
         self.metadata_difficulty == self.settings.difficulty
-            && self
-                .metadata
-                .iter()
-                .map(|item| item.canon)
-                .collect::<Vec<_>>()
-                == self.settings.scope.canons()
-            && self.playable_verse_count > 0
+            && self.metadata_scope == self.settings.scope
+            && (!self.metadata.is_empty() || self.settings.scope.canons.is_empty())
     }
 
     pub fn begin_starting_game(&mut self) {
@@ -109,6 +112,7 @@ impl Game {
     pub fn start_game(&mut self, response: NewGameResponse) {
         self.game_id = Some(response.game_id);
         self.metadata_difficulty = self.settings.difficulty;
+        self.metadata_scope = response.scope;
         self.metadata = response.metadata;
         self.playable_verse_count = response.playable_verse_count;
         self.total_verse_count = response.total_verse_count;
@@ -153,6 +157,7 @@ impl Game {
         if self.settings.difficulty != difficulty {
             self.settings.difficulty = difficulty;
             self.clear_guess();
+            self.apply_empty_scope_metadata();
         }
     }
 
@@ -172,10 +177,6 @@ impl Game {
             .iter()
             .position(|scope| scope.canon == canon)
         {
-            if self.settings.scope.canons.len() == 1 {
-                return;
-            }
-
             self.settings.scope.canons.remove(index);
         } else {
             self.settings.scope.canons.push(CanonScope {
@@ -189,6 +190,7 @@ impl Game {
         }
 
         self.clear_guess();
+        self.apply_empty_scope_metadata();
     }
 
     pub fn set_canon_book_scope(&mut self, canon: Canon, books: BookScope) {
@@ -201,7 +203,21 @@ impl Game {
         {
             canon_scope.books = books;
             self.clear_guess();
+            self.apply_empty_scope_metadata();
         }
+    }
+
+    fn apply_empty_scope_metadata(&mut self) {
+        if !self.settings.scope.canons.is_empty() {
+            return;
+        }
+
+        self.metadata.clear();
+        self.metadata_difficulty = self.settings.difficulty;
+        self.metadata_scope = self.settings.scope.clone();
+        self.playable_verse_count = 0;
+        self.total_verse_count = 0;
+        self.error = None;
     }
 
     pub fn current_round(&self) -> &Round {
@@ -421,7 +437,7 @@ impl Game {
     }
 
     pub fn verse_count_for_difficulty(&self) -> usize {
-        if self.metadata_ready() {
+        if self.metadata_current() {
             self.playable_verse_count
         } else {
             0
@@ -429,7 +445,7 @@ impl Game {
     }
 
     pub fn total_verse_count(&self) -> usize {
-        if self.metadata_ready() {
+        if self.metadata_current() {
             self.total_verse_count
         } else {
             0
@@ -478,6 +494,10 @@ impl Default for GameSettings {
 
 impl GameSettings {
     pub fn selection_label(&self) -> String {
+        if self.scope.canons.is_empty() {
+            return "No scope selected".to_string();
+        }
+
         if let Some(mode) = GameMode::ALL
             .iter()
             .copied()
@@ -486,19 +506,25 @@ impl GameSettings {
             return mode.label().to_string();
         }
 
+        let parts = self
+            .scope
+            .canons
+            .iter()
+            .map(scope_label)
+            .collect::<Vec<_>>();
+
         if self.scope.canons.len() == 1 {
-            let scope = &self.scope.canons[0];
-            return match &scope.books {
-                BookScope::All => scope.canon.label().to_string(),
-                BookScope::Selected(books) if books.len() == 1 => format!("{} only", books[0]),
-                BookScope::Selected(books) if books.len() <= 3 => books.join(" + "),
-                BookScope::Selected(books) => {
-                    format!("Custom: {} books in {}", books.len(), scope.canon.label())
-                }
-            };
+            return parts
+                .into_iter()
+                .next()
+                .unwrap_or_else(|| "Custom scope".to_string());
         }
 
-        let book_count = self
+        if parts.len() <= 3 && parts.iter().all(|part| part.len() <= 24) {
+            return parts.join(" + ");
+        }
+
+        let selected_book_count = self
             .scope
             .canons
             .iter()
@@ -507,15 +533,33 @@ impl GameSettings {
                 BookScope::Selected(books) => Some(books.len()),
             })
             .sum::<usize>();
+        let all_canon_count = self
+            .scope
+            .canons
+            .iter()
+            .filter(|scope| scope.books == BookScope::All)
+            .count();
 
-        if book_count > 0 {
+        if selected_book_count > 0 && all_canon_count > 0 {
+            format!("Custom: {selected_book_count} books + {all_canon_count} full canons")
+        } else if selected_book_count > 0 {
             format!(
-                "Custom: {book_count} books across {} canons",
+                "Custom: {selected_book_count} books across {} canons",
                 self.scope.canons.len()
             )
         } else {
             format!("Custom: {} canons", self.scope.canons.len())
         }
+    }
+}
+
+fn scope_label(scope: &CanonScope) -> String {
+    match &scope.books {
+        BookScope::All => scope.canon.label().to_string(),
+        BookScope::Selected(books) if books.is_empty() => format!("No {}", scope.canon.label()),
+        BookScope::Selected(books) if books.len() == 1 => format!("{} only", books[0]),
+        BookScope::Selected(books) if books.len() <= 3 => books.join(" + "),
+        BookScope::Selected(books) => format!("{} {} books", books.len(), scope.canon.label()),
     }
 }
 
