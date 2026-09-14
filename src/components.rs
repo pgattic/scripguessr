@@ -114,7 +114,10 @@ fn request_guess_submission(mut game: Signal<Game>) {
     game.write().begin_submitting_guess();
     spawn(async move {
         match submit_guess(&game_id, request).await {
-            Ok(response) => game.write().apply_guess(response),
+            Ok(response) => {
+                game.write().apply_guess(response);
+                scroll_result_into_view_on_mobile();
+            }
             Err(error) => game.write().fail_request(error),
         }
     });
@@ -178,7 +181,26 @@ fn scroll_round_into_view_on_mobile() {
 fn scroll_round_into_view_on_mobile() {}
 
 #[cfg(target_arch = "wasm32")]
+fn scroll_result_into_view_on_mobile() {
+    scroll_selector_into_view(".result", web_sys::ScrollLogicalPosition::Start);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_result_into_view_on_mobile() {}
+
+#[cfg(target_arch = "wasm32")]
 fn scroll_answer_verse_into_view() {
+    scroll_selector_into_view(
+        ".chapter-dialog .answer-verse",
+        web_sys::ScrollLogicalPosition::Center,
+    );
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_answer_verse_into_view() {}
+
+#[cfg(target_arch = "wasm32")]
+fn scroll_selector_into_view(selector: &'static str, block: web_sys::ScrollLogicalPosition) {
     let Some(window) = web_sys::window() else {
         return;
     };
@@ -190,17 +212,13 @@ fn scroll_answer_verse_into_view() {
         let Some(document) = window.document() else {
             return;
         };
-        let Some(element) = document
-            .query_selector(".chapter-dialog .answer-verse")
-            .ok()
-            .flatten()
-        else {
+        let Some(element) = document.query_selector(selector).ok().flatten() else {
             return;
         };
 
         let options = web_sys::ScrollIntoViewOptions::new();
         options.set_behavior(web_sys::ScrollBehavior::Smooth);
-        options.set_block(web_sys::ScrollLogicalPosition::Center);
+        options.set_block(block);
         element.scroll_into_view_with_scroll_into_view_options(&options);
     });
 
@@ -210,9 +228,6 @@ fn scroll_answer_verse_into_view() {
     );
     callback.forget();
 }
-
-#[cfg(not(target_arch = "wasm32"))]
-fn scroll_answer_verse_into_view() {}
 
 #[component]
 fn GuessPanel(game: Signal<Game>) -> Element {
