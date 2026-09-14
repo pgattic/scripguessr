@@ -12,29 +12,82 @@ let
   pname = "scripguessr";
   version = "0.1.0";
 
-  src = lib.cleanSourceWith {
-    src = ../.;
-    filter =
-      path: type:
-      let
-        root = toString ../.;
-        relative = lib.removePrefix "${root}/" (toString path);
-      in
-      !(lib.hasPrefix ".git" relative)
-      && !(lib.hasPrefix "target" relative)
-      && relative != "result";
+  sourceWith =
+    {
+      files,
+      dirs,
+    }:
+    lib.cleanSourceWith {
+      src = ../.;
+      filter =
+        path: type:
+        let
+          root = toString ../.;
+          relative = lib.removePrefix "${root}/" (toString path);
+        in
+        (type == "directory" && builtins.elem relative dirs) || builtins.elem relative files;
+    };
+
+  cargoFiles = [
+    "Cargo.lock"
+    "Cargo.toml"
+  ];
+
+  serverSrc = sourceWith {
+    dirs = [
+      ""
+      "assets"
+      "assets/data"
+      "src"
+    ];
+    files = cargoFiles ++ [
+      "assets/data/book-of-mormon-flat.json"
+      "assets/data/doctrine-and-covenants-flat.json"
+      "assets/data/new-testament-flat.json"
+      "assets/data/old-testament-flat.json"
+      "assets/data/pearl-of-great-price-flat.json"
+      "src/api.rs"
+      "src/main.rs"
+      "src/scoring.rs"
+      "src/scriptures.rs"
+      "src/server.rs"
+    ];
+  };
+
+  webSrc = sourceWith {
+    dirs = [
+      ""
+      "assets"
+      "src"
+    ];
+    files = cargoFiles ++ [
+      "Dioxus.toml"
+      "assets/main.css"
+      "src/api.rs"
+      "src/components.rs"
+      "src/game.rs"
+      "src/loader.rs"
+      "src/main.rs"
+      "src/scoring.rs"
+      "src/scriptures.rs"
+      "src/stats.rs"
+    ];
   };
 
   commonArgs = {
-    inherit pname version src;
+    inherit pname version;
     strictDeps = true;
     nativeBuildInputs = [ lld ];
   };
 
-  serverCargoArtifacts = craneLib.buildDepsOnly commonArgs;
+  serverArgs = commonArgs // {
+    src = serverSrc;
+  };
+
+  serverCargoArtifacts = craneLib.buildDepsOnly serverArgs;
 
   server = craneLib.buildPackage (
-    commonArgs
+    serverArgs
     // {
       cargoArtifacts = serverCargoArtifacts;
       doCheck = false;
@@ -43,6 +96,7 @@ let
 
   webArgs = commonArgs // {
     pname = "${pname}-web";
+    src = webSrc;
     nativeBuildInputs = [
       binaryen
       dioxus-cli
