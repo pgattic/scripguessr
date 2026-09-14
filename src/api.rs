@@ -1,13 +1,13 @@
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::{MAX_SCORE, Score};
-use crate::scriptures::{BookInfo, Canon, Difficulty, Reference};
+use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope, Reference};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NewGameRequest {
     pub round_count: usize,
     pub difficulty: Difficulty,
-    pub canons: Vec<Canon>,
+    pub scope: GameScope,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -23,13 +23,13 @@ pub struct NewGameResponse {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MetadataRequest {
     pub difficulty: Difficulty,
-    pub canons: Vec<Canon>,
+    pub scope: GameScope,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MetadataResponse {
     pub difficulty: Difficulty,
-    pub canons: Vec<Canon>,
+    pub scope: GameScope,
     pub metadata: Vec<CanonMetadata>,
     pub playable_verse_count: usize,
     pub total_verse_count: usize,

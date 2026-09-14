@@ -127,20 +127,22 @@ async fn metadata(
     State(state): State<AppState>,
     Json(request): Json<MetadataRequest>,
 ) -> Result<Json<MetadataResponse>, ApiError> {
-    if request.canons.is_empty() {
-        return Err(ApiError::bad_request("At least one canon must be selected"));
+    if request.scope.canons.is_empty() {
+        return Err(ApiError::bad_request(
+            "At least one scope item must be selected",
+        ));
     }
 
     Ok(Json(MetadataResponse {
         difficulty: request.difficulty,
-        canons: request.canons.clone(),
-        metadata: metadata_for(&state.library, request.difficulty, &request.canons),
+        scope: request.scope.clone(),
+        metadata: metadata_for(&state.library, request.difficulty, &request.scope),
         playable_verse_count: playable_verse_count(
             &state.library,
             request.difficulty,
-            &request.canons,
+            &request.scope,
         ),
-        total_verse_count: total_verse_count(&state.library, &request.canons),
+        total_verse_count: total_verse_count(&state.library, &request.scope),
     }))
 }
 
@@ -150,11 +152,11 @@ async fn create_game(
 ) -> Result<Json<NewGameResponse>, ApiError> {
     state.prune_games();
 
-    if request.round_count == 0 || request.canons.is_empty() {
-        return Err(ApiError::bad_request("Game must include rounds and canons"));
+    if request.round_count == 0 || request.scope.canons.is_empty() {
+        return Err(ApiError::bad_request("Game must include rounds and scope"));
     }
 
-    let playable_count = playable_verse_count(&state.library, request.difficulty, &request.canons);
+    let playable_count = playable_verse_count(&state.library, request.difficulty, &request.scope);
     if playable_count == 0 {
         return Err(ApiError::bad_request("No playable verses found"));
     }
@@ -188,9 +190,9 @@ async fn create_game(
                 text: verse.text.clone(),
             })
             .collect(),
-        metadata: metadata_for(&state.library, request.difficulty, &request.canons),
+        metadata: metadata_for(&state.library, request.difficulty, &request.scope),
         playable_verse_count: playable_count,
-        total_verse_count: total_verse_count(&state.library, &request.canons),
+        total_verse_count: total_verse_count(&state.library, &request.scope),
         max_total_score: request.max_total_score(),
     }))
 }
@@ -217,7 +219,7 @@ async fn submit_guess(
         .reference
         .clone();
     let score = state.library.score(
-        &game.request.canons,
+        &game.request.scope,
         &answer,
         request.canon,
         &request.book,
@@ -255,11 +257,11 @@ fn random_verse(
 ) -> Result<Verse, ApiError> {
     let mut index = rng.random_range(0..playable_count);
 
-    for canon in &request.canons {
+    for canon_scope in &request.scope.canons {
         let scriptures = library
-            .scriptures(*canon)
+            .scriptures(canon_scope.canon)
             .ok_or_else(|| ApiError::bad_request("Unknown canon"))?;
-        let pool = scriptures.verses_for_difficulty(request.difficulty);
+        let pool = scriptures.scoped_verses_for_difficulty(request.difficulty, &canon_scope.books);
 
         if index < pool.len() {
             return Ok(pool[index].clone());
@@ -274,17 +276,19 @@ fn random_verse(
 fn metadata_for(
     library: &ScriptureLibrary,
     difficulty: crate::scriptures::Difficulty,
-    canons: &[Canon],
+    scope: &crate::scriptures::GameScope,
 ) -> Vec<CanonMetadata> {
-    canons
+    scope
+        .canons
         .iter()
-        .filter_map(|canon| {
-            let scriptures = library.scriptures(*canon)?;
+        .filter_map(|canon_scope| {
+            let scriptures = library.scriptures(canon_scope.canon)?;
             Some(CanonMetadata {
-                canon: *canon,
+                canon: canon_scope.canon,
                 books: scriptures.books.clone(),
-                playable_verse_count: scriptures.verse_count_for_difficulty(difficulty),
-                total_verse_count: scriptures.total_verse_count(),
+                playable_verse_count: scriptures
+                    .scoped_verse_count_for_difficulty(difficulty, &canon_scope.books),
+                total_verse_count: scriptures.scoped_total_verse_count(&canon_scope.books),
             })
         })
         .collect()
@@ -293,20 +297,32 @@ fn metadata_for(
 fn playable_verse_count(
     library: &ScriptureLibrary,
     difficulty: crate::scriptures::Difficulty,
-    canons: &[Canon],
+    scope: &crate::scriptures::GameScope,
 ) -> usize {
-    canons
+    scope
+        .canons
         .iter()
-        .filter_map(|canon| library.scriptures(*canon))
-        .map(|scriptures| scriptures.verse_count_for_difficulty(difficulty))
+        .filter_map(|canon_scope| {
+            library
+                .scriptures(canon_scope.canon)
+                .map(|scriptures| (scriptures, canon_scope))
+        })
+        .map(|(scriptures, canon_scope)| {
+            scriptures.scoped_verse_count_for_difficulty(difficulty, &canon_scope.books)
+        })
         .sum()
 }
 
-fn total_verse_count(library: &ScriptureLibrary, canons: &[Canon]) -> usize {
-    canons
+fn total_verse_count(library: &ScriptureLibrary, scope: &crate::scriptures::GameScope) -> usize {
+    scope
+        .canons
         .iter()
-        .filter_map(|canon| library.scriptures(*canon))
-        .map(Scriptures::total_verse_count)
+        .filter_map(|canon_scope| {
+            library
+                .scriptures(canon_scope.canon)
+                .map(|scriptures| (scriptures, canon_scope))
+        })
+        .map(|(scriptures, canon_scope)| scriptures.scoped_total_verse_count(&canon_scope.books))
         .sum()
 }
 
@@ -352,7 +368,7 @@ impl IntoResponse for ApiError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scriptures::Difficulty;
+    use crate::scriptures::{BookScope, CanonScope, Difficulty, GameMode, GameScope};
     use axum::body::{Body, to_bytes};
     use axum::http::{Method, Request, header};
     use serde::de::DeserializeOwned;
@@ -362,7 +378,20 @@ mod tests {
         NewGameRequest {
             round_count: 1,
             difficulty: Difficulty::Normal,
-            canons: vec![Canon::BookOfMormon],
+            scope: GameMode::BookOfMormon.scope(),
+        }
+    }
+
+    fn alma_request() -> NewGameRequest {
+        NewGameRequest {
+            round_count: 1,
+            difficulty: Difficulty::Normal,
+            scope: GameScope {
+                canons: vec![CanonScope {
+                    canon: Canon::BookOfMormon,
+                    books: BookScope::Selected(vec!["Alma".to_string()]),
+                }],
+            },
         }
     }
 
@@ -453,18 +482,49 @@ mod tests {
             "/api/metadata",
             MetadataRequest {
                 difficulty: Difficulty::Normal,
-                canons: vec![Canon::BookOfMormon],
+                scope: GameMode::BookOfMormon.scope(),
             },
         )
         .await;
 
         assert_eq!(response.status(), StatusCode::OK);
         let body: MetadataResponse = read_json(response).await;
-        assert_eq!(body.canons, vec![Canon::BookOfMormon]);
+        assert_eq!(body.scope, GameMode::BookOfMormon.scope());
         assert_eq!(body.metadata.len(), 1);
         assert_eq!(body.metadata[0].books[0].name, "1 Nephi");
         assert!(body.playable_verse_count > 0);
         assert!(body.total_verse_count >= body.playable_verse_count);
+    }
+
+    #[tokio::test]
+    async fn metadata_endpoint_counts_selected_books_but_keeps_book_choices() {
+        let (app, _state) = app();
+        let response = post_json(
+            app,
+            "/api/metadata",
+            MetadataRequest {
+                difficulty: Difficulty::Normal,
+                scope: alma_request().scope,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: MetadataResponse = read_json(response).await;
+        assert_eq!(body.metadata.len(), 1);
+        assert!(
+            body.metadata[0]
+                .books
+                .iter()
+                .any(|book| book.name == "Alma")
+        );
+        assert!(
+            body.metadata[0]
+                .books
+                .iter()
+                .any(|book| book.name == "Helaman")
+        );
+        assert!(body.playable_verse_count > 0);
     }
 
     #[tokio::test]
@@ -477,6 +537,25 @@ mod tests {
         assert_eq!(body.rounds.len(), 1);
         assert!(!body.game_id.is_empty());
         assert!(!body.rounds[0].text.is_empty());
+    }
+
+    #[tokio::test]
+    async fn create_game_uses_selected_book_scope() {
+        let (app, state) = app();
+        let response = post_json(app.clone(), "/api/games", alma_request()).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: NewGameResponse = read_json(response).await;
+        let answer = state
+            .games
+            .lock()
+            .unwrap()
+            .get(&body.game_id)
+            .unwrap()
+            .rounds[0]
+            .reference
+            .clone();
+        assert_eq!(answer.book, "Alma");
     }
 
     #[tokio::test]

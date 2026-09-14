@@ -3,7 +3,9 @@ use crate::api::{
     MetadataResponse, NewGameRequest, NewGameResponse,
 };
 use crate::scoring::{MAX_SCORE, Score};
-use crate::scriptures::{BookInfo, Canon, Difficulty, GameMode, Reference};
+use crate::scriptures::{
+    BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope, Reference,
+};
 use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
 
 #[derive(Clone, PartialEq)]
@@ -57,7 +59,7 @@ impl Game {
     pub fn metadata_request(&self) -> MetadataRequest {
         MetadataRequest {
             difficulty: self.settings.difficulty,
-            canons: self.settings.canons.clone(),
+            scope: self.settings.scope.clone(),
         }
     }
 
@@ -65,13 +67,12 @@ impl Game {
         NewGameRequest {
             round_count: self.settings.round_count,
             difficulty: self.settings.difficulty,
-            canons: self.settings.canons.clone(),
+            scope: self.settings.scope.clone(),
         }
     }
 
     pub fn apply_metadata(&mut self, response: MetadataResponse) {
-        if response.difficulty != self.settings.difficulty
-            || response.canons != self.settings.canons
+        if response.difficulty != self.settings.difficulty || response.scope != self.settings.scope
         {
             return;
         }
@@ -90,7 +91,7 @@ impl Game {
                 .iter()
                 .map(|item| item.canon)
                 .collect::<Vec<_>>()
-                == self.settings.canons
+                == self.settings.scope.canons()
             && self.playable_verse_count > 0
     }
 
@@ -156,28 +157,51 @@ impl Game {
     }
 
     pub fn set_preset(&mut self, mode: GameMode) {
-        let canons = mode.canons().to_vec();
-        if self.settings.canons != canons {
-            self.settings.canons = canons;
+        let scope = mode.scope();
+        if self.settings.scope != scope {
+            self.settings.scope = scope;
             self.clear_guess();
         }
     }
 
     pub fn toggle_canon(&mut self, canon: Canon) {
-        if self.settings.canons.contains(&canon) {
-            if self.settings.canons.len() == 1 {
+        if let Some(index) = self
+            .settings
+            .scope
+            .canons
+            .iter()
+            .position(|scope| scope.canon == canon)
+        {
+            if self.settings.scope.canons.len() == 1 {
                 return;
             }
 
-            self.settings.canons.retain(|selected| *selected != canon);
+            self.settings.scope.canons.remove(index);
         } else {
-            self.settings.canons.push(canon);
+            self.settings.scope.canons.push(CanonScope {
+                canon,
+                books: BookScope::All,
+            });
             self.settings
+                .scope
                 .canons
-                .sort_by_key(|canon| Canon::ALL.iter().position(|item| item == canon));
+                .sort_by_key(|scope| Canon::ALL.iter().position(|item| item == &scope.canon));
         }
 
         self.clear_guess();
+    }
+
+    pub fn set_canon_book_scope(&mut self, canon: Canon, books: BookScope) {
+        if let Some(canon_scope) = self
+            .settings
+            .scope
+            .canons
+            .iter_mut()
+            .find(|scope| scope.canon == canon)
+        {
+            canon_scope.books = books;
+            self.clear_guess();
+        }
     }
 
     pub fn current_round(&self) -> &Round {
@@ -251,8 +275,8 @@ impl Game {
             return;
         }
 
-        if self.active_step == GuessStep::Canon && self.settings.canons.len() == 1 {
-            self.selected_canon = self.settings.canons.first().copied();
+        if self.active_step == GuessStep::Canon && self.settings.scope.canons.len() == 1 {
+            self.selected_canon = self.settings.scope.canons.first().map(|scope| scope.canon);
             self.active_step = GuessStep::Book;
         }
 
@@ -357,6 +381,29 @@ impl Game {
     }
 
     pub fn books_for(&self, canon: Canon) -> Vec<BookInfo> {
+        let book_scope = self
+            .settings
+            .scope
+            .canon_scope(canon)
+            .map(|scope| &scope.books)
+            .unwrap_or(&BookScope::All);
+
+        self.metadata
+            .iter()
+            .find(|item| item.canon == canon)
+            .map(|item| match book_scope {
+                BookScope::All => item.books.clone(),
+                BookScope::Selected(selected) => item
+                    .books
+                    .iter()
+                    .filter(|book| selected.iter().any(|name| name == &book.name))
+                    .cloned()
+                    .collect(),
+            })
+            .unwrap_or_default()
+    }
+
+    pub fn all_books_for(&self, canon: Canon) -> Vec<BookInfo> {
         self.metadata
             .iter()
             .find(|item| item.canon == canon)
@@ -416,7 +463,7 @@ impl Game {
 pub struct GameSettings {
     pub round_count: usize,
     pub difficulty: Difficulty,
-    pub canons: Vec<Canon>,
+    pub scope: GameScope,
 }
 
 impl Default for GameSettings {
@@ -424,19 +471,51 @@ impl Default for GameSettings {
         Self {
             round_count: 5,
             difficulty: Difficulty::Normal,
-            canons: GameMode::BookOfMormon.canons().to_vec(),
+            scope: GameScope::default(),
         }
     }
 }
 
 impl GameSettings {
-    pub fn selection_label(&self) -> &'static str {
-        GameMode::ALL
+    pub fn selection_label(&self) -> String {
+        if let Some(mode) = GameMode::ALL
             .iter()
             .copied()
-            .find(|mode| mode.canons() == self.canons.as_slice())
-            .map(GameMode::label)
-            .unwrap_or("Custom")
+            .find(|mode| mode.scope() == self.scope)
+        {
+            return mode.label().to_string();
+        }
+
+        if self.scope.canons.len() == 1 {
+            let scope = &self.scope.canons[0];
+            return match &scope.books {
+                BookScope::All => scope.canon.label().to_string(),
+                BookScope::Selected(books) if books.len() == 1 => format!("{} only", books[0]),
+                BookScope::Selected(books) if books.len() <= 3 => books.join(" + "),
+                BookScope::Selected(books) => {
+                    format!("Custom: {} books in {}", books.len(), scope.canon.label())
+                }
+            };
+        }
+
+        let book_count = self
+            .scope
+            .canons
+            .iter()
+            .filter_map(|scope| match &scope.books {
+                BookScope::All => None,
+                BookScope::Selected(books) => Some(books.len()),
+            })
+            .sum::<usize>();
+
+        if book_count > 0 {
+            format!(
+                "Custom: {book_count} books across {} canons",
+                self.scope.canons.len()
+            )
+        } else {
+            format!("Custom: {} canons", self.scope.canons.len())
+        }
     }
 }
 

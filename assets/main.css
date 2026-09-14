@@ -187,6 +187,54 @@ button {
   padding: 18px;
 }
 
+.scope-summary {
+  display: grid;
+  gap: 5px;
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.scope-summary strong {
+  font-size: 1.2rem;
+}
+
+.scope-actions {
+  margin-top: 12px;
+}
+
+.scope-editor {
+  display: grid;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised-soft);
+}
+
+.scope-canon {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised);
+}
+
+.scope-canon.selected {
+  border-color: var(--accent);
+}
+
+.scope-canon-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+
 .setup-group {
   display: grid;
   gap: 8px;
@@ -201,6 +249,22 @@ button {
 .segmented {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
+  gap: 8px;
+}
+
+.preset-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 8px;
+}
+
+.scope-mode {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.book-select-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(118px, 1fr));
   gap: 8px;
 }
 

@@ -23,18 +23,18 @@ impl ScriptureLibrary {
 
     pub fn score(
         &self,
-        canons: &[Canon],
+        scope: &GameScope,
         answer: &Reference,
         guess_canon: Canon,
         guess_book: &str,
         guess_chapter: u16,
     ) -> Score {
         let Some(answer_index) =
-            self.chapter_index(canons, answer.canon, &answer.book, answer.chapter)
+            self.chapter_index(scope, answer.canon, &answer.book, answer.chapter)
         else {
             return Score::from_chapter_distance(u32::MAX);
         };
-        let Some(guess_index) = self.chapter_index(canons, guess_canon, guess_book, guess_chapter)
+        let Some(guess_index) = self.chapter_index(scope, guess_canon, guess_book, guess_chapter)
         else {
             return Score::from_chapter_distance(u32::MAX);
         };
@@ -44,22 +44,22 @@ impl ScriptureLibrary {
 
     fn chapter_index(
         &self,
-        canons: &[Canon],
+        scope: &GameScope,
         canon: Canon,
         book: &str,
         chapter: u16,
     ) -> Option<usize> {
         let mut offset = 0;
 
-        for candidate in canons {
-            let scriptures = self.scriptures(*candidate)?;
-            if *candidate == canon {
+        for canon_scope in &scope.canons {
+            let scriptures = self.scriptures(canon_scope.canon)?;
+            if canon_scope.canon == canon {
                 return scriptures
-                    .chapter_index(book, chapter)
+                    .chapter_index_in_scope(&canon_scope.books, book, chapter)
                     .map(|index| offset + index);
             }
 
-            offset += scriptures.chapter_count();
+            offset += scriptures.chapter_count_for_scope(&canon_scope.books);
         }
 
         None
@@ -144,6 +144,85 @@ impl GameMode {
             ],
         }
     }
+
+    pub fn scope(self) -> GameScope {
+        GameScope {
+            canons: self
+                .canons()
+                .iter()
+                .copied()
+                .map(|canon| CanonScope {
+                    canon,
+                    books: BookScope::All,
+                })
+                .collect(),
+        }
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct GameScope {
+    pub canons: Vec<CanonScope>,
+}
+
+impl GameScope {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn canons(&self) -> Vec<Canon> {
+        self.canons.iter().map(|scope| scope.canon).collect()
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn contains_canon(&self, canon: Canon) -> bool {
+        self.canons.iter().any(|scope| scope.canon == canon)
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn canon_scope(&self, canon: Canon) -> Option<&CanonScope> {
+        self.canons.iter().find(|scope| scope.canon == canon)
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn selected_book_names(&self, canon: Canon) -> Option<Vec<String>> {
+        let canon_scope = self.canon_scope(canon)?;
+        match &canon_scope.books {
+            BookScope::All => None,
+            BookScope::Selected(books) => Some(books.clone()),
+        }
+    }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn includes_book(&self, canon: Canon, book: &str) -> bool {
+        self.canon_scope(canon)
+            .map(|scope| scope.books.includes(book))
+            .unwrap_or(false)
+    }
+}
+
+impl Default for GameScope {
+    fn default() -> Self {
+        GameMode::BookOfMormon.scope()
+    }
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub struct CanonScope {
+    pub canon: Canon,
+    pub books: BookScope,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub enum BookScope {
+    All,
+    Selected(Vec<String>),
+}
+
+impl BookScope {
+    pub fn includes(&self, book: &str) -> bool {
+        match self {
+            Self::All => true,
+            Self::Selected(books) => books.iter().any(|selected| selected == book),
+        }
+    }
 }
 
 #[derive(Clone, PartialEq)]
@@ -174,10 +253,7 @@ impl Scriptures {
             .collect()
     }
 
-    pub fn total_verse_count(&self) -> usize {
-        self.verses.len()
-    }
-
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn verse_count_for_difficulty(&self, difficulty: Difficulty) -> usize {
         self.verses_for_difficulty(difficulty).len()
     }
@@ -188,6 +264,36 @@ impl Scriptures {
             Difficulty::Normal => &self.normal_verses,
             Difficulty::Hard => &self.hard_verses,
         }
+    }
+
+    pub fn scoped_verses_for_difficulty(
+        &self,
+        difficulty: Difficulty,
+        scope: &BookScope,
+    ) -> Vec<Verse> {
+        self.verses_for_difficulty(difficulty)
+            .iter()
+            .filter(|verse| scope.includes(&verse.reference.book))
+            .cloned()
+            .collect()
+    }
+
+    pub fn scoped_verse_count_for_difficulty(
+        &self,
+        difficulty: Difficulty,
+        scope: &BookScope,
+    ) -> usize {
+        self.verses_for_difficulty(difficulty)
+            .iter()
+            .filter(|verse| scope.includes(&verse.reference.book))
+            .count()
+    }
+
+    pub fn scoped_total_verse_count(&self, scope: &BookScope) -> usize {
+        self.verses
+            .iter()
+            .filter(|verse| scope.includes(&verse.reference.book))
+            .count()
     }
 
     fn from_flat_verses(canon: Canon, flat_verses: Vec<FlatVerse>) -> Self {
@@ -232,14 +338,18 @@ impl Scriptures {
         }
     }
 
-    fn chapter_index(&self, book: &str, chapter: u16) -> Option<usize> {
+    fn chapter_index_in_scope(&self, scope: &BookScope, book: &str, chapter: u16) -> Option<usize> {
         self.chapter_order
             .iter()
+            .filter(|item| scope.includes(&item.book))
             .position(|item| item.book == book && item.chapter == chapter)
     }
 
-    fn chapter_count(&self) -> usize {
-        self.chapter_order.len()
+    fn chapter_count_for_scope(&self, scope: &BookScope) -> usize {
+        self.chapter_order
+            .iter()
+            .filter(|item| scope.includes(&item.book))
+            .count()
     }
 }
 
@@ -476,7 +586,7 @@ mod tests {
         };
 
         let score = library.score(
-            GameMode::BookOfMormon.canons(),
+            &GameMode::BookOfMormon.scope(),
             &answer,
             Canon::BookOfMormon,
             "2 Nephi",
@@ -500,7 +610,7 @@ mod tests {
         assert_eq!(
             library
                 .score(
-                    GameMode::BookOfMormon.canons(),
+                    &GameMode::BookOfMormon.scope(),
                     &answer,
                     Canon::BookOfMormon,
                     "Jacob",
@@ -564,7 +674,7 @@ mod tests {
         };
 
         let score = library.score(
-            GameMode::Bible.canons(),
+            &GameMode::Bible.scope(),
             &answer,
             Canon::NewTestament,
             "Matthew",
@@ -573,5 +683,37 @@ mod tests {
 
         assert_eq!(score.chapter_distance, 1);
         assert_eq!(score.points, 978);
+    }
+
+    #[test]
+    fn scoped_verses_are_filtered_to_selected_books() {
+        let scriptures = sample_scriptures();
+        let scope = BookScope::Selected(vec!["2 Nephi".to_string()]);
+
+        let verses = scriptures.scoped_verses_for_difficulty(Difficulty::Hard, &scope);
+
+        assert_eq!(verses.len(), 2);
+        assert!(verses.iter().all(|verse| verse.reference.book == "2 Nephi"));
+    }
+
+    #[test]
+    fn scoped_scoring_skips_unselected_books() {
+        let library = sample_library();
+        let scope = GameScope {
+            canons: vec![CanonScope {
+                canon: Canon::BookOfMormon,
+                books: BookScope::Selected(vec!["1 Nephi".to_string(), "2 Nephi".to_string()]),
+            }],
+        };
+        let answer = Reference {
+            canon: Canon::BookOfMormon,
+            book: "1 Nephi".to_string(),
+            chapter: 2,
+            verse: 1,
+        };
+
+        let score = library.score(&scope, &answer, Canon::BookOfMormon, "2 Nephi", 1);
+
+        assert_eq!(score.chapter_distance, 1);
     }
 }

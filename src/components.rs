@@ -3,7 +3,7 @@ use dioxus::prelude::*;
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
-use crate::scriptures::{Canon, Difficulty, GameMode, Reference};
+use crate::scriptures::{BookScope, Canon, Difficulty, GameMode, Reference};
 use crate::stats::{ReviewItem, Stats};
 
 #[component]
@@ -186,7 +186,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
     let step = snapshot.active_step;
-    let canon_count = snapshot.settings.canons.len();
+    let canon_count = snapshot.settings.scope.canons.len();
     let book_count = selected_canon
         .map(|canon| snapshot.books_for(canon).len())
         .unwrap_or_default();
@@ -220,7 +220,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         match step {
             GuessStep::Canon => rsx! {
                 div { class: "grid",
-                    for canon in snapshot.settings.canons.iter().copied() {
+                    for canon in snapshot.settings.scope.canons.iter().map(|scope| scope.canon) {
                         button {
                             class: if selected_canon == Some(canon) { "choice active" } else { "choice" },
                             disabled: guessed,
@@ -364,6 +364,7 @@ fn Breadcrumbs(
 
 #[component]
 fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
+    let mut scope_editor_open = use_signal(|| false);
     let snapshot = game.read().clone();
     let metadata_ready = snapshot.metadata_ready();
 
@@ -373,6 +374,37 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 div { class: "picker-header",
                     h2 { "New game" }
                     span { class: "muted", "{snapshot.settings.selection_label()}" }
+                }
+
+                div { class: "scope-summary",
+                    span { class: "muted", "Scope" }
+                    strong { "{snapshot.settings.selection_label()}" }
+                    span { class: "muted", "{snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" }
+                }
+
+                div { class: "setup-group",
+                    span { class: "setup-label", "Presets" }
+                    div { class: "preset-row",
+                        for mode in GameMode::ALL {
+                            button {
+                                class: if mode.scope() == snapshot.settings.scope { "segment active" } else { "segment" },
+                                onclick: move |_| game.write().set_preset(mode),
+                                "{mode.label()}"
+                            }
+                        }
+                    }
+                }
+
+                div { class: "actions scope-actions",
+                    button {
+                        class: "button secondary",
+                        onclick: move |_| scope_editor_open.toggle(),
+                        if scope_editor_open() { "Close scope editor" } else { "Customize scope" }
+                    }
+                }
+
+                if scope_editor_open() {
+                    ScopeEditor { game, snapshot: snapshot.clone() }
                 }
 
                 div { class: "setup-group",
@@ -396,37 +428,6 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 class: if snapshot.settings.difficulty == difficulty { "segment active" } else { "segment" },
                                 onclick: move |_| game.write().set_difficulty(difficulty),
                                 "{difficulty.label()}"
-                            }
-                        }
-                    }
-                }
-
-                div { class: "setup-group",
-                    span { class: "setup-label", "Presets" }
-                    div { class: "grid",
-                        for mode in GameMode::ALL {
-                            button {
-                                class: if mode.canons() == snapshot.settings.canons.as_slice() { "choice active" } else { "choice" },
-                                onclick: move |_| game.write().set_preset(mode),
-                                "{mode.label()}"
-                            }
-                        }
-                    }
-                }
-
-                div { class: "setup-group",
-                    span { class: "setup-label", "Canons" }
-                    div { class: "grid",
-                        for canon in Canon::ALL {
-                            {
-                                let selected = snapshot.settings.canons.contains(&canon);
-                                rsx! {
-                                    button {
-                                        class: if selected { "choice active" } else { "choice" },
-                                        onclick: move |_| game.write().toggle_canon(canon),
-                                        "{canon.label()}"
-                                    }
-                                }
                             }
                         }
                     }
@@ -468,6 +469,110 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 }
 
                 StatsPanel { game, stats: snapshot.stats.clone() }
+            }
+        }
+    }
+}
+
+#[component]
+fn ScopeEditor(game: Signal<Game>, snapshot: Game) -> Element {
+    rsx! {
+        div { class: "scope-editor",
+            for canon in Canon::ALL {
+                ScopeCanonRow {
+                    game,
+                    snapshot: snapshot.clone(),
+                    canon,
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn ScopeCanonRow(game: Signal<Game>, snapshot: Game, canon: Canon) -> Element {
+    let selected = snapshot.settings.scope.contains_canon(canon);
+    let canon_scope = snapshot.settings.scope.canon_scope(canon).cloned();
+    let books = snapshot.all_books_for(canon);
+    let book_scope = canon_scope
+        .as_ref()
+        .map(|scope| scope.books.clone())
+        .unwrap_or(BookScope::All);
+    let choosing_books = matches!(book_scope, BookScope::Selected(_));
+    let selected_books = match &book_scope {
+        BookScope::All => Vec::new(),
+        BookScope::Selected(books) => books.clone(),
+    };
+    let first_book = books
+        .first()
+        .map(|book| book.name.clone())
+        .into_iter()
+        .collect::<Vec<_>>();
+    let summary = if !selected {
+        "Off".to_string()
+    } else {
+        match &book_scope {
+            BookScope::All => "All books".to_string(),
+            BookScope::Selected(books) if books.len() == 1 => format!("{} only", books[0]),
+            BookScope::Selected(books) => format!("{} books", books.len()),
+        }
+    };
+
+    rsx! {
+        div { class: if selected { "scope-canon selected" } else { "scope-canon" },
+            div { class: "scope-canon-header",
+                button {
+                    class: if selected { "choice active" } else { "choice" },
+                    onclick: move |_| game.write().toggle_canon(canon),
+                    "{canon.label()}"
+                }
+                span { class: "muted", "{summary}" }
+            }
+
+            if selected {
+                div { class: "segmented scope-mode",
+                    button {
+                        class: if !choosing_books { "segment active" } else { "segment" },
+                        onclick: move |_| game.write().set_canon_book_scope(canon, BookScope::All),
+                        "All books"
+                    }
+                    button {
+                        class: if choosing_books { "segment active" } else { "segment" },
+                        onclick: move |_| {
+                            game.write().set_canon_book_scope(canon, BookScope::Selected(first_book.clone()));
+                        },
+                        "Choose books"
+                    }
+                }
+
+                if choosing_books {
+                    div { class: "book-select-grid",
+                        for book in books.iter().cloned() {
+                            {
+                                let book_name = book.name.clone();
+                                let active = selected_books.iter().any(|selected| selected == &book_name);
+                                let selected_books = selected_books.clone();
+                                rsx! {
+                                    button {
+                                        class: if active { "choice active" } else { "choice" },
+                                        onclick: move |_| {
+                                            let mut next_books = selected_books.clone();
+                                            if active {
+                                                if next_books.len() > 1 {
+                                                    next_books.retain(|selected| selected != &book_name);
+                                                }
+                                            } else {
+                                                next_books.push(book_name.clone());
+                                            }
+                                            game.write().set_canon_book_scope(canon, BookScope::Selected(next_books));
+                                        },
+                                        "{book.name}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
