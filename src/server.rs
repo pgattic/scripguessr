@@ -47,21 +47,25 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
         std::env::var("SCRIPGUESSR_STATIC_DIR").unwrap_or_else(|_| "dist/public".to_string());
     let state = AppState::new(game_ttl)?;
 
-    let app = Router::new()
-        .route("/healthz", get(healthz))
-        .route("/api/metadata", post(metadata))
-        .route("/api/games", post(create_game))
-        .route("/api/games/{game_id}/guesses", post(submit_guess))
-        .layer(TraceLayer::new_for_http())
-        .layer(CorsLayer::permissive())
-        .fallback_service(ServeDir::new(static_dir).append_index_html_on_directories(true))
-        .with_state(state);
+    let app = router_for(state, static_dir);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
+    Router::new()
+        .route("/healthz", get(healthz))
+        .route("/api/metadata", post(metadata))
+        .route("/api/games", post(create_game))
+        .route("/api/games/{game_id}/guesses", post(submit_guess))
+        .layer(TraceLayer::new_for_http())
+        .layer(CorsLayer::permissive())
+        .fallback_service(ServeDir::new(static_dir.into()).append_index_html_on_directories(true))
+        .with_state(state)
 }
 
 fn init_tracing() {
@@ -349,6 +353,10 @@ impl IntoResponse for ApiError {
 mod tests {
     use super::*;
     use crate::scriptures::Difficulty;
+    use axum::body::{Body, to_bytes};
+    use axum::http::{Method, Request, header};
+    use serde::de::DeserializeOwned;
+    use tower::ServiceExt;
 
     fn test_request() -> NewGameRequest {
         NewGameRequest {
@@ -383,5 +391,157 @@ mod tests {
         let games = state.games.lock().unwrap();
         assert!(!games.contains_key("expired"));
         assert!(games.contains_key("active"));
+    }
+
+    fn app() -> (Router, AppState) {
+        let state = AppState::new(Duration::from_secs(60)).unwrap();
+        (router_for(state.clone(), "/tmp"), state)
+    }
+
+    async fn get(app: Router, path: &str) -> axum::response::Response {
+        app.oneshot(Request::builder().uri(path).body(Body::empty()).unwrap())
+            .await
+            .unwrap()
+    }
+
+    async fn post_json<RequestBody>(
+        app: Router,
+        path: &str,
+        body: RequestBody,
+    ) -> axum::response::Response
+    where
+        RequestBody: Serialize,
+    {
+        let body = serde_json::to_vec(&body).unwrap();
+        app.oneshot(
+            Request::builder()
+                .method(Method::POST)
+                .uri(path)
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body))
+                .unwrap(),
+        )
+        .await
+        .unwrap()
+    }
+
+    async fn read_json<ResponseBody>(response: axum::response::Response) -> ResponseBody
+    where
+        ResponseBody: DeserializeOwned,
+    {
+        let bytes = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        serde_json::from_slice(&bytes).unwrap()
+    }
+
+    #[tokio::test]
+    async fn healthz_returns_ok() {
+        let (app, _state) = app();
+
+        let response = get(app, "/healthz").await;
+        let status = response.status();
+        let body = to_bytes(response.into_body(), usize::MAX).await.unwrap();
+
+        assert_eq!(status, StatusCode::OK);
+        assert_eq!(&body[..], b"ok");
+    }
+
+    #[tokio::test]
+    async fn metadata_endpoint_returns_books_and_counts() {
+        let (app, _state) = app();
+        let response = post_json(
+            app,
+            "/api/metadata",
+            MetadataRequest {
+                difficulty: Difficulty::Normal,
+                canons: vec![Canon::BookOfMormon],
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: MetadataResponse = read_json(response).await;
+        assert_eq!(body.canons, vec![Canon::BookOfMormon]);
+        assert_eq!(body.metadata.len(), 1);
+        assert_eq!(body.metadata[0].books[0].name, "1 Nephi");
+        assert!(body.playable_verse_count > 0);
+        assert!(body.total_verse_count >= body.playable_verse_count);
+    }
+
+    #[tokio::test]
+    async fn create_game_returns_prompts_without_answers() {
+        let (app, _state) = app();
+        let response = post_json(app, "/api/games", test_request()).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: NewGameResponse = read_json(response).await;
+        assert_eq!(body.rounds.len(), 1);
+        assert!(!body.game_id.is_empty());
+        assert!(!body.rounds[0].text.is_empty());
+    }
+
+    #[tokio::test]
+    async fn guess_endpoint_returns_score_and_chapter_verses() {
+        let (app, state) = app();
+        let response = post_json(app.clone(), "/api/games", test_request()).await;
+        let game: NewGameResponse = read_json(response).await;
+        let answer = state
+            .games
+            .lock()
+            .unwrap()
+            .get(&game.game_id)
+            .unwrap()
+            .rounds[0]
+            .reference
+            .clone();
+
+        let response = post_json(
+            app,
+            &format!("/api/games/{}/guesses", game.game_id),
+            GuessRequest {
+                round_index: 0,
+                canon: answer.canon,
+                book: answer.book.clone(),
+                chapter: answer.chapter,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: GuessResponse = read_json(response).await;
+        assert_eq!(body.score.points, crate::scoring::MAX_SCORE);
+        assert_eq!(body.answer, answer);
+        assert_eq!(body.chapter_verses[0].verse, 1);
+        assert!(
+            body.chapter_verses
+                .iter()
+                .any(|verse| verse.verse == answer.verse)
+        );
+    }
+
+    #[tokio::test]
+    async fn expired_game_returns_not_found_on_guess() {
+        let (app, state) = app();
+        state.games.lock().unwrap().insert(
+            "expired".to_string(),
+            ServerGame {
+                request: test_request(),
+                rounds: Vec::new(),
+                last_seen_at: SystemTime::UNIX_EPOCH,
+            },
+        );
+
+        let response = post_json(
+            app,
+            "/api/games/expired/guesses",
+            GuessRequest {
+                round_index: 0,
+                canon: Canon::BookOfMormon,
+                book: "1 Nephi".to_string(),
+                chapter: 1,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::NOT_FOUND);
     }
 }

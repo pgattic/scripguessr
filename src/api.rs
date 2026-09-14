@@ -78,6 +78,7 @@ pub struct ChapterVerse {
 }
 
 impl NewGameRequest {
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub fn max_total_score(&self) -> u32 {
         self.round_count as u32 * MAX_SCORE
     }

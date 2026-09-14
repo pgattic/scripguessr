@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 pub const MAX_SCORE: u32 = 1000;
+#[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 const POINTS_LOST_PER_CHAPTER: u32 = 22;
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
@@ -10,6 +11,7 @@ pub struct Score {
 }
 
 impl Score {
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub fn from_chapter_distance(chapter_distance: u32) -> Self {
         let points = if chapter_distance == 0 {
             MAX_SCORE
@@ -23,6 +25,7 @@ impl Score {
         }
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn distance_label(self) -> String {
         match self.chapter_distance {
             0 => "Exact chapter".to_string(),

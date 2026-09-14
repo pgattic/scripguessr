@@ -19,6 +19,7 @@ pub struct Stats {
 }
 
 impl Stats {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn load() -> Self {
         load_stats().unwrap_or_default()
     }
@@ -146,6 +147,7 @@ fn load_stats() -> Option<Stats> {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 fn load_stats() -> Option<Stats> {
     None
 }

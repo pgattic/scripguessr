@@ -1,3 +1,5 @@
+#![cfg_attr(target_arch = "wasm32", allow(dead_code))]
+
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
@@ -13,10 +15,6 @@ pub struct ScriptureLibrary {
 impl ScriptureLibrary {
     pub fn insert(&mut self, canon: Canon, scriptures: Scriptures) {
         self.canons.insert(canon, Arc::new(scriptures));
-    }
-
-    pub fn has_canon(&self, canon: Canon) -> bool {
-        self.canons.contains_key(&canon)
     }
 
     pub fn scriptures(&self, canon: Canon) -> Option<&Scriptures> {
@@ -78,6 +76,7 @@ pub enum Canon {
 }
 
 impl Canon {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub const ALL: [Self; 5] = [
         Self::OldTestament,
         Self::NewTestament,
@@ -86,6 +85,7 @@ impl Canon {
         Self::PearlOfGreatPrice,
     ];
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn label(self) -> &'static str {
         match self {
             Self::BookOfMormon => "Book of Mormon",
@@ -98,6 +98,7 @@ impl Canon {
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub enum GameMode {
     BookOfMormon,
     Bible,
@@ -106,6 +107,7 @@ pub enum GameMode {
 }
 
 impl GameMode {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub const ALL: [Self; 4] = [
         Self::BookOfMormon,
         Self::Bible,
@@ -113,6 +115,7 @@ impl GameMode {
         Self::AllStandardWorks,
     ];
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn label(self) -> &'static str {
         match self {
             Self::BookOfMormon => "Book of Mormon",
@@ -122,6 +125,7 @@ impl GameMode {
         }
     }
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn canons(self) -> &'static [Canon] {
         match self {
             Self::BookOfMormon => &[Canon::BookOfMormon],
@@ -156,14 +160,6 @@ impl Scriptures {
     pub fn from_flat_json_for_canon(canon: Canon, data: &str) -> Result<Self, serde_json::Error> {
         let flat: FlatScriptures = serde_json::from_str(data)?;
         Ok(Self::from_flat_verses(canon, flat.verses))
-    }
-
-    pub fn chapters_for(&self, book: &str) -> Vec<u16> {
-        self.books
-            .iter()
-            .find(|item| item.name == book)
-            .map(|item| item.chapters.clone())
-            .unwrap_or_default()
     }
 
     pub fn verses_for_chapter(&self, reference: &Reference) -> Vec<Verse> {
@@ -255,8 +251,10 @@ pub enum Difficulty {
 }
 
 impl Difficulty {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub const ALL: [Self; 3] = [Self::Easy, Self::Normal, Self::Hard];
 
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn label(self) -> &'static str {
         match self {
             Self::Easy => "Easy",
