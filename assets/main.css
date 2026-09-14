@@ -163,8 +163,20 @@ button {
   padding: 18px;
 }
 
+.setup-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 520px) minmax(300px, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
 .setup-panel {
-  width: min(520px, 100%);
+  padding: 18px;
+}
+
+.setup-side {
+  display: grid;
+  gap: 16px;
   padding: 18px;
 }
 
@@ -353,6 +365,12 @@ button {
   border-top: 1px solid var(--border);
 }
 
+.setup-side .stats-panel {
+  margin-top: 0;
+  padding-top: 0;
+  border-top: 0;
+}
+
 .stats-panel .picker-header {
   margin-bottom: 0;
 }
@@ -510,6 +528,7 @@ button {
 
 @media (max-width: 840px) {
   .layout,
+  .setup-layout,
   .topbar {
     grid-template-columns: 1fr;
   }

@@ -1,19 +1,18 @@
 use std::collections::BTreeMap;
-use std::rc::Rc;
+use std::sync::Arc;
 
-use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
 
 #[derive(Clone, Default, PartialEq)]
 pub struct ScriptureLibrary {
-    canons: BTreeMap<Canon, Rc<Scriptures>>,
+    canons: BTreeMap<Canon, Arc<Scriptures>>,
 }
 
 impl ScriptureLibrary {
     pub fn insert(&mut self, canon: Canon, scriptures: Scriptures) {
-        self.canons.insert(canon, Rc::new(scriptures));
+        self.canons.insert(canon, Arc::new(scriptures));
     }
 
     pub fn has_canon(&self, canon: Canon) -> bool {
@@ -21,7 +20,7 @@ impl ScriptureLibrary {
     }
 
     pub fn scriptures(&self, canon: Canon) -> Option<&Scriptures> {
-        self.canons.get(&canon).map(Rc::as_ref)
+        self.canons.get(&canon).map(Arc::as_ref)
     }
 
     pub fn score(
@@ -94,16 +93,6 @@ impl Canon {
             Self::PearlOfGreatPrice => "Pearl of Great Price",
             Self::OldTestament => "Old Testament",
             Self::NewTestament => "New Testament",
-        }
-    }
-
-    pub fn asset_url(self) -> Asset {
-        match self {
-            Self::BookOfMormon => asset!("/assets/data/book-of-mormon-flat.json"),
-            Self::DoctrineAndCovenants => asset!("/assets/data/doctrine-and-covenants-flat.json"),
-            Self::PearlOfGreatPrice => asset!("/assets/data/pearl-of-great-price-flat.json"),
-            Self::OldTestament => asset!("/assets/data/old-testament-flat.json"),
-            Self::NewTestament => asset!("/assets/data/new-testament-flat.json"),
         }
     }
 }
@@ -351,19 +340,19 @@ fn normalized_words(text: &str) -> Vec<String> {
         .collect()
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct BookInfo {
     pub name: String,
     pub chapters: Vec<u16>,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Verse {
     pub reference: Reference,
     pub text: String,
 }
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct Reference {
     pub canon: Canon,
     pub book: String,

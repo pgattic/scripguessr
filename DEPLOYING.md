@@ -1,8 +1,8 @@
 # Deploying ScripGuessr on NixOS
 
 ScripGuessr ships a NixOS module as `nixosModules.default`. The module builds the
-Dioxus web app as a static site, serves it on localhost with `static-web-server`,
-and leaves your reverse proxy configuration in your host config.
+Dioxus web app and backend server, runs the app on localhost, and leaves your
+reverse proxy configuration in your host config.
 
 ## Example
 

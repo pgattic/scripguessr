@@ -48,6 +48,7 @@
           };
 
           packages.default = pkgs.callPackage ./nix/package.nix { };
+          packages.scripguessr = config.packages.default;
 
           packages.dev = pkgs.writeShellApplication {
             name = "scripguessr-dev";
@@ -59,6 +60,14 @@
               wasm-bindgen-cli
             ];
             text = ''
+              export SCRIPGUESSR_API_BASE="''${SCRIPGUESSR_API_BASE:-http://127.0.0.1:8099}"
+              export PORT="''${SCRIPGUESSR_BACKEND_PORT:-8099}"
+              export SCRIPGUESSR_STATIC_DIR="target/dx/scripguessr/debug/web/public"
+
+              cargo run &
+              backend_pid="$!"
+              trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+
               exec dx serve --platform web "$@"
             '';
           };

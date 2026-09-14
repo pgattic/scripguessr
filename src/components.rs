@@ -1,33 +1,33 @@
 use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::loader::load_scriptures;
-use crate::scriptures::{Canon, Difficulty, GameMode, Reference, Verse};
+use crate::loader::{create_game, load_metadata, submit_guess};
+use crate::scriptures::{Canon, Difficulty, GameMode};
 use crate::stats::Stats;
 
 #[component]
 pub fn App() -> Element {
     let mut game = use_signal(Game::new);
-    let mut scripture_resource = use_resource(move || async move {
-        match game.read().first_unloaded_canon() {
-            Some(canon) => load_scriptures(canon).await.map(Some),
-            None => Ok(None),
+    let mut metadata_resource = use_resource(move || async move {
+        let snapshot = game.read().clone();
+        if snapshot.screen == Screen::Setup && !snapshot.metadata_ready() {
+            load_metadata(snapshot.metadata_request()).await.map(Some)
+        } else {
+            Ok(None)
         }
     });
 
     use_effect(move || {
-        let Some(Ok(Some((canon, scriptures)))) =
-            scripture_resource.value().read().as_ref().cloned()
-        else {
+        let Some(Ok(Some(metadata))) = metadata_resource.value().read().as_ref().cloned() else {
             return;
         };
 
-        game.write().set_scriptures(canon, scriptures);
-        scripture_resource.clear();
+        game.write().apply_metadata(metadata);
+        metadata_resource.clear();
     });
 
     let snapshot = game.read().clone();
-    let load_error = scripture_resource
+    let load_error = metadata_resource
         .value()
         .read()
         .as_ref()
@@ -42,10 +42,10 @@ pub fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        if snapshot.selected_canons_loaded() {
+                        if snapshot.metadata_ready() {
                             span { "{snapshot.settings.selection_label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" }
                         } else {
-                            span { "{snapshot.settings.selection_label()} · loading scripture data" }
+                            span { "{snapshot.settings.selection_label()} · loading game data" }
                         }
                     }
                     if snapshot.screen == Screen::Playing {
@@ -66,6 +66,34 @@ pub fn App() -> Element {
     }
 }
 
+fn request_new_game(mut game: Signal<Game>) {
+    let request = game.read().new_game_request();
+    game.write().begin_starting_game();
+
+    spawn(async move {
+        match create_game(request).await {
+            Ok(response) => game.write().start_game(response),
+            Err(error) => game.write().fail_request(error),
+        }
+    });
+}
+
+fn request_guess_submission(mut game: Signal<Game>) {
+    let game_id = game.read().game_id.clone();
+    let request = game.read().guess_request();
+    let (Some(game_id), Some(request)) = (game_id, request) else {
+        return;
+    };
+
+    game.write().begin_submitting_guess();
+    spawn(async move {
+        match submit_guess(&game_id, request).await {
+            Ok(response) => game.write().apply_guess(response),
+            Err(error) => game.write().fail_request(error),
+        }
+    });
+}
+
 #[component]
 fn VersePanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
@@ -84,7 +112,7 @@ fn VersePanel(game: Signal<Game>) -> Element {
                 p { class: "verse", "{snapshot.total_score()} points" }
                 RoundSummary { rounds: snapshot.rounds.clone() }
             } else {
-                blockquote { class: "verse", "{snapshot.current_round().verse.text}" }
+                blockquote { class: "verse", "{snapshot.current_round().text}" }
             }
         }
     }
@@ -125,13 +153,14 @@ fn GameCompletePanel(game: Signal<Game>, snapshot: Game) -> Element {
         div { class: "actions",
             button {
                 class: "button",
-                onclick: move |_| game.write().restart(),
+                disabled: snapshot.loading_game,
+                onclick: move |_| request_new_game(game),
                 "Play again"
             }
             button {
                 class: "button secondary",
                 onclick: move |_| game.write().change_settings(),
-                "Change settings"
+                "Home"
             }
         }
     }
@@ -146,7 +175,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
     let step = snapshot.active_step;
     let canon_count = snapshot.settings.canons.len();
     let book_count = selected_canon
-        .map(|canon| snapshot.scriptures_for(canon).books.len())
+        .map(|canon| snapshot.books_for(canon).len())
         .unwrap_or_default();
     let show_canon_crumb = canon_count > 1;
     let show_book_crumb = book_count > 1;
@@ -190,7 +219,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             },
             GuessStep::Book => rsx! {
                 div { class: "grid book-grid",
-                    for book in snapshot.scriptures_for(selected_canon.expect("canon selected before book step")).books.clone() {
+                    for book in snapshot.books_for(selected_canon.expect("canon selected before book step")) {
                         {
                             let book_name = book.name.clone();
                             let active = selected_book.as_ref() == Some(&book_name);
@@ -238,9 +267,9 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             div { class: "actions",
                 button {
                     class: "button",
-                    disabled: guessed,
-                    onclick: move |_| game.write().submit_guess(),
-                    "Submit guess"
+                    disabled: guessed || snapshot.submitting_guess,
+                    onclick: move |_| request_guess_submission(game),
+                    if snapshot.submitting_guess { "Submitting" } else { "Submit guess" }
                 }
             }
         }
@@ -248,8 +277,6 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         if let Some(result) = snapshot.current_round().guess.clone() {
             ResultPanel {
                 result: result,
-                answer: snapshot.current_round().verse.reference.clone(),
-                chapter_verses: snapshot.scriptures_for(snapshot.current_round().verse.reference.canon).verses_for_chapter(&snapshot.current_round().verse.reference),
             }
             div { class: "actions",
                 button {
@@ -324,100 +351,109 @@ fn Breadcrumbs(
 #[component]
 fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
     let snapshot = game.read().clone();
-    let canons_loaded = snapshot.selected_canons_loaded();
-    let missing_canon = snapshot.first_unloaded_canon();
+    let metadata_ready = snapshot.metadata_ready();
 
     rsx! {
-        section { class: "panel setup-panel",
-            div { class: "picker-header",
-                h2 { "New game" }
-                span { class: "muted", "{snapshot.settings.selection_label()}" }
-            }
+        div { class: "setup-layout",
+            section { class: "panel setup-panel",
+                div { class: "picker-header",
+                    h2 { "New game" }
+                    span { class: "muted", "{snapshot.settings.selection_label()}" }
+                }
 
-            div { class: "setup-group",
-                span { class: "setup-label", "Rounds" }
-                div { class: "segmented",
-                    for round_count in [5_usize, 10] {
-                        button {
-                            class: if snapshot.settings.round_count == round_count { "segment active" } else { "segment" },
-                            onclick: move |_| game.write().set_round_count(round_count),
-                            "{round_count}"
+                div { class: "setup-group",
+                    span { class: "setup-label", "Rounds" }
+                    div { class: "segmented",
+                        for round_count in [5_usize, 10] {
+                            button {
+                                class: if snapshot.settings.round_count == round_count { "segment active" } else { "segment" },
+                                onclick: move |_| game.write().set_round_count(round_count),
+                                "{round_count}"
+                            }
                         }
                     }
                 }
-            }
 
-            div { class: "setup-group",
-                span { class: "setup-label", "Difficulty" }
-                div { class: "segmented",
-                    for difficulty in Difficulty::ALL {
-                        button {
-                            class: if snapshot.settings.difficulty == difficulty { "segment active" } else { "segment" },
-                            onclick: move |_| game.write().set_difficulty(difficulty),
-                            "{difficulty.label()}"
+                div { class: "setup-group",
+                    span { class: "setup-label", "Difficulty" }
+                    div { class: "segmented",
+                        for difficulty in Difficulty::ALL {
+                            button {
+                                class: if snapshot.settings.difficulty == difficulty { "segment active" } else { "segment" },
+                                onclick: move |_| game.write().set_difficulty(difficulty),
+                                "{difficulty.label()}"
+                            }
                         }
                     }
                 }
-            }
 
-            div { class: "setup-group",
-                span { class: "setup-label", "Presets" }
-                div { class: "grid",
-                    for mode in GameMode::ALL {
-                        button {
-                            class: if mode.canons() == snapshot.settings.canons.as_slice() { "choice active" } else { "choice" },
-                            onclick: move |_| game.write().set_preset(mode),
-                            "{mode.label()}"
+                div { class: "setup-group",
+                    span { class: "setup-label", "Presets" }
+                    div { class: "grid",
+                        for mode in GameMode::ALL {
+                            button {
+                                class: if mode.canons() == snapshot.settings.canons.as_slice() { "choice active" } else { "choice" },
+                                onclick: move |_| game.write().set_preset(mode),
+                                "{mode.label()}"
+                            }
                         }
                     }
                 }
-            }
 
-            div { class: "setup-group",
-                span { class: "setup-label", "Canons" }
-                div { class: "grid",
-                    for canon in Canon::ALL {
-                        {
-                            let selected = snapshot.settings.canons.contains(&canon);
-                            rsx! {
-                                button {
-                                    class: if selected { "choice active" } else { "choice" },
-                                    onclick: move |_| game.write().toggle_canon(canon),
-                                    "{canon.label()}"
+                div { class: "setup-group",
+                    span { class: "setup-label", "Canons" }
+                    div { class: "grid",
+                        for canon in Canon::ALL {
+                            {
+                                let selected = snapshot.settings.canons.contains(&canon);
+                                rsx! {
+                                    button {
+                                        class: if selected { "choice active" } else { "choice" },
+                                        onclick: move |_| game.write().toggle_canon(canon),
+                                        "{canon.label()}"
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            div { class: "ready",
-                span { class: "muted", "Verse pool" }
-                if canons_loaded {
-                    strong { "{snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses" }
-                } else if load_error.is_some() {
-                    strong { "Could not load {missing_canon.map(Canon::label).unwrap_or(\"scripture data\")}" }
-                } else {
-                    strong { "Loading {missing_canon.map(Canon::label).unwrap_or(\"scripture data\")}" }
+                div { class: "actions",
+                    button {
+                        class: "button",
+                        disabled: !metadata_ready || snapshot.loading_game,
+                        onclick: move |_| request_new_game(game),
+                        if snapshot.loading_game { "Starting" } else { "Start" }
+                    }
+                }
+                if let Some(error) = snapshot.error.as_ref() {
+                    div { class: "callout warning",
+                        strong { "Game unavailable" }
+                        span { "{error}" }
+                    }
                 }
             }
 
-            if let Some(error) = load_error {
-                div { class: "callout warning",
-                    strong { "Scripture data unavailable" }
-                    span { "{error}" }
+            aside { class: "panel setup-side",
+                div { class: "ready",
+                    span { class: "muted", "Verse pool" }
+                    if metadata_ready {
+                        strong { "{snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses" }
+                    } else if load_error.is_some() {
+                        strong { "Could not load game data" }
+                    } else {
+                        strong { "Loading game data" }
+                    }
                 }
-            }
 
-            StatsPanel { stats: snapshot.stats.clone() }
-
-            div { class: "actions",
-                button {
-                    class: "button",
-                    disabled: !canons_loaded,
-                    onclick: move |_| game.write().start_game(),
-                    "Start"
+                if let Some(error) = load_error {
+                    div { class: "callout warning",
+                        strong { "Scripture data unavailable" }
+                        span { "{error}" }
+                    }
                 }
+
+                StatsPanel { stats: snapshot.stats.clone() }
             }
         }
     }
@@ -467,10 +503,10 @@ fn StatsPanel(stats: Stats) -> Element {
 }
 
 #[component]
-fn ResultPanel(result: GuessResult, answer: Reference, chapter_verses: Vec<Verse>) -> Element {
+fn ResultPanel(result: GuessResult) -> Element {
     let mut reader_open = use_signal(|| false);
     let label = result.score.distance_label();
-    let chapter_title = format!("{} {}", answer.book, answer.chapter);
+    let chapter_title = format!("{} {}", result.answer.book, result.answer.chapter);
 
     rsx! {
         div { class: "result",
@@ -480,11 +516,11 @@ fn ResultPanel(result: GuessResult, answer: Reference, chapter_verses: Vec<Verse
             div { class: "result-grid",
                 div {
                     span { class: "muted", "Actual" }
-                    strong { "{answer.book} {answer.chapter}:{answer.verse}" }
+                    strong { "{result.answer.book} {result.answer.chapter}:{result.answer.verse}" }
                 }
                 div {
                     span { class: "muted", "Guess" }
-                    strong { "{result.book} {result.chapter}" }
+                    strong { "{result.guess.book} {result.guess.chapter}" }
                 }
             }
             div { class: "actions compact-actions",
@@ -497,8 +533,8 @@ fn ResultPanel(result: GuessResult, answer: Reference, chapter_verses: Vec<Verse
             if reader_open() {
                 ChapterReader {
                     title: chapter_title.clone(),
-                    answer_verse: answer.verse,
-                    verses: chapter_verses.clone(),
+                    answer_verse: result.answer.verse,
+                    verses: result.chapter_verses.clone(),
                     on_close: move |_| reader_open.set(false),
                 }
             }
@@ -510,7 +546,7 @@ fn ResultPanel(result: GuessResult, answer: Reference, chapter_verses: Vec<Verse
 fn ChapterReader(
     title: String,
     answer_verse: u16,
-    verses: Vec<Verse>,
+    verses: Vec<crate::api::ChapterVerse>,
     on_close: EventHandler<MouseEvent>,
 ) -> Element {
     rsx! {
@@ -529,8 +565,8 @@ fn ChapterReader(
                 div { class: "chapter-reader",
                     for verse in verses {
                         p {
-                            class: if verse.reference.verse == answer_verse { "chapter-verse answer-verse" } else { "chapter-verse" },
-                            sup { "{verse.reference.verse}" }
+                            class: if verse.verse == answer_verse { "chapter-verse answer-verse" } else { "chapter-verse" },
+                            sup { "{verse.verse}" }
                             "{verse.text}"
                         }
                     }
@@ -547,7 +583,13 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
             for (index, round) in rounds.into_iter().enumerate() {
                 div { class: "round-row",
                     strong { "Round {index + 1}" }
-                    span { "{round.verse.reference.book} {round.verse.reference.chapter}:{round.verse.reference.verse}" }
+                    span {
+                        if let Some(guess) = round.guess.as_ref() {
+                            "{guess.answer.book} {guess.answer.chapter}:{guess.answer.verse}"
+                        } else {
+                            "Unanswered"
+                        }
+                    }
                     span { "{round.guess.as_ref().map(|guess| guess.score.points).unwrap_or_default()} pts" }
                 }
             }

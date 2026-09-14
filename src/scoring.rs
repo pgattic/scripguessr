@@ -1,7 +1,9 @@
+use serde::{Deserialize, Serialize};
+
 pub const MAX_SCORE: u32 = 1000;
 const POINTS_LOST_PER_CHAPTER: u32 = 22;
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct Score {
     pub points: u32,
     pub chapter_distance: u32,

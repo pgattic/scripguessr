@@ -7,7 +7,6 @@
 
 let
   cfg = config.services.scripguessr;
-  bindAddress = "127.0.0.1";
 in
 {
   options.services.scripguessr = {
@@ -17,7 +16,7 @@ in
       type = lib.types.package;
       default = pkgs.callPackage ./package.nix { };
       defaultText = lib.literalExpression "pkgs.callPackage ./package.nix { }";
-      description = "ScripGuessr static site package to serve.";
+      description = "ScripGuessr package to run.";
     };
 
     port = lib.mkOption {
@@ -29,11 +28,15 @@ in
 
   config = lib.mkIf cfg.enable {
     systemd.services.scripguessr = {
-      description = "ScripGuessr static web service";
+      description = "ScripGuessr web service";
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+      environment = {
+        PORT = toString cfg.port;
+        SCRIPGUESSR_STATIC_DIR = "${cfg.package}/share/scripguessr/public";
+      };
       serviceConfig = {
-        ExecStart = "${lib.getExe pkgs.static-web-server} --host ${bindAddress} --port ${toString cfg.port} --root ${cfg.package}";
+        ExecStart = lib.getExe cfg.package;
         DynamicUser = true;
         Restart = "on-failure";
         RestartSec = "5s";

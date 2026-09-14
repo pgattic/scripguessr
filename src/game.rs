@@ -1,13 +1,18 @@
-use rand::rngs::SmallRng;
-use rand::{Rng, SeedableRng};
-
+use crate::api::{
+    CanonMetadata, ChapterVerse, GuessReference, GuessRequest, GuessResponse, MetadataRequest,
+    MetadataResponse, NewGameRequest, NewGameResponse,
+};
 use crate::scoring::{MAX_SCORE, Score};
-use crate::scriptures::{Canon, Difficulty, GameMode, ScriptureLibrary, Scriptures, Verse};
+use crate::scriptures::{BookInfo, Canon, Difficulty, GameMode, Reference};
 use crate::stats::{FinishedGame, FinishedRound, Stats};
 
-#[derive(Clone)]
+#[derive(Clone, PartialEq)]
 pub struct Game {
-    pub library: ScriptureLibrary,
+    pub game_id: Option<String>,
+    pub metadata: Vec<CanonMetadata>,
+    pub metadata_difficulty: Difficulty,
+    pub playable_verse_count: usize,
+    pub total_verse_count: usize,
     pub settings: GameSettings,
     pub stats: Stats,
     pub last_game_new_best: bool,
@@ -19,29 +24,19 @@ pub struct Game {
     pub selected_chapter: Option<u16>,
     pub active_step: GuessStep,
     pub finished: bool,
-    rng: SmallRng,
-}
-
-impl PartialEq for Game {
-    fn eq(&self, other: &Self) -> bool {
-        self.settings == other.settings
-            && self.stats == other.stats
-            && self.last_game_new_best == other.last_game_new_best
-            && self.screen == other.screen
-            && self.rounds == other.rounds
-            && self.current_round_index == other.current_round_index
-            && self.selected_canon == other.selected_canon
-            && self.selected_book == other.selected_book
-            && self.selected_chapter == other.selected_chapter
-            && self.active_step == other.active_step
-            && self.finished == other.finished
-    }
+    pub loading_game: bool,
+    pub submitting_guess: bool,
+    pub error: Option<String>,
 }
 
 impl Game {
     pub fn new() -> Self {
         Self {
-            library: ScriptureLibrary::default(),
+            game_id: None,
+            metadata: Vec::new(),
+            metadata_difficulty: Difficulty::Normal,
+            playable_verse_count: 0,
+            total_verse_count: 0,
             settings: GameSettings::default(),
             stats: Stats::load(),
             last_game_new_best: false,
@@ -53,47 +48,85 @@ impl Game {
             selected_chapter: None,
             active_step: GuessStep::Canon,
             finished: false,
-            rng: SmallRng::from_os_rng(),
+            loading_game: false,
+            submitting_guess: false,
+            error: None,
         }
     }
 
-    pub fn start_game(&mut self) {
-        if !self.selected_canons_loaded() {
+    pub fn metadata_request(&self) -> MetadataRequest {
+        MetadataRequest {
+            difficulty: self.settings.difficulty,
+            canons: self.settings.canons.clone(),
+        }
+    }
+
+    pub fn new_game_request(&self) -> NewGameRequest {
+        NewGameRequest {
+            round_count: self.settings.round_count,
+            difficulty: self.settings.difficulty,
+            canons: self.settings.canons.clone(),
+        }
+    }
+
+    pub fn apply_metadata(&mut self, response: MetadataResponse) {
+        if response.difficulty != self.settings.difficulty
+            || response.canons != self.settings.canons
+        {
             return;
         }
-        self.screen = Screen::Playing;
-        self.restart();
+
+        self.metadata_difficulty = response.difficulty;
+        self.metadata = response.metadata;
+        self.playable_verse_count = response.playable_verse_count;
+        self.total_verse_count = response.total_verse_count;
+        self.advance_past_single_option_steps();
     }
 
-    pub fn restart(&mut self) {
+    pub fn metadata_ready(&self) -> bool {
+        self.metadata_difficulty == self.settings.difficulty
+            && self
+                .metadata
+                .iter()
+                .map(|item| item.canon)
+                .collect::<Vec<_>>()
+                == self.settings.canons
+            && self.playable_verse_count > 0
+    }
+
+    pub fn begin_starting_game(&mut self) {
+        self.loading_game = true;
+        self.error = None;
+    }
+
+    pub fn fail_request(&mut self, error: String) {
+        self.loading_game = false;
+        self.submitting_guess = false;
+        self.error = Some(error);
+    }
+
+    pub fn start_game(&mut self, response: NewGameResponse) {
+        self.game_id = Some(response.game_id);
+        self.metadata_difficulty = self.settings.difficulty;
+        self.metadata = response.metadata;
+        self.playable_verse_count = response.playable_verse_count;
+        self.total_verse_count = response.total_verse_count;
         self.last_game_new_best = false;
-        self.rounds = (0..self.settings.round_count)
-            .map(|_| {
-                let mut index = self.rng.random_range(0..self.verse_count_for_difficulty());
-                let mut verse = None;
-
-                for canon in &self.settings.canons {
-                    let pool = self
-                        .scriptures_for(*canon)
-                        .verses_for_difficulty(self.settings.difficulty);
-
-                    if index < pool.len() {
-                        verse = Some(pool[index].clone());
-                        break;
-                    }
-
-                    index -= pool.len();
-                }
-
-                Round {
-                    verse: verse.expect("loaded game mode has at least one playable verse"),
-                    guess: None,
-                }
+        self.rounds = response
+            .rounds
+            .into_iter()
+            .map(|prompt| Round {
+                text: prompt.text,
+                guess: None,
             })
             .collect();
         self.current_round_index = 0;
         self.reset_guess_path();
         self.finished = false;
+        self.loading_game = false;
+        self.submitting_guess = false;
+        self.error = None;
+        self.screen = Screen::Playing;
     }
 
     pub fn change_settings(&mut self) {
@@ -102,6 +135,7 @@ impl Game {
         self.last_game_new_best = false;
         self.rounds.clear();
         self.current_round_index = 0;
+        self.game_id = None;
         self.clear_guess();
     }
 
@@ -110,7 +144,10 @@ impl Game {
     }
 
     pub fn set_difficulty(&mut self, difficulty: Difficulty) {
-        self.settings.difficulty = difficulty;
+        if self.settings.difficulty != difficulty {
+            self.settings.difficulty = difficulty;
+            self.clear_guess();
+        }
     }
 
     pub fn set_preset(&mut self, mode: GameMode) {
@@ -136,25 +173,6 @@ impl Game {
         }
 
         self.clear_guess();
-    }
-
-    pub fn set_scriptures(&mut self, canon: Canon, scriptures: Scriptures) {
-        self.library.insert(canon, scriptures);
-    }
-
-    pub fn selected_canons_loaded(&self) -> bool {
-        self.settings
-            .canons
-            .iter()
-            .all(|canon| self.library.has_canon(*canon))
-    }
-
-    pub fn first_unloaded_canon(&self) -> Option<Canon> {
-        self.settings
-            .canons
-            .iter()
-            .copied()
-            .find(|canon| !self.library.has_canon(*canon))
     }
 
     pub fn current_round(&self) -> &Round {
@@ -224,7 +242,7 @@ impl Game {
     }
 
     fn advance_past_single_option_steps(&mut self) {
-        if !self.selected_canons_loaded() {
+        if !self.metadata_ready() {
             return;
         }
 
@@ -237,7 +255,7 @@ impl Game {
             let Some(canon) = self.selected_canon else {
                 return;
             };
-            let books = &self.scriptures_for(canon).books;
+            let books = self.books_for(canon);
             if books.len() == 1 {
                 self.selected_book = Some(books[0].name.clone());
                 self.active_step = GuessStep::Chapter;
@@ -259,29 +277,30 @@ impl Game {
         }
     }
 
-    pub fn submit_guess(&mut self) {
-        if self.selected_canon.is_none() {
-            return;
+    pub fn guess_request(&self) -> Option<GuessRequest> {
+        Some(GuessRequest {
+            round_index: self.current_round_index,
+            canon: self.selected_canon?,
+            book: self.selected_book.clone()?,
+            chapter: self.selected_chapter?,
+        })
+    }
+
+    pub fn begin_submitting_guess(&mut self) {
+        self.submitting_guess = true;
+        self.error = None;
+    }
+
+    pub fn apply_guess(&mut self, response: GuessResponse) {
+        if let Some(round) = self.rounds.get_mut(self.current_round_index) {
+            round.guess = Some(GuessResult {
+                answer: response.answer,
+                guess: response.guess,
+                score: response.score,
+                chapter_verses: response.chapter_verses,
+            });
         }
-        let Some(book) = self.selected_book.clone() else {
-            return;
-        };
-        let Some(chapter) = self.selected_chapter else {
-            return;
-        };
-        let Some(canon) = self.selected_canon else {
-            return;
-        };
-        let answer = self.current_round().verse.reference.clone();
-        let score = self
-            .library
-            .score(&self.settings.canons, &answer, canon, &book, chapter);
-        self.rounds[self.current_round_index].guess = Some(GuessResult {
-            canon,
-            book,
-            chapter,
-            score,
-        });
+        self.submitting_guess = false;
     }
 
     pub fn next_round(&mut self) {
@@ -305,32 +324,37 @@ impl Game {
             .sum()
     }
 
-    pub fn chapters_for(&self, canon: Canon, book: &str) -> Vec<u16> {
-        self.scriptures_for(canon).chapters_for(book)
-    }
-
-    pub fn scriptures_for(&self, canon: Canon) -> &Scriptures {
-        self.library
-            .scriptures(canon)
-            .expect("selected canon is loaded before gameplay starts")
-    }
-
-    pub fn total_verse_count(&self) -> usize {
-        self.settings
-            .canons
+    pub fn books_for(&self, canon: Canon) -> Vec<BookInfo> {
+        self.metadata
             .iter()
-            .filter_map(|canon| self.library.scriptures(*canon))
-            .map(Scriptures::total_verse_count)
-            .sum()
+            .find(|item| item.canon == canon)
+            .map(|item| item.books.clone())
+            .unwrap_or_default()
+    }
+
+    pub fn chapters_for(&self, canon: Canon, book: &str) -> Vec<u16> {
+        self.metadata
+            .iter()
+            .find(|item| item.canon == canon)
+            .and_then(|item| item.books.iter().find(|candidate| candidate.name == book))
+            .map(|book| book.chapters.clone())
+            .unwrap_or_default()
     }
 
     pub fn verse_count_for_difficulty(&self) -> usize {
-        self.settings
-            .canons
-            .iter()
-            .filter_map(|canon| self.library.scriptures(*canon))
-            .map(|scriptures| scriptures.verse_count_for_difficulty(self.settings.difficulty))
-            .sum()
+        if self.metadata_ready() {
+            self.playable_verse_count
+        } else {
+            0
+        }
+    }
+
+    pub fn total_verse_count(&self) -> usize {
+        if self.metadata_ready() {
+            self.total_verse_count
+        } else {
+            0
+        }
     }
 
     fn record_finished_game(&mut self) {
@@ -344,7 +368,7 @@ impl Game {
                 .filter_map(|round| {
                     let guess = round.guess.as_ref()?;
                     Some(FinishedRound {
-                        answer_book: round.verse.reference.book.clone(),
+                        answer_book: guess.answer.book.clone(),
                         score: guess.score.points,
                         possible_score: MAX_SCORE,
                     })
@@ -411,14 +435,14 @@ impl GuessStep {
 
 #[derive(Clone, PartialEq)]
 pub struct Round {
-    pub verse: Verse,
+    pub text: String,
     pub guess: Option<GuessResult>,
 }
 
 #[derive(Clone, PartialEq)]
 pub struct GuessResult {
-    pub canon: Canon,
-    pub book: String,
-    pub chapter: u16,
+    pub answer: Reference,
+    pub guess: GuessReference,
     pub score: Score,
+    pub chapter_verses: Vec<ChapterVerse>,
 }
