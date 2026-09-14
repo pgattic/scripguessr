@@ -66,9 +66,13 @@
 
               cargo run &
               backend_pid="$!"
-              trap 'kill "$backend_pid" 2>/dev/null || true' EXIT
+              cleanup() {
+                kill "$backend_pid" 2>/dev/null || true
+                wait "$backend_pid" 2>/dev/null || true
+              }
+              trap cleanup EXIT INT TERM
 
-              exec dx serve --platform web "$@"
+              dx serve --platform web "$@"
             '';
           };
 
