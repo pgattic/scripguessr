@@ -177,6 +177,43 @@ fn scroll_round_into_view_on_mobile() {
 #[cfg(not(target_arch = "wasm32"))]
 fn scroll_round_into_view_on_mobile() {}
 
+#[cfg(target_arch = "wasm32")]
+fn scroll_answer_verse_into_view() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+
+    let callback = Closure::once(move || {
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Some(document) = window.document() else {
+            return;
+        };
+        let Some(element) = document
+            .query_selector(".chapter-dialog .answer-verse")
+            .ok()
+            .flatten()
+        else {
+            return;
+        };
+
+        let options = web_sys::ScrollIntoViewOptions::new();
+        options.set_behavior(web_sys::ScrollBehavior::Smooth);
+        options.set_block(web_sys::ScrollLogicalPosition::Center);
+        element.scroll_into_view_with_scroll_into_view_options(&options);
+    });
+
+    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        callback.as_ref().unchecked_ref(),
+        0,
+    );
+    callback.forget();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_answer_verse_into_view() {}
+
 #[component]
 fn GuessPanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
@@ -932,6 +969,10 @@ fn ChapterReader(
     verses: Vec<crate::api::ChapterVerse>,
     on_close: EventHandler<MouseEvent>,
 ) -> Element {
+    use_effect(move || {
+        scroll_answer_verse_into_view();
+    });
+
     rsx! {
         div { class: "dialog-backdrop",
             div { class: "chapter-dialog", role: "dialog", aria_modal: "true",
