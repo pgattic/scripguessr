@@ -2,19 +2,16 @@ use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::load_scriptures;
-use crate::scriptures::{Canon, Difficulty, Reference, Verse};
+use crate::scriptures::{Canon, Difficulty, GameMode, Reference, Verse};
 use crate::stats::Stats;
 
 #[component]
 pub fn App() -> Element {
     let mut game = use_signal(Game::new);
-    let selected_canon = game.read().settings.canon;
-    let canon_loaded = game.read().selected_canon_loaded();
     let mut scripture_resource = use_resource(move || async move {
-        if canon_loaded {
-            Ok(None)
-        } else {
-            load_scriptures(selected_canon).await.map(Some)
+        match game.read().first_unloaded_canon() {
+            Some(canon) => load_scriptures(canon).await.map(Some),
+            None => Ok(None),
         }
     });
 
@@ -45,10 +42,10 @@ pub fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        if let Some(scriptures) = snapshot.selected_scriptures() {
-                            span { "{snapshot.settings.canon.label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses in play" }
+                        if snapshot.selected_canons_loaded() {
+                            span { "{snapshot.settings.selection_label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" }
                         } else {
-                            span { "{snapshot.settings.canon.label()} · loading scripture data" }
+                            span { "{snapshot.settings.selection_label()} · loading scripture data" }
                         }
                     }
                     if snapshot.screen == Screen::Playing {
@@ -73,13 +70,13 @@ pub fn App() -> Element {
 fn VersePanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
     let round_number = snapshot.current_round_index + 1;
-    let canon_label = snapshot.settings.canon.label();
+    let mode_label = snapshot.settings.selection_label();
 
     rsx! {
         section { class: "panel verse-panel",
             div { class: "verse-label",
                 span { "Round {round_number} of {snapshot.settings.round_count}" }
-                span { "{canon_label}" }
+                span { "{mode_label}" }
             }
 
             if snapshot.finished {
@@ -147,6 +144,15 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
     let step = snapshot.active_step;
+    let canon_count = snapshot.settings.canons.len();
+    let book_count = selected_canon
+        .map(|canon| snapshot.scriptures_for(canon).books.len())
+        .unwrap_or_default();
+    let show_canon_crumb = canon_count > 1;
+    let show_book_crumb = book_count > 1;
+    let has_visible_crumb = show_canon_crumb
+        || (show_book_crumb && selected_book.is_some())
+        || selected_chapter.is_some();
     let can_submit =
         selected_canon.is_some() && selected_book.is_some() && selected_chapter.is_some();
 
@@ -156,12 +162,14 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             span { class: "muted", "{step.label()}" }
         }
 
-        if selected_canon.is_some() {
+        if selected_canon.is_some() && has_visible_crumb {
             Breadcrumbs {
                 game,
-                canon: snapshot.settings.canon,
+                canon: selected_canon.unwrap(),
                 selected_book: selected_book.clone(),
                 selected_chapter,
+                show_canon: show_canon_crumb,
+                show_book: show_book_crumb,
                 guessed,
                 step,
             }
@@ -170,7 +178,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         match step {
             GuessStep::Canon => rsx! {
                 div { class: "grid",
-                    for canon in [snapshot.settings.canon] {
+                    for canon in snapshot.settings.canons.iter().copied() {
                         button {
                             class: if selected_canon == Some(canon) { "choice active" } else { "choice" },
                             disabled: guessed,
@@ -182,7 +190,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             },
             GuessStep::Book => rsx! {
                 div { class: "grid book-grid",
-                    for book in snapshot.scriptures().books.clone() {
+                    for book in snapshot.scriptures_for(selected_canon.expect("canon selected before book step")).books.clone() {
                         {
                             let book_name = book.name.clone();
                             let active = selected_book.as_ref() == Some(&book_name);
@@ -200,9 +208,10 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             },
             GuessStep::Chapter => {
                 let book_name = selected_book.clone().unwrap_or_default();
+                let canon = selected_canon.expect("canon selected before chapter step");
                 rsx! {
                     div { class: "grid chapter-grid",
-                        for chapter in snapshot.chapters_for(&book_name) {
+                        for chapter in snapshot.chapters_for(canon, &book_name) {
                             button {
                                 class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
                                 disabled: guessed,
@@ -216,8 +225,10 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             GuessStep::Ready => rsx! {
                 div { class: "ready",
                     span { class: "muted", "Ready to submit" }
-                    if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
-                        strong { "{book} {chapter}" }
+                if let (Some(book), Some(chapter)) = (selected_book.clone(), selected_chapter) {
+                        if let Some(canon) = selected_canon {
+                            strong { "{canon.label()} · {book} {chapter}" }
+                        }
                     }
                 }
             }
@@ -238,7 +249,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
             ResultPanel {
                 result: result,
                 answer: snapshot.current_round().verse.reference.clone(),
-                chapter_verses: snapshot.scriptures().verses_for_chapter(&snapshot.current_round().verse.reference),
+                chapter_verses: snapshot.scriptures_for(snapshot.current_round().verse.reference.canon).verses_for_chapter(&snapshot.current_round().verse.reference),
             }
             div { class: "actions",
                 button {
@@ -257,29 +268,39 @@ fn Breadcrumbs(
     canon: Canon,
     selected_book: Option<String>,
     selected_chapter: Option<u16>,
+    show_canon: bool,
+    show_book: bool,
     guessed: bool,
     step: GuessStep,
 ) -> Element {
     rsx! {
         div { class: "breadcrumb-bar",
             nav { class: "breadcrumbs", aria_label: "Guess path",
-                button {
-                    class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
-                    disabled: guessed,
-                    onclick: move |_| game.write().open_canon(),
-                    "{canon.label()}"
+                if show_canon {
+                    button {
+                        class: if step == GuessStep::Book { "crumb current" } else { "crumb set" },
+                        disabled: guessed,
+                        onclick: move |_| game.write().open_canon(),
+                        "{canon.label()}"
+                    }
                 }
                 if let Some(book) = selected_book {
-                    span { class: "crumb-separator", "/" }
-                    button {
-                        class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
-                        disabled: guessed,
-                        onclick: move |_| game.write().open_book(),
-                        "{book}"
+                    if show_book {
+                        if show_canon {
+                            span { class: "crumb-separator", "/" }
+                        }
+                        button {
+                            class: if step == GuessStep::Chapter { "crumb current" } else { "crumb set" },
+                            disabled: guessed,
+                            onclick: move |_| game.write().open_book(),
+                            "{book}"
+                        }
                     }
                 }
                 if let Some(chapter) = selected_chapter {
-                    span { class: "crumb-separator", "/" }
+                    if show_canon || show_book {
+                        span { class: "crumb-separator", "/" }
+                    }
                     button {
                         class: if step == GuessStep::Ready { "crumb current" } else { "crumb set" },
                         disabled: guessed,
@@ -303,14 +324,14 @@ fn Breadcrumbs(
 #[component]
 fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
     let snapshot = game.read().clone();
-    let scriptures = snapshot.selected_scriptures();
-    let canon_loaded = scriptures.is_some();
+    let canons_loaded = snapshot.selected_canons_loaded();
+    let missing_canon = snapshot.first_unloaded_canon();
 
     rsx! {
         section { class: "panel setup-panel",
             div { class: "picker-header",
                 h2 { "New game" }
-                span { class: "muted", "{snapshot.settings.canon.label()}" }
+                span { class: "muted", "{snapshot.settings.selection_label()}" }
             }
 
             div { class: "setup-group",
@@ -340,13 +361,31 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
             }
 
             div { class: "setup-group",
-                span { class: "setup-label", "Canon" }
+                span { class: "setup-label", "Presets" }
+                div { class: "grid",
+                    for mode in GameMode::ALL {
+                        button {
+                            class: if mode.canons() == snapshot.settings.canons.as_slice() { "choice active" } else { "choice" },
+                            onclick: move |_| game.write().set_preset(mode),
+                            "{mode.label()}"
+                        }
+                    }
+                }
+            }
+
+            div { class: "setup-group",
+                span { class: "setup-label", "Canons" }
                 div { class: "grid",
                     for canon in Canon::ALL {
-                        button {
-                            class: if snapshot.settings.canon == canon { "choice active" } else { "choice" },
-                            onclick: move |_| game.write().set_canon(canon),
-                            "{canon.label()}"
+                        {
+                            let selected = snapshot.settings.canons.contains(&canon);
+                            rsx! {
+                                button {
+                                    class: if selected { "choice active" } else { "choice" },
+                                    onclick: move |_| game.write().toggle_canon(canon),
+                                    "{canon.label()}"
+                                }
+                            }
                         }
                     }
                 }
@@ -354,12 +393,12 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
 
             div { class: "ready",
                 span { class: "muted", "Verse pool" }
-                if let Some(scriptures) = scriptures {
-                    strong { "{scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses" }
+                if canons_loaded {
+                    strong { "{snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses" }
                 } else if load_error.is_some() {
-                    strong { "Could not load {snapshot.settings.canon.label()}" }
+                    strong { "Could not load {missing_canon.map(Canon::label).unwrap_or(\"scripture data\")}" }
                 } else {
-                    strong { "Loading {snapshot.settings.canon.label()}" }
+                    strong { "Loading {missing_canon.map(Canon::label).unwrap_or(\"scripture data\")}" }
                 }
             }
 
@@ -375,7 +414,7 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
             div { class: "actions",
                 button {
                     class: "button",
-                    disabled: !canon_loaded,
+                    disabled: !canons_loaded,
                     onclick: move |_| game.write().start_game(),
                     "Start"
                 }

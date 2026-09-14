@@ -23,6 +23,50 @@ impl ScriptureLibrary {
     pub fn scriptures(&self, canon: Canon) -> Option<&Scriptures> {
         self.canons.get(&canon).map(Rc::as_ref)
     }
+
+    pub fn score(
+        &self,
+        canons: &[Canon],
+        answer: &Reference,
+        guess_canon: Canon,
+        guess_book: &str,
+        guess_chapter: u16,
+    ) -> Score {
+        let Some(answer_index) =
+            self.chapter_index(canons, answer.canon, &answer.book, answer.chapter)
+        else {
+            return Score::from_chapter_distance(u32::MAX);
+        };
+        let Some(guess_index) = self.chapter_index(canons, guess_canon, guess_book, guess_chapter)
+        else {
+            return Score::from_chapter_distance(u32::MAX);
+        };
+
+        Score::from_chapter_distance(answer_index.abs_diff(guess_index) as u32)
+    }
+
+    fn chapter_index(
+        &self,
+        canons: &[Canon],
+        canon: Canon,
+        book: &str,
+        chapter: u16,
+    ) -> Option<usize> {
+        let mut offset = 0;
+
+        for candidate in canons {
+            let scriptures = self.scriptures(*candidate)?;
+            if *candidate == canon {
+                return scriptures
+                    .chapter_index(book, chapter)
+                    .map(|index| offset + index);
+            }
+
+            offset += scriptures.chapter_count();
+        }
+
+        None
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -36,11 +80,11 @@ pub enum Canon {
 
 impl Canon {
     pub const ALL: [Self; 5] = [
+        Self::OldTestament,
+        Self::NewTestament,
         Self::BookOfMormon,
         Self::DoctrineAndCovenants,
         Self::PearlOfGreatPrice,
-        Self::OldTestament,
-        Self::NewTestament,
     ];
 
     pub fn label(self) -> &'static str {
@@ -64,6 +108,51 @@ impl Canon {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum GameMode {
+    BookOfMormon,
+    Bible,
+    Restoration,
+    AllStandardWorks,
+}
+
+impl GameMode {
+    pub const ALL: [Self; 4] = [
+        Self::BookOfMormon,
+        Self::Bible,
+        Self::Restoration,
+        Self::AllStandardWorks,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::BookOfMormon => "Book of Mormon",
+            Self::Bible => "Bible",
+            Self::Restoration => "Restoration",
+            Self::AllStandardWorks => "All Standard Works",
+        }
+    }
+
+    pub fn canons(self) -> &'static [Canon] {
+        match self {
+            Self::BookOfMormon => &[Canon::BookOfMormon],
+            Self::Bible => &[Canon::OldTestament, Canon::NewTestament],
+            Self::Restoration => &[
+                Canon::BookOfMormon,
+                Canon::DoctrineAndCovenants,
+                Canon::PearlOfGreatPrice,
+            ],
+            Self::AllStandardWorks => &[
+                Canon::OldTestament,
+                Canon::NewTestament,
+                Canon::BookOfMormon,
+                Canon::DoctrineAndCovenants,
+                Canon::PearlOfGreatPrice,
+            ],
+        }
+    }
+}
+
 #[derive(Clone, PartialEq)]
 pub struct Scriptures {
     pub verses: Vec<Verse>,
@@ -75,20 +164,9 @@ pub struct Scriptures {
 }
 
 impl Scriptures {
-    pub fn from_flat_json(data: &str) -> Result<Self, serde_json::Error> {
+    pub fn from_flat_json_for_canon(canon: Canon, data: &str) -> Result<Self, serde_json::Error> {
         let flat: FlatScriptures = serde_json::from_str(data)?;
-        Ok(Self::from_flat_verses(flat.verses))
-    }
-
-    pub fn score(&self, answer: &Reference, guess_book: &str, guess_chapter: u16) -> Score {
-        let Some(answer_index) = self.chapter_index(&answer.book, answer.chapter) else {
-            return Score::from_chapter_distance(u32::MAX);
-        };
-        let Some(guess_index) = self.chapter_index(guess_book, guess_chapter) else {
-            return Score::from_chapter_distance(u32::MAX);
-        };
-
-        Score::from_chapter_distance(answer_index.abs_diff(guess_index) as u32)
+        Ok(Self::from_flat_verses(canon, flat.verses))
     }
 
     pub fn chapters_for(&self, book: &str) -> Vec<u16> {
@@ -103,7 +181,8 @@ impl Scriptures {
         self.verses
             .iter()
             .filter(|verse| {
-                verse.reference.book == reference.book
+                verse.reference.canon == reference.canon
+                    && verse.reference.book == reference.book
                     && verse.reference.chapter == reference.chapter
             })
             .cloned()
@@ -126,13 +205,13 @@ impl Scriptures {
         }
     }
 
-    fn from_flat_verses(flat_verses: Vec<FlatVerse>) -> Self {
+    fn from_flat_verses(canon: Canon, flat_verses: Vec<FlatVerse>) -> Self {
         let mut verses = Vec::new();
         let mut books = Vec::<BookInfo>::new();
         let mut chapter_order = Vec::<ChapterRef>::new();
 
         for item in flat_verses {
-            let Some(reference) = parse_reference(&item.reference) else {
+            let Some(reference) = parse_reference(canon, &item.reference) else {
                 continue;
             };
 
@@ -172,6 +251,10 @@ impl Scriptures {
         self.chapter_order
             .iter()
             .position(|item| item.book == book && item.chapter == chapter)
+    }
+
+    fn chapter_count(&self) -> usize {
+        self.chapter_order.len()
     }
 }
 
@@ -282,6 +365,7 @@ pub struct Verse {
 
 #[derive(Clone, PartialEq)]
 pub struct Reference {
+    pub canon: Canon,
     pub book: String,
     pub chapter: u16,
     pub verse: u16,
@@ -304,7 +388,7 @@ struct FlatVerse {
     text: String,
 }
 
-fn parse_reference(reference: &str) -> Option<Reference> {
+fn parse_reference(canon: Canon, reference: &str) -> Option<Reference> {
     let (book_and_chapter, verse) = reference.rsplit_once(':')?;
     let last_space = book_and_chapter.rfind(' ')?;
     let (book, chapter) = book_and_chapter.split_at(last_space);
@@ -312,6 +396,7 @@ fn parse_reference(reference: &str) -> Option<Reference> {
     let verse = verse.parse().ok()?;
 
     Some(Reference {
+        canon,
         book: book.to_string(),
         chapter,
         verse,
@@ -332,9 +417,19 @@ mod tests {
       ]
     }"#;
 
+    fn sample_scriptures() -> Scriptures {
+        Scriptures::from_flat_json_for_canon(Canon::BookOfMormon, SAMPLE_DATA).unwrap()
+    }
+
+    fn sample_library() -> ScriptureLibrary {
+        let mut library = ScriptureLibrary::default();
+        library.insert(Canon::BookOfMormon, sample_scriptures());
+        library
+    }
+
     #[test]
     fn builds_books_and_chapters_in_scripture_order() {
-        let scriptures = Scriptures::from_flat_json(SAMPLE_DATA).unwrap();
+        let scriptures = sample_scriptures();
 
         assert_eq!(scriptures.books.len(), 2);
         assert_eq!(scriptures.books[0].name, "1 Nephi");
@@ -346,7 +441,8 @@ mod tests {
 
     #[test]
     fn builds_filtered_verse_pools_by_difficulty() {
-        let scriptures = Scriptures::from_flat_json(
+        let scriptures = Scriptures::from_flat_json_for_canon(
+            Canon::BookOfMormon,
             r#"{
               "verses": [
                 { "reference": "1 Nephi 1:1", "text": "Amen." },
@@ -366,7 +462,8 @@ mod tests {
 
     #[test]
     fn falls_back_to_all_verses_if_filter_removes_everything() {
-        let scriptures = Scriptures::from_flat_json(
+        let scriptures = Scriptures::from_flat_json_for_canon(
+            Canon::BookOfMormon,
             r#"{
               "verses": [
                 { "reference": "1 Nephi 1:1", "text": "Amen." },
@@ -383,14 +480,21 @@ mod tests {
 
     #[test]
     fn scores_across_book_boundaries_by_flattened_chapter_distance() {
-        let scriptures = Scriptures::from_flat_json(SAMPLE_DATA).unwrap();
+        let library = sample_library();
         let answer = Reference {
+            canon: Canon::BookOfMormon,
             book: "1 Nephi".to_string(),
             chapter: 2,
             verse: 1,
         };
 
-        let score = scriptures.score(&answer, "2 Nephi", 1);
+        let score = library.score(
+            GameMode::BookOfMormon.canons(),
+            &answer,
+            Canon::BookOfMormon,
+            "2 Nephi",
+            1,
+        );
 
         assert_eq!(score.chapter_distance, 1);
         assert_eq!(score.points, 978);
@@ -398,20 +502,33 @@ mod tests {
 
     #[test]
     fn unknown_guess_scores_zero() {
-        let scriptures = Scriptures::from_flat_json(SAMPLE_DATA).unwrap();
+        let library = sample_library();
         let answer = Reference {
+            canon: Canon::BookOfMormon,
             book: "1 Nephi".to_string(),
             chapter: 1,
             verse: 1,
         };
 
-        assert_eq!(scriptures.score(&answer, "Jacob", 1).points, 0);
+        assert_eq!(
+            library
+                .score(
+                    GameMode::BookOfMormon.canons(),
+                    &answer,
+                    Canon::BookOfMormon,
+                    "Jacob",
+                    1,
+                )
+                .points,
+            0
+        );
     }
 
     #[test]
     fn finds_verses_for_containing_chapter() {
-        let scriptures = Scriptures::from_flat_json(SAMPLE_DATA).unwrap();
+        let scriptures = sample_scriptures();
         let reference = Reference {
+            canon: Canon::BookOfMormon,
             book: "1 Nephi".to_string(),
             chapter: 1,
             verse: 1,
@@ -422,5 +539,52 @@ mod tests {
         assert_eq!(verses.len(), 2);
         assert_eq!(verses[0].reference.verse, 1);
         assert_eq!(verses[1].reference.verse, 2);
+    }
+
+    #[test]
+    fn library_scores_across_loaded_canons_in_mode_order() {
+        let mut library = ScriptureLibrary::default();
+        library.insert(
+            Canon::OldTestament,
+            Scriptures::from_flat_json_for_canon(
+                Canon::OldTestament,
+                r#"{
+                  "verses": [
+                    { "reference": "Genesis 1:1", "text": "First verse" },
+                    { "reference": "Genesis 2:1", "text": "Second verse" }
+                  ]
+                }"#,
+            )
+            .unwrap(),
+        );
+        library.insert(
+            Canon::NewTestament,
+            Scriptures::from_flat_json_for_canon(
+                Canon::NewTestament,
+                r#"{
+                  "verses": [
+                    { "reference": "Matthew 1:1", "text": "Third verse" }
+                  ]
+                }"#,
+            )
+            .unwrap(),
+        );
+        let answer = Reference {
+            canon: Canon::OldTestament,
+            book: "Genesis".to_string(),
+            chapter: 2,
+            verse: 1,
+        };
+
+        let score = library.score(
+            GameMode::Bible.canons(),
+            &answer,
+            Canon::NewTestament,
+            "Matthew",
+            1,
+        );
+
+        assert_eq!(score.chapter_distance, 1);
+        assert_eq!(score.points, 978);
     }
 }

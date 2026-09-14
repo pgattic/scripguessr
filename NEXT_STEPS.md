@@ -2,7 +2,6 @@
 
 ## Near Term
 
-- Add richer game modes, including Bible-only, restoration scripture-only, and all standard works.
 - Move scripture selection and round generation to a real backend before opening up larger public play.
 - Keep the scoring model explicit and tested, including exact guesses, close guesses, far guesses, and cross-book adjacency.
 
@@ -15,7 +14,9 @@
 - Added a NixOS service module and deployment notes for hosting behind a reverse proxy.
 - Polished round review with exact references, guess/answer comparison, chapter distance, and a containing-chapter reader.
 - Moved scripture JSON into lazy-loaded static assets so the initial client bundle does not include every canon.
+- Added mixed-canon game modes for Bible, restoration scripture, and all standard works.
+- Reworked game setup so presets set canon toggles, and skipped single-option chooser levels.
 
 ## Current Priority
 
-Add mixed-canon game modes.
+Move scripture selection and round generation to a backend.

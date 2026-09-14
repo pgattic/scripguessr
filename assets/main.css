@@ -470,7 +470,7 @@ button {
 
 .round-row {
   display: grid;
-  grid-template-columns: 64px 1fr auto;
+  grid-template-columns: 78px 1fr auto;
   gap: 10px;
   align-items: center;
   padding: 10px;

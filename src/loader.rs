@@ -9,7 +9,7 @@ use crate::scriptures::{Canon, Scriptures};
 
 pub async fn load_scriptures(canon: Canon) -> Result<(Canon, Scriptures), String> {
     let data = fetch_text(canon.asset_url()).await?;
-    let scriptures = Scriptures::from_flat_json(&data)
+    let scriptures = Scriptures::from_flat_json_for_canon(canon, &data)
         .map_err(|error| format!("Could not parse {}: {error}", canon.label()))?;
 
     Ok((canon, scriptures))
