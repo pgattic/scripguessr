@@ -29,6 +29,12 @@ in
       default = 8087;
       description = "Port for the local ScripGuessr service to bind.";
     };
+
+    gameTtlSeconds = lib.mkOption {
+      type = lib.types.ints.positive;
+      default = 21600;
+      description = "Seconds to keep inactive in-memory games before pruning.";
+    };
   };
 
   config = lib.mkIf cfg.enable {
@@ -38,6 +44,7 @@ in
       wantedBy = [ "multi-user.target" ];
       environment = {
         PORT = toString cfg.port;
+        SCRIPGUESSR_GAME_TTL_SECONDS = toString cfg.gameTtlSeconds;
         SCRIPGUESSR_STATIC_DIR = "${cfg.package}/share/scripguessr/public";
       };
       serviceConfig = {

@@ -1,17 +1,20 @@
 use std::collections::BTreeMap;
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, SystemTime};
 
 use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
-use axum::routing::post;
+use axum::routing::{get, post};
 use axum::{Json, Router};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
+use tracing_subscriber::EnvFilter;
 
 use crate::api::{
     CanonMetadata, ChapterVerse, GuessReference, GuessRequest, GuessResponse, MetadataRequest,
@@ -26,20 +29,30 @@ const PEARL_OF_GREAT_PRICE_DATA: &str =
     include_str!("../assets/data/pearl-of-great-price-flat.json");
 const OLD_TESTAMENT_DATA: &str = include_str!("../assets/data/old-testament-flat.json");
 const NEW_TESTAMENT_DATA: &str = include_str!("../assets/data/new-testament-flat.json");
+const DEFAULT_GAME_TTL: Duration = Duration::from_secs(6 * 60 * 60);
 
 pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
+    init_tracing();
+
     let port = std::env::var("PORT")
         .ok()
         .and_then(|port| port.parse().ok())
         .unwrap_or(8087);
+    let game_ttl = std::env::var("SCRIPGUESSR_GAME_TTL_SECONDS")
+        .ok()
+        .and_then(|ttl| ttl.parse().ok())
+        .map(Duration::from_secs)
+        .unwrap_or(DEFAULT_GAME_TTL);
     let static_dir =
         std::env::var("SCRIPGUESSR_STATIC_DIR").unwrap_or_else(|_| "dist/public".to_string());
-    let state = AppState::new()?;
+    let state = AppState::new(game_ttl)?;
 
     let app = Router::new()
+        .route("/healthz", get(healthz))
         .route("/api/metadata", post(metadata))
         .route("/api/games", post(create_game))
         .route("/api/games/{game_id}/guesses", post(submit_guess))
+        .layer(TraceLayer::new_for_http())
         .layer(CorsLayer::permissive())
         .fallback_service(ServeDir::new(static_dir).append_index_html_on_directories(true))
         .with_state(state);
@@ -51,14 +64,21 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+fn init_tracing() {
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("scripguessr=info,tower_http=info"));
+    let _ = tracing_subscriber::fmt().with_env_filter(filter).try_init();
+}
+
 #[derive(Clone)]
 struct AppState {
     library: Arc<ScriptureLibrary>,
     games: Arc<Mutex<BTreeMap<String, ServerGame>>>,
+    game_ttl: Duration,
 }
 
 impl AppState {
-    fn new() -> Result<Self, serde_json::Error> {
+    fn new(game_ttl: Duration) -> Result<Self, serde_json::Error> {
         let mut library = ScriptureLibrary::default();
         for (canon, data) in [
             (Canon::OldTestament, OLD_TESTAMENT_DATA),
@@ -73,7 +93,18 @@ impl AppState {
         Ok(Self {
             library: Arc::new(library),
             games: Arc::new(Mutex::new(BTreeMap::new())),
+            game_ttl,
         })
+    }
+
+    fn prune_games(&self) {
+        let cutoff = SystemTime::now()
+            .checked_sub(self.game_ttl)
+            .unwrap_or(SystemTime::UNIX_EPOCH);
+        self.games
+            .lock()
+            .expect("game store poisoned")
+            .retain(|_id, game| game.last_seen_at >= cutoff);
     }
 }
 
@@ -81,6 +112,11 @@ impl AppState {
 struct ServerGame {
     request: NewGameRequest,
     rounds: Vec<Verse>,
+    last_seen_at: SystemTime,
+}
+
+async fn healthz() -> &'static str {
+    "ok"
 }
 
 async fn metadata(
@@ -108,6 +144,8 @@ async fn create_game(
     State(state): State<AppState>,
     Json(request): Json<NewGameRequest>,
 ) -> Result<Json<NewGameResponse>, ApiError> {
+    state.prune_games();
+
     if request.round_count == 0 || request.canons.is_empty() {
         return Err(ApiError::bad_request("Game must include rounds and canons"));
     }
@@ -134,6 +172,7 @@ async fn create_game(
         ServerGame {
             request: request.clone(),
             rounds: rounds.clone(),
+            last_seen_at: SystemTime::now(),
         },
     );
 
@@ -157,13 +196,16 @@ async fn submit_guess(
     Path(game_id): Path<String>,
     Json(request): Json<GuessRequest>,
 ) -> Result<Json<GuessResponse>, ApiError> {
-    let game = state
-        .games
-        .lock()
-        .expect("game store poisoned")
-        .get(&game_id)
-        .cloned()
-        .ok_or_else(|| ApiError::not_found("Game not found"))?;
+    state.prune_games();
+
+    let game = {
+        let mut games = state.games.lock().expect("game store poisoned");
+        let game = games
+            .get_mut(&game_id)
+            .ok_or_else(|| ApiError::not_found("Game not found"))?;
+        game.last_seen_at = SystemTime::now();
+        game.clone()
+    };
     let answer = game
         .rounds
         .get(request.round_index)
@@ -300,5 +342,46 @@ impl IntoResponse for ApiError {
             }),
         )
             .into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::scriptures::Difficulty;
+
+    fn test_request() -> NewGameRequest {
+        NewGameRequest {
+            round_count: 1,
+            difficulty: Difficulty::Normal,
+            canons: vec![Canon::BookOfMormon],
+        }
+    }
+
+    #[test]
+    fn pruning_removes_only_expired_games() {
+        let state = AppState::new(Duration::from_secs(60)).unwrap();
+        state.games.lock().unwrap().insert(
+            "expired".to_string(),
+            ServerGame {
+                request: test_request(),
+                rounds: Vec::new(),
+                last_seen_at: SystemTime::UNIX_EPOCH,
+            },
+        );
+        state.games.lock().unwrap().insert(
+            "active".to_string(),
+            ServerGame {
+                request: test_request(),
+                rounds: Vec::new(),
+                last_seen_at: SystemTime::now(),
+            },
+        );
+
+        state.prune_games();
+
+        let games = state.games.lock().unwrap();
+        assert!(!games.contains_key("expired"));
+        assert!(games.contains_key("active"));
     }
 }
