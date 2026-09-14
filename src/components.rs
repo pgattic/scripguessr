@@ -2,6 +2,7 @@ use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
+use crate::scoring::MAX_SCORE;
 use crate::scriptures::{Canon, Difficulty, GameMode};
 use crate::stats::Stats;
 
@@ -276,6 +277,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
 
         if let Some(result) = snapshot.current_round().guess.clone() {
             ResultPanel {
+                game,
                 result: result,
             }
             div { class: "actions",
@@ -484,6 +486,11 @@ fn StatsPanel(stats: Stats) -> Element {
                         strong { "{stats.average_percent().unwrap_or_default()}%" }
                         span { class: "muted", "{stats.rounds_played} rounds" }
                     }
+                    div {
+                        span { class: "muted", "Review" }
+                        strong { "{stats.review_items.len()}" }
+                        span { class: "muted", "marked" }
+                    }
                 }
 
                 if !stats.weakest_books(3).is_empty() {
@@ -503,16 +510,29 @@ fn StatsPanel(stats: Stats) -> Element {
 }
 
 #[component]
-fn ResultPanel(result: GuessResult) -> Element {
+fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
     let mut reader_open = use_signal(|| false);
     let label = result.score.distance_label();
     let chapter_title = format!("{} {}", result.answer.book, result.answer.chapter);
+    let score_percent = result.score.points.saturating_mul(100) / MAX_SCORE;
+    let marked_for_review = game.read().current_result_marked_for_review();
+    let (feedback_title, feedback_detail) = result_feedback(&result);
 
     rsx! {
         div { class: "result",
             h2 { "Result" }
             p { class: "score", "{result.score.points}" }
             p { class: "distance", "{label}" }
+            div { class: "score-meter", aria_label: "Round score percent",
+                div {
+                    class: "score-meter-fill",
+                    style: "--score-width: {score_percent}%;",
+                }
+            }
+            div { class: "result-feedback",
+                strong { "{feedback_title}" }
+                span { "{feedback_detail}" }
+            }
             div { class: "result-grid",
                 div {
                     span { class: "muted", "Actual" }
@@ -529,6 +549,13 @@ fn ResultPanel(result: GuessResult) -> Element {
                     onclick: move |_| reader_open.set(true),
                     "Read chapter"
                 }
+                button {
+                    class: if marked_for_review { "button secondary review-active" } else { "button secondary" },
+                    onclick: move |_| {
+                        game.write().toggle_current_result_review();
+                    },
+                    if marked_for_review { "Marked" } else { "Mark for review" }
+                }
             }
             if reader_open() {
                 ChapterReader {
@@ -539,6 +566,33 @@ fn ResultPanel(result: GuessResult) -> Element {
                 }
             }
         }
+    }
+}
+
+fn result_feedback(result: &GuessResult) -> (&'static str, String) {
+    if result.score.chapter_distance == 0 {
+        return (
+            "Exact match",
+            "You placed the verse in the right book and chapter.".to_string(),
+        );
+    }
+
+    let distance = result.score.distance_label().to_lowercase();
+    if result.answer.canon == result.guess.canon && result.answer.book == result.guess.book {
+        (
+            "Same book",
+            format!("Your guess was {distance} in the same book."),
+        )
+    } else if result.answer.canon == result.guess.canon {
+        (
+            "Same canon",
+            format!("Your guess was {distance}."),
+        )
+    } else {
+        (
+            "Different canon",
+            format!("Your guess was {distance}."),
+        )
     }
 }
 

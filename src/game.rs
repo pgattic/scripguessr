@@ -4,7 +4,7 @@ use crate::api::{
 };
 use crate::scoring::{MAX_SCORE, Score};
 use crate::scriptures::{BookInfo, Canon, Difficulty, GameMode, Reference};
-use crate::stats::{FinishedGame, FinishedRound, Stats};
+use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
 
 #[derive(Clone, PartialEq)]
 pub struct Game {
@@ -301,6 +301,29 @@ impl Game {
             });
         }
         self.submitting_guess = false;
+    }
+
+    pub fn current_result_marked_for_review(&self) -> bool {
+        self.current_round()
+            .guess
+            .as_ref()
+            .map(|guess| self.stats.is_marked_for_review(&guess.answer))
+            .unwrap_or(false)
+    }
+
+    pub fn toggle_current_result_review(&mut self) -> bool {
+        let Some(round) = self.rounds.get(self.current_round_index) else {
+            return false;
+        };
+        let Some(guess) = round.guess.as_ref() else {
+            return false;
+        };
+
+        self.stats.toggle_review_item(ReviewItem {
+            reference: guess.answer.clone(),
+            text: round.text.clone(),
+            score: guess.score.points,
+        })
     }
 
     pub fn next_round(&mut self) {

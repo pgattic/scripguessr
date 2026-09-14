@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
-use crate::scriptures::Difficulty;
+use crate::scriptures::{Difficulty, Reference};
 
 #[cfg(target_arch = "wasm32")]
 const STORAGE_KEY: &str = "scripguessr.stats.v1";
@@ -16,6 +16,8 @@ pub struct Stats {
     pub best_score: Option<ScoreMark>,
     pub best_by_difficulty: BTreeMap<Difficulty, ScoreMark>,
     pub books: BTreeMap<String, BookStats>,
+    #[serde(default)]
+    pub review_items: Vec<ReviewItem>,
 }
 
 impl Stats {
@@ -81,6 +83,28 @@ impl Stats {
         books.sort_by_key(|(_book, stats)| stats.average_percent().unwrap_or(u32::MAX));
         books.into_iter().take(limit).collect()
     }
+
+    pub fn is_marked_for_review(&self, reference: &Reference) -> bool {
+        self.review_items
+            .iter()
+            .any(|item| item.reference == *reference)
+    }
+
+    pub fn toggle_review_item(&mut self, item: ReviewItem) -> bool {
+        if let Some(index) = self
+            .review_items
+            .iter()
+            .position(|candidate| candidate.reference == item.reference)
+        {
+            self.review_items.remove(index);
+            self.save();
+            false
+        } else {
+            self.review_items.push(item);
+            self.save();
+            true
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -102,6 +126,13 @@ pub struct BookStats {
     pub rounds_played: u32,
     pub total_score: u32,
     pub total_possible_score: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ReviewItem {
+    pub reference: Reference,
+    pub text: String,
+    pub score: u32,
 }
 
 impl BookStats {
@@ -244,5 +275,28 @@ mod tests {
 
         assert_eq!(weakest[0].0, "Jacob");
         assert_eq!(weakest[1].0, "Mosiah");
+    }
+
+    #[test]
+    fn review_items_toggle_by_reference() {
+        let mut stats = Stats::default();
+        let item = ReviewItem {
+            reference: Reference {
+                canon: crate::scriptures::Canon::BookOfMormon,
+                book: "Alma".to_string(),
+                chapter: 32,
+                verse: 21,
+            },
+            text: "And now as I said concerning faith".to_string(),
+            score: 612,
+        };
+
+        assert!(stats.toggle_review_item(item.clone()));
+        assert!(stats.is_marked_for_review(&item.reference));
+        assert_eq!(stats.review_items.len(), 1);
+
+        assert!(!stats.toggle_review_item(item.clone()));
+        assert!(!stats.is_marked_for_review(&item.reference));
+        assert!(stats.review_items.is_empty());
     }
 }

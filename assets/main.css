@@ -154,6 +154,13 @@ button {
   color: var(--text);
 }
 
+.button.review-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+
 .button:disabled {
   cursor: not-allowed;
   opacity: 0.48;
@@ -377,7 +384,7 @@ button {
 
 .stat-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 10px;
 }
 
@@ -408,7 +415,7 @@ button {
 
 .result {
   margin-top: 16px;
-  padding: 16px;
+  padding-top: 16px;
   border-top: 1px solid var(--border);
 }
 
@@ -422,6 +429,37 @@ button {
   margin: 0 0 14px;
   color: var(--accent);
   font-weight: 700;
+}
+
+.score-meter {
+  height: 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.score-meter-fill {
+  width: var(--score-width);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--danger), var(--accent));
+}
+
+.result-feedback {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 14px;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised-soft);
+}
+
+.result-feedback span {
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .result-grid {
