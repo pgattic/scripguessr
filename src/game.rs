@@ -24,8 +24,7 @@ pub struct Game {
 
 impl PartialEq for Game {
     fn eq(&self, other: &Self) -> bool {
-        self.library == other.library
-            && self.settings == other.settings
+        self.settings == other.settings
             && self.stats == other.stats
             && self.last_game_new_best == other.last_game_new_best
             && self.screen == other.screen
@@ -40,9 +39,9 @@ impl PartialEq for Game {
 }
 
 impl Game {
-    pub fn new(library: ScriptureLibrary) -> Self {
+    pub fn new() -> Self {
         Self {
-            library,
+            library: ScriptureLibrary::default(),
             settings: GameSettings::default(),
             stats: Stats::load(),
             last_game_new_best: false,
@@ -59,6 +58,9 @@ impl Game {
     }
 
     pub fn start_game(&mut self) {
+        if !self.selected_canon_loaded() {
+            return;
+        }
         self.screen = Screen::Playing;
         self.restart();
     }
@@ -109,6 +111,14 @@ impl Game {
             self.settings.canon = canon;
             self.clear_guess();
         }
+    }
+
+    pub fn set_scriptures(&mut self, canon: Canon, scriptures: Scriptures) {
+        self.library.insert(canon, scriptures);
+    }
+
+    pub fn selected_canon_loaded(&self) -> bool {
+        self.library.has_canon(self.settings.canon)
     }
 
     pub fn current_round(&self) -> &Round {
@@ -218,6 +228,12 @@ impl Game {
     }
 
     pub fn scriptures(&self) -> &Scriptures {
+        self.library
+            .scriptures(self.settings.canon)
+            .expect("selected canon is loaded before gameplay starts")
+    }
+
+    pub fn selected_scriptures(&self) -> Option<&Scriptures> {
         self.library.scriptures(self.settings.canon)
     }
 

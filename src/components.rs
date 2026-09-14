@@ -1,31 +1,40 @@
 use dioxus::prelude::*;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::scriptures::{Canon, Difficulty, Reference, ScriptureLibrary, Verse};
+use crate::loader::load_scriptures;
+use crate::scriptures::{Canon, Difficulty, Reference, Verse};
 use crate::stats::Stats;
-
-const BOOK_OF_MORMON_DATA: &str = include_str!("../data/book-of-mormon-flat.json");
-const DOCTRINE_AND_COVENANTS_DATA: &str = include_str!("../data/doctrine-and-covenants-flat.json");
-const PEARL_OF_GREAT_PRICE_DATA: &str = include_str!("../data/pearl-of-great-price-flat.json");
-const OLD_TESTAMENT_DATA: &str = include_str!("../data/old-testament-flat.json");
-const NEW_TESTAMENT_DATA: &str = include_str!("../data/new-testament-flat.json");
 
 #[component]
 pub fn App() -> Element {
-    let game = use_signal(|| {
-        Game::new(
-            ScriptureLibrary::from_flat_json_sources([
-                (Canon::BookOfMormon, BOOK_OF_MORMON_DATA),
-                (Canon::DoctrineAndCovenants, DOCTRINE_AND_COVENANTS_DATA),
-                (Canon::PearlOfGreatPrice, PEARL_OF_GREAT_PRICE_DATA),
-                (Canon::OldTestament, OLD_TESTAMENT_DATA),
-                (Canon::NewTestament, NEW_TESTAMENT_DATA),
-            ])
-            .expect("bundled scripture data is valid"),
-        )
+    let mut game = use_signal(Game::new);
+    let selected_canon = game.read().settings.canon;
+    let canon_loaded = game.read().selected_canon_loaded();
+    let mut scripture_resource = use_resource(move || async move {
+        if canon_loaded {
+            Ok(None)
+        } else {
+            load_scriptures(selected_canon).await.map(Some)
+        }
     });
+
+    use_effect(move || {
+        let Some(Ok(Some((canon, scriptures)))) =
+            scripture_resource.value().read().as_ref().cloned()
+        else {
+            return;
+        };
+
+        game.write().set_scriptures(canon, scriptures);
+        scripture_resource.clear();
+    });
+
     let snapshot = game.read().clone();
-    let scriptures = snapshot.scriptures();
+    let load_error = scripture_resource
+        .value()
+        .read()
+        .as_ref()
+        .and_then(|result| result.as_ref().err().cloned());
 
     rsx! {
         document::Stylesheet {
@@ -36,7 +45,11 @@ pub fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        span { "{snapshot.settings.canon.label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses in play" }
+                        if let Some(scriptures) = snapshot.selected_scriptures() {
+                            span { "{snapshot.settings.canon.label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses in play" }
+                        } else {
+                            span { "{snapshot.settings.canon.label()} · loading scripture data" }
+                        }
                     }
                     if snapshot.screen == Screen::Playing {
                         div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
@@ -44,7 +57,7 @@ pub fn App() -> Element {
                 }
 
                 if snapshot.screen == Screen::Setup {
-                    SetupPanel { game: game }
+                    SetupPanel { game: game, load_error }
                 } else {
                     div { class: "layout",
                         VersePanel { game: game }
@@ -288,9 +301,10 @@ fn Breadcrumbs(
 }
 
 #[component]
-fn SetupPanel(game: Signal<Game>) -> Element {
+fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
     let snapshot = game.read().clone();
-    let scriptures = snapshot.scriptures();
+    let scriptures = snapshot.selected_scriptures();
+    let canon_loaded = scriptures.is_some();
 
     rsx! {
         section { class: "panel setup-panel",
@@ -340,7 +354,20 @@ fn SetupPanel(game: Signal<Game>) -> Element {
 
             div { class: "ready",
                 span { class: "muted", "Verse pool" }
-                strong { "{scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses" }
+                if let Some(scriptures) = scriptures {
+                    strong { "{scriptures.verse_count_for_difficulty(snapshot.settings.difficulty)} of {scriptures.total_verse_count()} verses" }
+                } else if load_error.is_some() {
+                    strong { "Could not load {snapshot.settings.canon.label()}" }
+                } else {
+                    strong { "Loading {snapshot.settings.canon.label()}" }
+                }
+            }
+
+            if let Some(error) = load_error {
+                div { class: "callout warning",
+                    strong { "Scripture data unavailable" }
+                    span { "{error}" }
+                }
             }
 
             StatsPanel { stats: snapshot.stats.clone() }
@@ -348,6 +375,7 @@ fn SetupPanel(game: Signal<Game>) -> Element {
             div { class: "actions",
                 button {
                     class: "button",
+                    disabled: !canon_loaded,
                     onclick: move |_| game.write().start_game(),
                     "Start"
                 }

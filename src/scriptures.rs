@@ -1,40 +1,28 @@
+use std::collections::BTreeMap;
+use std::rc::Rc;
+
+use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
 
-#[derive(Clone, PartialEq)]
+#[derive(Clone, Default, PartialEq)]
 pub struct ScriptureLibrary {
-    canons: Vec<CanonScriptures>,
+    canons: BTreeMap<Canon, Rc<Scriptures>>,
 }
 
 impl ScriptureLibrary {
-    pub fn from_flat_json_sources(
-        sources: impl IntoIterator<Item = (Canon, &'static str)>,
-    ) -> Result<Self, serde_json::Error> {
-        let canons = sources
-            .into_iter()
-            .map(|(canon, data)| {
-                Scriptures::from_flat_json(data)
-                    .map(|scriptures| CanonScriptures { canon, scriptures })
-            })
-            .collect::<Result<Vec<_>, _>>()?;
-
-        Ok(Self { canons })
+    pub fn insert(&mut self, canon: Canon, scriptures: Scriptures) {
+        self.canons.insert(canon, Rc::new(scriptures));
     }
 
-    pub fn scriptures(&self, canon: Canon) -> &Scriptures {
-        self.canons
-            .iter()
-            .find(|item| item.canon == canon)
-            .map(|item| &item.scriptures)
-            .expect("bundled scripture library includes every canon")
+    pub fn has_canon(&self, canon: Canon) -> bool {
+        self.canons.contains_key(&canon)
     }
-}
 
-#[derive(Clone, PartialEq)]
-struct CanonScriptures {
-    canon: Canon,
-    scriptures: Scriptures,
+    pub fn scriptures(&self, canon: Canon) -> Option<&Scriptures> {
+        self.canons.get(&canon).map(Rc::as_ref)
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize)]
@@ -62,6 +50,16 @@ impl Canon {
             Self::PearlOfGreatPrice => "Pearl of Great Price",
             Self::OldTestament => "Old Testament",
             Self::NewTestament => "New Testament",
+        }
+    }
+
+    pub fn asset_url(self) -> Asset {
+        match self {
+            Self::BookOfMormon => asset!("/assets/data/book-of-mormon-flat.json"),
+            Self::DoctrineAndCovenants => asset!("/assets/data/doctrine-and-covenants-flat.json"),
+            Self::PearlOfGreatPrice => asset!("/assets/data/pearl-of-great-price-flat.json"),
+            Self::OldTestament => asset!("/assets/data/old-testament-flat.json"),
+            Self::NewTestament => asset!("/assets/data/new-testament-flat.json"),
         }
     }
 }
