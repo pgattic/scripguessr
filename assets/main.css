@@ -1,10 +1,31 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  background: #f5f1e8;
-  color: #181816;
+  --page: light-dark(#f5f1e8, #151614);
+  --text: light-dark(#181816, #f4efe4);
+  --muted: light-dark(#676158, #aaa194);
+  --muted-strong: light-dark(#4f493f, #d4cabb);
+  --panel: light-dark(rgba(255, 252, 246, 0.82), rgba(34, 36, 32, 0.88));
+  --raised: light-dark(#fffaf1, #252720);
+  --raised-soft: light-dark(rgba(255, 255, 255, 0.48), rgba(255, 250, 241, 0.06));
+  --border: light-dark(#ded5c4, #474337);
+  --border-soft: light-dark(#e2d9c8, #3c392f);
+  --control-border: light-dark(#d8cebb, #575243);
+  --accent: light-dark(#1f6b58, #75c7a3);
+  --accent-ink: light-dark(#183a31, #d9f3e4);
+  --accent-soft: light-dark(#e7f1eb, #19372e);
+  --danger: light-dark(#91422d, #e58e72);
+  --danger-ink: light-dark(#642919, #ffd8c8);
+  --danger-soft: light-dark(#f7e9df, #43251d);
+  --button: light-dark(#243f38, #75c7a3);
+  --button-text: light-dark(#ffffff, #10201b);
+  --shadow: light-dark(rgba(32, 28, 22, 0.08), rgba(0, 0, 0, 0.28));
+  --dialog-shadow: light-dark(rgba(24, 24, 22, 0.24), rgba(0, 0, 0, 0.46));
+  --backdrop: light-dark(rgba(24, 24, 22, 0.42), rgba(0, 0, 0, 0.64));
+  background: var(--page);
+  color: var(--text);
 }
 
 * {
@@ -22,9 +43,17 @@ button {
 .app {
   min-height: 100vh;
   background:
-    linear-gradient(135deg, rgba(36, 71, 60, 0.12), transparent 34%),
-    linear-gradient(315deg, rgba(145, 66, 45, 0.12), transparent 38%),
-    #f5f1e8;
+    linear-gradient(
+      135deg,
+      light-dark(rgba(36, 71, 60, 0.12), rgba(117, 199, 163, 0.1)),
+      transparent 34%
+    ),
+    linear-gradient(
+      315deg,
+      light-dark(rgba(145, 66, 45, 0.12), rgba(229, 142, 114, 0.08)),
+      transparent 38%
+    ),
+    var(--page);
 }
 
 .shell {
@@ -56,15 +85,15 @@ button {
 
 .brand span,
 .muted {
-  color: #676158;
+  color: var(--muted);
 }
 
 .pill {
-  border: 1px solid #d9d0bf;
+  border: 1px solid var(--border);
   border-radius: 999px;
   padding: 9px 13px;
-  background: rgba(255, 255, 255, 0.48);
-  color: #413d37;
+  background: var(--raised-soft);
+  color: var(--muted-strong);
   white-space: nowrap;
 }
 
@@ -76,10 +105,10 @@ button {
 }
 
 .panel {
-  border: 1px solid #ded5c4;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: rgba(255, 252, 246, 0.82);
-  box-shadow: 0 14px 44px rgba(32, 28, 22, 0.08);
+  background: var(--panel);
+  box-shadow: 0 14px 44px var(--shadow);
 }
 
 .verse-panel {
@@ -91,7 +120,7 @@ button {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 24px;
-  color: #676158;
+  color: var(--muted);
   font-size: 0.95rem;
 }
 
@@ -111,18 +140,18 @@ button {
 
 .button {
   min-height: 42px;
-  border: 1px solid #243f38;
+  border: 1px solid var(--button);
   border-radius: 8px;
   padding: 10px 15px;
-  background: #243f38;
-  color: white;
+  background: var(--button);
+  color: var(--button-text);
   cursor: pointer;
 }
 
 .button.secondary {
-  border-color: #cfc5b2;
-  background: #fffaf1;
-  color: #28241f;
+  border-color: var(--control-border);
+  background: var(--raised);
+  color: var(--text);
 }
 
 .button:disabled {
@@ -146,7 +175,7 @@ button {
 }
 
 .setup-label {
-  color: #4f493f;
+  color: var(--muted-strong);
   font-weight: 700;
 }
 
@@ -158,17 +187,17 @@ button {
 
 .segment {
   min-height: 42px;
-  border: 1px solid #d8cebb;
+  border: 1px solid var(--control-border);
   border-radius: 8px;
-  background: #fffaf1;
-  color: #27231f;
+  background: var(--raised);
+  color: var(--text);
   cursor: pointer;
 }
 
 .segment:hover,
 .segment.active {
-  border-color: #1f6b58;
-  background: #e7f1eb;
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .picker-header {
@@ -191,7 +220,7 @@ button {
   gap: 8px;
   margin-bottom: 16px;
   padding-bottom: 14px;
-  border-bottom: 1px solid #ded5c4;
+  border-bottom: 1px solid var(--border);
 }
 
 .breadcrumbs {
@@ -210,21 +239,21 @@ button {
   border-radius: 8px;
   padding: 6px 9px;
   background: transparent;
-  color: #676158;
+  color: var(--muted);
   cursor: pointer;
   overflow-wrap: anywhere;
 }
 
 .crumb.set {
-  border-color: #cfc5b2;
-  background: #fffaf1;
-  color: #27231f;
+  border-color: var(--control-border);
+  background: var(--raised);
+  color: var(--text);
 }
 
 .crumb.current {
-  border-color: #1f6b58;
-  background: #e7f1eb;
-  color: #183a31;
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
   font-weight: 700;
 }
 
@@ -234,7 +263,7 @@ button {
 }
 
 .crumb-separator {
-  color: #9a9286;
+  color: var(--muted);
 }
 
 .clear-guess {
@@ -243,19 +272,19 @@ button {
   flex: 0 0 auto;
   width: 34px;
   height: 34px;
-  border: 1px solid #cfc5b2;
+  border: 1px solid var(--control-border);
   border-radius: 8px;
-  background: #fffaf1;
-  color: #5c5044;
+  background: var(--raised);
+  color: var(--muted-strong);
   cursor: pointer;
   font-size: 1.25rem;
   line-height: 1;
 }
 
 .clear-guess:hover {
-  border-color: #91422d;
-  background: #f7e9df;
-  color: #642919;
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
 }
 
 .clear-guess:disabled {
@@ -278,31 +307,31 @@ button {
 
 .choice {
   min-height: 42px;
-  border: 1px solid #d8cebb;
+  border: 1px solid var(--control-border);
   border-radius: 8px;
-  background: #fffaf1;
-  color: #27231f;
+  background: var(--raised);
+  color: var(--text);
   cursor: pointer;
 }
 
 .choice:hover,
 .choice.active {
-  border-color: #1f6b58;
-  background: #e7f1eb;
+  border-color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .selected {
   margin: 14px 0 0;
-  color: #4f493f;
+  color: var(--muted-strong);
 }
 
 .ready {
   display: grid;
   gap: 5px;
   padding: 16px;
-  border: 1px solid #ded5c4;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fffaf1;
+  background: var(--raised);
 }
 
 .callout {
@@ -310,10 +339,10 @@ button {
   gap: 4px;
   margin-top: 12px;
   padding: 12px;
-  border: 1px solid #1f6b58;
+  border: 1px solid var(--accent);
   border-radius: 8px;
-  background: #e7f1eb;
-  color: #183a31;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
 }
 
 .stats-panel {
@@ -321,7 +350,7 @@ button {
   gap: 12px;
   margin-top: 16px;
   padding-top: 16px;
-  border-top: 1px solid #ded5c4;
+  border-top: 1px solid var(--border);
 }
 
 .stats-panel .picker-header {
@@ -338,9 +367,9 @@ button {
   display: grid;
   gap: 4px;
   padding: 10px;
-  border: 1px solid #e2d9c8;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #fffaf1;
+  background: var(--raised);
 }
 
 .weak-books {
@@ -354,15 +383,15 @@ button {
   justify-content: space-between;
   gap: 12px;
   padding: 8px 10px;
-  border: 1px solid #e2d9c8;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #fffaf1;
+  background: var(--raised);
 }
 
 .result {
   margin-top: 16px;
   padding: 16px;
-  border-top: 1px solid #ded5c4;
+  border-top: 1px solid var(--border);
 }
 
 .score {
@@ -373,7 +402,7 @@ button {
 
 .distance {
   margin: 0 0 14px;
-  color: #1f6b58;
+  color: var(--accent);
   font-weight: 700;
 }
 
@@ -387,9 +416,9 @@ button {
   display: grid;
   gap: 4px;
   padding: 10px;
-  border: 1px solid #e2d9c8;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #fffaf1;
+  background: var(--raised);
 }
 
 .compact-actions {
@@ -403,7 +432,7 @@ button {
   display: grid;
   place-items: center;
   padding: 18px;
-  background: rgba(24, 24, 22, 0.42);
+  background: var(--backdrop);
 }
 
 .chapter-dialog {
@@ -411,10 +440,10 @@ button {
   grid-template-rows: auto minmax(0, 1fr);
   width: min(720px, 100%);
   max-height: min(760px, calc(100vh - 36px));
-  border: 1px solid #ded5c4;
+  border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fffaf1;
-  box-shadow: 0 24px 80px rgba(24, 24, 22, 0.24);
+  background: var(--raised);
+  box-shadow: 0 24px 80px var(--dialog-shadow);
   overflow: hidden;
 }
 
@@ -424,7 +453,7 @@ button {
   justify-content: space-between;
   gap: 12px;
   padding: 14px 16px;
-  border-bottom: 1px solid #ded5c4;
+  border-bottom: 1px solid var(--border);
 }
 
 .dialog-header h2 {
@@ -448,7 +477,7 @@ button {
 
 .chapter-verse sup {
   margin-right: 5px;
-  color: #676158;
+  color: var(--muted);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
     "Segoe UI", sans-serif;
@@ -458,8 +487,8 @@ button {
 
 .answer-verse {
   padding: 8px 10px;
-  border-left: 3px solid #1f6b58;
-  background: #e7f1eb;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
 }
 
 .round-list {
@@ -474,9 +503,9 @@ button {
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border: 1px solid #e2d9c8;
+  border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: #fffaf1;
+  background: var(--raised);
 }
 
 @media (max-width: 840px) {
