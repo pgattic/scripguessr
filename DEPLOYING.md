@@ -40,3 +40,14 @@ reverse proxy configuration in your host config.
 
 If another reverse proxy already owns TLS, point it at
 `http://127.0.0.1:8087`.
+
+## Health Checks
+
+The server exposes a lightweight health endpoint:
+
+```text
+GET /healthz
+```
+
+It returns `200 OK` with `ok` in the response body. Point uptime checks or reverse
+proxy health checks at `http://127.0.0.1:8087/healthz`.

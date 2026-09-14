@@ -57,7 +57,9 @@ where
 
     let response_value = JsFuture::from(window.fetch_with_str_and_init(path, &options))
         .await
-        .map_err(|error| format!("Could not fetch {path}: {error:?}"))?;
+        .map_err(|error| {
+            format!("Could not reach the game server at {path}. In development, use `nix run .#dev` so the backend starts with the Dioxus dev server. Details: {error:?}")
+        })?;
     let response = response_value
         .dyn_into::<web_sys::Response>()
         .map_err(|error| format!("Invalid response for {path}: {error:?}"))?;
@@ -73,8 +75,15 @@ where
     .ok_or_else(|| format!("Could not read {path} as text"))?;
 
     if !response.ok() {
-        return Err(error_message(&text)
-            .unwrap_or_else(|| format!("Could not fetch {path}: HTTP {}", response.status())));
+        return Err(error_message(&text).unwrap_or_else(|| {
+            if response.status() == 405 && path.contains("/api/") {
+                format!(
+                    "The game server did not accept {path}. In development, use `nix run .#dev` instead of plain `dx serve`."
+                )
+            } else {
+                format!("The game server returned HTTP {} for {path}", response.status())
+            }
+        }));
     }
 
     serde_json::from_str(&text).map_err(|error| format!("Could not parse {path}: {error}"))

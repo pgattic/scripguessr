@@ -448,7 +448,7 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
 
                 if let Some(error) = load_error {
                     div { class: "callout warning",
-                        strong { "Scripture data unavailable" }
+                        strong { "Game server unavailable" }
                         span { "{error}" }
                     }
                 }
