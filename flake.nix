@@ -10,7 +10,15 @@
   outputs =
     inputs@{ flake-parts, ... }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      flake.nixosModules.default = import ./nix/module.nix;
+      flake.nixosModules.default =
+        { pkgs, ... }:
+        {
+          imports = [
+            (import ./nix/module.nix {
+              defaultPackage = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+            })
+          ];
+        };
 
       systems = [
         "x86_64-linux"

@@ -1,7 +1,8 @@
+{ defaultPackage ? null }:
+
 {
   config,
   lib,
-  pkgs,
   ...
 }:
 
@@ -14,8 +15,12 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkgs.callPackage ./package.nix { };
-      defaultText = lib.literalExpression "pkgs.callPackage ./package.nix { }";
+      default =
+        if defaultPackage != null then
+          defaultPackage
+        else
+          throw "services.scripguessr.package must be set when importing nix/module.nix directly";
+      defaultText = lib.literalExpression "self.packages.\${pkgs.system}.default";
       description = "ScripGuessr package to run.";
     };
 
