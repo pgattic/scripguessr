@@ -113,6 +113,7 @@ button {
 
 .verse-panel {
   padding: clamp(20px, 4vw, 42px);
+  scroll-margin-top: 12px;
 }
 
 .verse-label {

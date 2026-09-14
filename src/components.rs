@@ -1,4 +1,8 @@
 use dioxus::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::closure::Closure;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
@@ -37,6 +41,10 @@ pub fn App() -> Element {
     rsx! {
         document::Stylesheet {
             href: asset!("/assets/main.css")
+        }
+        document::Meta {
+            name: "viewport",
+            content: "width=device-width, initial-scale=1"
         }
         main { class: "app",
             div { class: "shell",
@@ -87,7 +95,10 @@ fn request_new_game(mut game: Signal<Game>) {
 
     spawn(async move {
         match create_game(request).await {
-            Ok(response) => game.write().start_game(response),
+            Ok(response) => {
+                game.write().start_game(response);
+                scroll_round_into_view_on_mobile();
+            }
             Err(error) => game.write().fail_request(error),
         }
     });
@@ -132,6 +143,39 @@ fn VersePanel(game: Signal<Game>) -> Element {
         }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+fn scroll_round_into_view_on_mobile() {
+    let Some(window) = web_sys::window() else {
+        return;
+    };
+
+    let callback = Closure::once(move || {
+        let Some(window) = web_sys::window() else {
+            return;
+        };
+        let Some(document) = window.document() else {
+            return;
+        };
+        let Some(element) = document.query_selector(".verse-panel").ok().flatten() else {
+            return;
+        };
+
+        let options = web_sys::ScrollIntoViewOptions::new();
+        options.set_behavior(web_sys::ScrollBehavior::Smooth);
+        options.set_block(web_sys::ScrollLogicalPosition::Start);
+        element.scroll_into_view_with_scroll_into_view_options(&options);
+    });
+
+    let _ = window.set_timeout_with_callback_and_timeout_and_arguments_0(
+        callback.as_ref().unchecked_ref(),
+        0,
+    );
+    callback.forget();
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_round_into_view_on_mobile() {}
 
 #[component]
 fn GuessPanel(game: Signal<Game>) -> Element {
@@ -295,10 +339,21 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
                 result: result,
             }
             div { class: "actions",
-                button {
-                    class: "button",
-                    onclick: move |_| game.write().next_round(),
-                    if snapshot.is_last_round() { "Finish game" } else { "Next round" }
+                if snapshot.is_last_round() {
+                    button {
+                        class: "button",
+                        onclick: move |_| game.write().next_round(),
+                        "Finish game"
+                    }
+                } else {
+                    button {
+                        class: "button",
+                        onclick: move |_| {
+                            game.write().next_round();
+                            scroll_round_into_view_on_mobile();
+                        },
+                        "Next round"
+                    }
                 }
             }
         }
