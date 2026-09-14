@@ -139,6 +139,11 @@ impl Game {
         self.clear_guess();
     }
 
+    pub fn open_review(&mut self) {
+        self.screen = Screen::Review;
+        self.error = None;
+    }
+
     pub fn set_round_count(&mut self, round_count: usize) {
         self.settings.round_count = round_count;
     }
@@ -326,6 +331,10 @@ impl Game {
         })
     }
 
+    pub fn remove_review_item(&mut self, reference: &Reference) -> bool {
+        self.stats.remove_review_item(reference)
+    }
+
     pub fn next_round(&mut self) {
         if self.finished {
             return;
@@ -435,6 +444,7 @@ impl GameSettings {
 pub enum Screen {
     Setup,
     Playing,
+    Review,
 }
 
 #[derive(Clone, Copy, PartialEq)]

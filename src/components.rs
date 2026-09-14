@@ -3,8 +3,8 @@ use dioxus::prelude::*;
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
-use crate::scriptures::{Canon, Difficulty, GameMode};
-use crate::stats::Stats;
+use crate::scriptures::{Canon, Difficulty, GameMode, Reference};
+use crate::stats::{ReviewItem, Stats};
 
 #[component]
 pub fn App() -> Element {
@@ -49,18 +49,30 @@ pub fn App() -> Element {
                             span { "{snapshot.settings.selection_label()} · loading game data" }
                         }
                     }
-                    if snapshot.screen == Screen::Playing {
-                        div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
+                    match snapshot.screen {
+                        Screen::Playing => rsx! {
+                            div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
+                        },
+                        Screen::Review => rsx! {
+                            div { class: "pill", "{snapshot.stats.review_items.len()} marked" }
+                        },
+                        Screen::Setup => rsx! {},
                     }
                 }
 
-                if snapshot.screen == Screen::Setup {
-                    SetupPanel { game: game, load_error }
-                } else {
-                    div { class: "layout",
-                        VersePanel { game: game }
-                        GuessPanel { game: game }
-                    }
+                match snapshot.screen {
+                    Screen::Setup => rsx! {
+                        SetupPanel { game: game, load_error }
+                    },
+                    Screen::Playing => rsx! {
+                        div { class: "layout",
+                            VersePanel { game: game }
+                            GuessPanel { game: game }
+                        }
+                    },
+                    Screen::Review => rsx! {
+                        ReviewPanel { game: game }
+                    },
                 }
             }
         }
@@ -455,14 +467,16 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                     }
                 }
 
-                StatsPanel { stats: snapshot.stats.clone() }
+                StatsPanel { game, stats: snapshot.stats.clone() }
             }
         }
     }
 }
 
 #[component]
-fn StatsPanel(stats: Stats) -> Element {
+fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
+    let review_count = stats.review_items.len();
+
     rsx! {
         div { class: "stats-panel",
             div { class: "picker-header",
@@ -505,8 +519,123 @@ fn StatsPanel(stats: Stats) -> Element {
                     }
                 }
             }
+            if review_count > 0 {
+                div { class: "actions stats-actions",
+                    button {
+                        class: "button secondary",
+                        onclick: move |_| game.write().open_review(),
+                        "Review marked"
+                    }
+                }
+            }
         }
     }
+}
+
+#[component]
+fn ReviewPanel(game: Signal<Game>) -> Element {
+    let mut selected_index = use_signal(|| 0_usize);
+    let snapshot = game.read().clone();
+    let items = snapshot.stats.review_items.clone();
+    let bounded_index = selected_index().min(items.len().saturating_sub(1));
+    let selected_item = items.get(bounded_index).cloned();
+
+    rsx! {
+        div { class: "review-layout",
+            section { class: "panel review-list-panel",
+                div { class: "picker-header",
+                    h2 { "Review" }
+                    span { class: "muted", "{items.len()} marked" }
+                }
+
+                if items.is_empty() {
+                    p { class: "muted", "No marked verses yet." }
+                } else {
+                    div { class: "review-list",
+                        for (index, item) in items.iter().cloned().enumerate() {
+                            {
+                                let reference = reference_label(&item.reference);
+                                rsx! {
+                                    button {
+                                        class: if index == bounded_index { "review-row active" } else { "review-row" },
+                                        onclick: move |_| selected_index.set(index),
+                                        strong { "{reference}" }
+                                        span { class: "muted", "{item.score} pts" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                div { class: "actions",
+                    button {
+                        class: "button secondary",
+                        onclick: move |_| game.write().change_settings(),
+                        "Home"
+                    }
+                }
+            }
+
+            aside { class: "panel review-detail-panel",
+                if let Some(item) = selected_item {
+                    ReviewDetail {
+                        game,
+                        item,
+                        selected_index: bounded_index,
+                        set_selected_index: selected_index,
+                    }
+                } else {
+                    div { class: "ready",
+                        span { class: "muted", "Review queue" }
+                        strong { "Nothing marked" }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn ReviewDetail(
+    game: Signal<Game>,
+    item: ReviewItem,
+    selected_index: usize,
+    set_selected_index: Signal<usize>,
+) -> Element {
+    let reference = reference_label(&item.reference);
+    let remove_reference = item.reference.clone();
+
+    rsx! {
+        div { class: "review-detail",
+            div { class: "picker-header",
+                h2 { "{reference}" }
+                span { class: "muted", "{item.score} pts" }
+            }
+            blockquote { class: "review-verse", "{item.text}" }
+            div { class: "ready",
+                span { class: "muted", "Marked answer" }
+                strong { "{reference}" }
+            }
+            div { class: "actions",
+                button {
+                    class: "button secondary",
+                    onclick: move |_| {
+                        game.write().remove_review_item(&remove_reference);
+                        set_selected_index.set(selected_index.saturating_sub(1));
+                    },
+                    "Unmark"
+                }
+            }
+        }
+    }
+}
+
+fn reference_label(reference: &Reference) -> String {
+    format!(
+        "{} {}:{}",
+        reference.book, reference.chapter, reference.verse
+    )
 }
 
 #[component]
@@ -584,15 +713,9 @@ fn result_feedback(result: &GuessResult) -> (&'static str, String) {
             format!("Your guess was {distance} in the same book."),
         )
     } else if result.answer.canon == result.guess.canon {
-        (
-            "Same canon",
-            format!("Your guess was {distance}."),
-        )
+        ("Same canon", format!("Your guess was {distance}."))
     } else {
-        (
-            "Different canon",
-            format!("Your guess was {distance}."),
-        )
+        ("Different canon", format!("Your guess was {distance}."))
     }
 }
 

@@ -413,6 +413,69 @@ button {
   background: var(--raised);
 }
 
+.stats-actions {
+  margin-top: 0;
+}
+
+.review-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.review-list-panel,
+.review-detail-panel {
+  padding: 18px;
+}
+
+.review-list {
+  display: grid;
+  gap: 8px;
+}
+
+.review-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.review-row strong {
+  overflow-wrap: anywhere;
+}
+
+.review-row:hover,
+.review-row.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.review-detail {
+  display: grid;
+  gap: 14px;
+}
+
+.review-detail .picker-header {
+  margin-bottom: 0;
+}
+
+.review-verse {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(1.35rem, 2.6vw, 2rem);
+  line-height: 1.42;
+}
+
 .result {
   margin-top: 16px;
   padding-top: 16px;
@@ -566,6 +629,7 @@ button {
 
 @media (max-width: 840px) {
   .layout,
+  .review-layout,
   .setup-layout,
   .topbar {
     grid-template-columns: 1fr;

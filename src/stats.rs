@@ -105,6 +105,18 @@ impl Stats {
             true
         }
     }
+
+    pub fn remove_review_item(&mut self, reference: &Reference) -> bool {
+        let original_len = self.review_items.len();
+        self.review_items
+            .retain(|item| item.reference != *reference);
+
+        let removed = self.review_items.len() != original_len;
+        if removed {
+            self.save();
+        }
+        removed
+    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -298,5 +310,25 @@ mod tests {
         assert!(!stats.toggle_review_item(item.clone()));
         assert!(!stats.is_marked_for_review(&item.reference));
         assert!(stats.review_items.is_empty());
+    }
+
+    #[test]
+    fn review_items_can_be_removed_by_reference() {
+        let mut stats = Stats::default();
+        let reference = Reference {
+            canon: crate::scriptures::Canon::BookOfMormon,
+            book: "Mosiah".to_string(),
+            chapter: 2,
+            verse: 17,
+        };
+        stats.review_items.push(ReviewItem {
+            reference: reference.clone(),
+            text: "When ye are in the service of your fellow beings".to_string(),
+            score: 734,
+        });
+
+        assert!(stats.remove_review_item(&reference));
+        assert!(stats.review_items.is_empty());
+        assert!(!stats.remove_review_item(&reference));
     }
 }
