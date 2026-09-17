@@ -27,6 +27,19 @@ impl StudyPassage {
         let verses = compact_verses(&self.verses);
         format!("{} {}:{}", self.book, self.chapter, verses)
     }
+
+    pub fn first_reference(&self) -> Option<Reference> {
+        Some(Reference {
+            canon: self.canon,
+            book: self.book.clone(),
+            chapter: self.chapter,
+            verse: *self.verses.first()?,
+        })
+    }
+
+    pub fn contains_verse(&self, verse: u16) -> bool {
+        self.verses.contains(&verse)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]

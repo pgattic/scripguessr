@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
-use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope, Reference};
+use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope};
 use crate::study_sets::StudyPassage;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -62,7 +62,7 @@ pub struct GuessRequest {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GuessResponse {
-    pub answer: Reference,
+    pub answer: StudyPassage,
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,

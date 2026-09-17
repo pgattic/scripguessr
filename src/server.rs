@@ -116,8 +116,23 @@ impl AppState {
 #[derive(Clone)]
 struct ServerGame {
     request: NewGameRequest,
-    rounds: Vec<Verse>,
+    rounds: Vec<RoundAnswer>,
     last_seen_at: SystemTime,
+}
+
+#[derive(Clone)]
+struct RoundAnswer {
+    passage: crate::study_sets::StudyPassage,
+    text: String,
+}
+
+impl From<Verse> for RoundAnswer {
+    fn from(verse: Verse) -> Self {
+        Self {
+            passage: crate::study_sets::StudyPassage::single(&verse.reference),
+            text: verse.text,
+        }
+    }
 }
 
 async fn healthz() -> &'static str {
@@ -168,12 +183,9 @@ async fn create_game(
     let mut rounds = if request.passages.is_empty() {
         let mut rounds = Vec::with_capacity(request.round_count);
         for _round in 0..request.round_count {
-            rounds.push(random_verse(
-                &state.library,
-                &request,
-                scoped_playable_count,
-                &mut rng,
-            )?);
+            rounds.push(
+                random_verse(&state.library, &request, scoped_playable_count, &mut rng)?.into(),
+            );
         }
         rounds
     } else {
@@ -199,8 +211,8 @@ async fn create_game(
         game_id,
         rounds: rounds
             .iter()
-            .map(|verse| RoundPrompt {
-                text: verse.text.clone(),
+            .map(|round| RoundPrompt {
+                text: round.text.clone(),
             })
             .collect(),
         scope: request.scope.clone(),
@@ -234,11 +246,14 @@ async fn submit_guess(
         .rounds
         .get(request.round_index)
         .ok_or_else(|| ApiError::bad_request("Round not found"))?
-        .reference
+        .passage
         .clone();
+    let answer_reference = answer
+        .first_reference()
+        .ok_or_else(|| ApiError::bad_request("Round has no answer verses"))?;
     let score = state.library.score(
         &game.request.scope,
-        &answer,
+        &answer_reference,
         request.canon,
         &request.book,
         request.chapter,
@@ -247,7 +262,7 @@ async fn submit_guess(
         .library
         .scriptures(answer.canon)
         .ok_or_else(|| ApiError::not_found("Canon not found"))?
-        .verses_for_chapter(&answer)
+        .verses_for_chapter(&answer_reference)
         .into_iter()
         .map(|verse| ChapterVerse {
             verse: verse.reference.verse,
@@ -294,7 +309,7 @@ fn random_verse(
 fn study_passages(
     library: &ScriptureLibrary,
     request: &NewGameRequest,
-) -> Result<Vec<Verse>, ApiError> {
+) -> Result<Vec<RoundAnswer>, ApiError> {
     let mut verses = Vec::with_capacity(request.passages.len());
     for passage in &request.passages {
         if !request.scope.includes_book(passage.canon, &passage.book) {
@@ -314,9 +329,12 @@ fn study_passages(
             .ok_or_else(|| ApiError::bad_request("Study passage was not found"))?;
         if !verses
             .iter()
-            .any(|existing: &Verse| existing.reference == verse.reference)
+            .any(|existing: &RoundAnswer| existing.passage == *passage)
         {
-            verses.push(verse);
+            verses.push(RoundAnswer {
+                passage: passage.clone(),
+                text: verse.text,
+            });
         }
     }
 
@@ -626,7 +644,7 @@ mod tests {
             .get(&body.game_id)
             .unwrap()
             .rounds[0]
-            .reference
+            .passage
             .clone();
         assert_eq!(answer.book, "Alma");
     }
@@ -664,11 +682,11 @@ mod tests {
 
         let games = state.games.lock().unwrap();
         let rounds = &games.get(&body.game_id).unwrap().rounds;
-        assert!(
-            references
+        assert!(references.iter().all(|reference| {
+            rounds
                 .iter()
-                .all(|reference| rounds.iter().any(|round| round.reference == *reference))
-        );
+                .any(|round| round.passage == crate::study_sets::StudyPassage::single(reference))
+        }));
     }
 
     #[tokio::test]
@@ -683,7 +701,7 @@ mod tests {
             .get(&game.game_id)
             .unwrap()
             .rounds[0]
-            .reference
+            .passage
             .clone();
 
         let response = post_json(
@@ -706,8 +724,41 @@ mod tests {
         assert!(
             body.chapter_verses
                 .iter()
-                .any(|verse| verse.verse == answer.verse)
+                .any(|verse| answer.contains_verse(verse.verse))
         );
+    }
+
+    #[tokio::test]
+    async fn guess_endpoint_preserves_a_multi_verse_answer() {
+        let (app, _state) = app();
+        let passage = crate::study_sets::StudyPassage {
+            canon: Canon::BookOfMormon,
+            book: "Alma".to_string(),
+            chapter: 7,
+            verses: vec![11, 12, 13],
+        };
+        let mut request = alma_request();
+        request.passages = vec![passage.clone()];
+
+        let response = post_json(app.clone(), "/api/games", request).await;
+        let game: NewGameResponse = read_json(response).await;
+        let response = post_json(
+            app,
+            &format!("/api/games/{}/guesses", game.game_id),
+            GuessRequest {
+                round_index: 0,
+                canon: passage.canon,
+                book: passage.book.clone(),
+                chapter: passage.chapter,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: GuessResponse = read_json(response).await;
+        assert_eq!(body.answer, passage);
+        assert!(body.answer.contains_verse(11));
+        assert!(body.answer.contains_verse(13));
     }
 
     #[tokio::test]

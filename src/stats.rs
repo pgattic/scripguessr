@@ -3,6 +3,7 @@ use std::collections::BTreeMap;
 use serde::{Deserialize, Serialize};
 
 use crate::scriptures::{Difficulty, Reference};
+use crate::study_sets::StudyPassage;
 
 #[cfg(target_arch = "wasm32")]
 const STORAGE_KEY: &str = "scripguessr.stats.v1";
@@ -84,17 +85,17 @@ impl Stats {
         books.into_iter().take(limit).collect()
     }
 
-    pub fn is_marked_for_review(&self, reference: &Reference) -> bool {
+    pub fn is_marked_for_review(&self, passage: &StudyPassage) -> bool {
         self.review_items
             .iter()
-            .any(|item| item.reference == *reference)
+            .any(|item| item.passage() == *passage)
     }
 
     pub fn toggle_review_item(&mut self, item: ReviewItem) -> bool {
         if let Some(index) = self
             .review_items
             .iter()
-            .position(|candidate| candidate.reference == item.reference)
+            .position(|candidate| candidate.passage() == item.passage())
         {
             self.review_items.remove(index);
             self.save();
@@ -106,10 +107,9 @@ impl Stats {
         }
     }
 
-    pub fn remove_review_item(&mut self, reference: &Reference) -> bool {
+    pub fn remove_review_item(&mut self, passage: &StudyPassage) -> bool {
         let original_len = self.review_items.len();
-        self.review_items
-            .retain(|item| item.reference != *reference);
+        self.review_items.retain(|item| item.passage() != *passage);
 
         let removed = self.review_items.len() != original_len;
         if removed {
@@ -142,9 +142,20 @@ pub struct BookStats {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ReviewItem {
+    // Kept for backwards-compatible local-storage deserialization.
     pub reference: Reference,
+    #[serde(default)]
+    pub passage: Option<StudyPassage>,
     pub text: String,
     pub score: u32,
+}
+
+impl ReviewItem {
+    pub fn passage(&self) -> StudyPassage {
+        self.passage
+            .clone()
+            .unwrap_or_else(|| StudyPassage::single(&self.reference))
+    }
 }
 
 impl BookStats {
@@ -299,16 +310,17 @@ mod tests {
                 chapter: 32,
                 verse: 21,
             },
+            passage: None,
             text: "And now as I said concerning faith".to_string(),
             score: 612,
         };
 
         assert!(stats.toggle_review_item(item.clone()));
-        assert!(stats.is_marked_for_review(&item.reference));
+        assert!(stats.is_marked_for_review(&item.passage()));
         assert_eq!(stats.review_items.len(), 1);
 
         assert!(!stats.toggle_review_item(item.clone()));
-        assert!(!stats.is_marked_for_review(&item.reference));
+        assert!(!stats.is_marked_for_review(&item.passage()));
         assert!(stats.review_items.is_empty());
     }
 
@@ -323,12 +335,13 @@ mod tests {
         };
         stats.review_items.push(ReviewItem {
             reference: reference.clone(),
+            passage: None,
             text: "When ye are in the service of your fellow beings".to_string(),
             score: 734,
         });
 
-        assert!(stats.remove_review_item(&reference));
+        assert!(stats.remove_review_item(&StudyPassage::single(&reference)));
         assert!(stats.review_items.is_empty());
-        assert!(!stats.remove_review_item(&reference));
+        assert!(!stats.remove_review_item(&StudyPassage::single(&reference)));
     }
 }

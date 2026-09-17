@@ -7,7 +7,7 @@ use wasm_bindgen::closure::Closure;
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
-use crate::scriptures::{BookScope, Canon, Difficulty, GameMode, Reference};
+use crate::scriptures::{BookScope, Canon, Difficulty, GameMode};
 use crate::stats::{ReviewItem, Stats};
 use crate::study_sets::{StudyGuessScope, StudyPassage, StudySet, built_in_study_sets};
 
@@ -1394,7 +1394,7 @@ fn ReviewPanel(game: Signal<Game>) -> Element {
                     div { class: "review-list",
                         for (index, item) in items.iter().cloned().enumerate() {
                             {
-                                let reference = reference_label(&item.reference);
+                                let reference = item.passage().label();
                                 rsx! {
                                     button {
                                         class: if index == bounded_index { "review-row active" } else { "review-row" },
@@ -1455,8 +1455,8 @@ fn ReviewDetail(
     selected_index: usize,
     set_selected_index: Signal<usize>,
 ) -> Element {
-    let reference = reference_label(&item.reference);
-    let remove_reference = item.reference.clone();
+    let remove_passage = item.passage();
+    let reference = remove_passage.label();
 
     rsx! {
         div { class: "review-detail",
@@ -1473,7 +1473,7 @@ fn ReviewDetail(
                 button {
                     class: "button secondary",
                     onclick: move |_| {
-                        game.write().remove_review_item(&remove_reference);
+                        game.write().remove_review_item(&remove_passage);
                         set_selected_index.set(selected_index.saturating_sub(1));
                     },
                     "Unmark"
@@ -1481,13 +1481,6 @@ fn ReviewDetail(
             }
         }
     }
-}
-
-fn reference_label(reference: &Reference) -> String {
-    format!(
-        "{} {}:{}",
-        reference.book, reference.chapter, reference.verse
-    )
 }
 
 #[component]
@@ -1498,6 +1491,7 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
     let score_percent = result.score.points.saturating_mul(100) / MAX_SCORE;
     let marked_for_review = game.read().current_result_marked_for_review();
     let (feedback_title, feedback_detail) = result_feedback(&result);
+    let answer_label = result.answer.label();
 
     rsx! {
         div { class: "result",
@@ -1517,7 +1511,7 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
             div { class: "result-grid",
                 div {
                     span { class: "muted", "Actual" }
-                    strong { "{result.answer.book} {result.answer.chapter}:{result.answer.verse}" }
+                    strong { "{answer_label}" }
                 }
                 div {
                     span { class: "muted", "Guess" }
@@ -1541,7 +1535,7 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
             if reader_open() {
                 ChapterReader {
                     title: chapter_title.clone(),
-                    answer_verse: result.answer.verse,
+                    answer: result.answer.clone(),
                     verses: result.chapter_verses.clone(),
                     on_close: move |_| reader_open.set(false),
                 }
@@ -1574,7 +1568,7 @@ fn result_feedback(result: &GuessResult) -> (&'static str, String) {
 #[component]
 fn ChapterReader(
     title: String,
-    answer_verse: u16,
+    answer: StudyPassage,
     verses: Vec<crate::api::ChapterVerse>,
     on_close: EventHandler<MouseEvent>,
 ) -> Element {
@@ -1598,7 +1592,7 @@ fn ChapterReader(
                 div { class: "chapter-reader",
                     for verse in verses {
                         p {
-                            class: if verse.verse == answer_verse { "chapter-verse answer-verse" } else { "chapter-verse" },
+                            class: if answer.contains_verse(verse.verse) { "chapter-verse answer-verse" } else { "chapter-verse" },
                             sup { "{verse.verse}" }
                             "{verse.text}"
                         }
@@ -1618,7 +1612,7 @@ fn RoundSummary(rounds: Vec<Round>) -> Element {
                     strong { "Round {index + 1}" }
                     span {
                         if let Some(guess) = round.guess.as_ref() {
-                            "{guess.answer.book} {guess.answer.chapter}:{guess.answer.verse}"
+                            "{guess.answer.label()}"
                         } else {
                             "Unanswered"
                         }

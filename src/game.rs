@@ -3,9 +3,7 @@ use crate::api::{
     MetadataResponse, NewGameRequest, NewGameResponse,
 };
 use crate::scoring::{MAX_SCORE, Score};
-use crate::scriptures::{
-    BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope, Reference,
-};
+use crate::scriptures::{BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope};
 use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
 use crate::study_sets::{CustomStudySets, StudyGuessScope, StudyPassage, StudySet};
 
@@ -98,7 +96,7 @@ impl Game {
             .stats
             .review_items
             .iter()
-            .map(|item| StudyPassage::single(&item.reference))
+            .map(ReviewItem::passage)
             .collect::<Vec<_>>();
         let round_count = passages.len();
         self.study_set_game_request(
@@ -512,14 +510,18 @@ impl Game {
         };
 
         self.stats.toggle_review_item(ReviewItem {
-            reference: guess.answer.clone(),
+            reference: guess
+                .answer
+                .first_reference()
+                .expect("round answers always contain at least one verse"),
+            passage: Some(guess.answer.clone()),
             text: round.text.clone(),
             score: guess.score.points,
         })
     }
 
-    pub fn remove_review_item(&mut self, reference: &Reference) -> bool {
-        self.stats.remove_review_item(reference)
+    pub fn remove_review_item(&mut self, passage: &StudyPassage) -> bool {
+        self.stats.remove_review_item(passage)
     }
 
     pub fn next_round(&mut self) {
@@ -745,7 +747,7 @@ pub struct Round {
 
 #[derive(Clone, PartialEq)]
 pub struct GuessResult {
-    pub answer: Reference,
+    pub answer: StudyPassage,
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,
