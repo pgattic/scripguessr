@@ -46,11 +46,13 @@ let
       "assets/data/new-testament-flat.json"
       "assets/data/old-testament-flat.json"
       "assets/data/pearl-of-great-price-flat.json"
+      "assets/data/preach-my-gospel-study-sets.json"
       "src/api.rs"
       "src/main.rs"
       "src/scoring.rs"
       "src/scriptures.rs"
       "src/server.rs"
+      "src/study_sets.rs"
     ];
   };
 
@@ -58,11 +60,13 @@ let
     dirs = [
       ""
       "assets"
+      "assets/data"
       "src"
     ];
     files = cargoFiles ++ [
       "Dioxus.toml"
       "assets/main.css"
+      "assets/data/preach-my-gospel-study-sets.json"
       "src/api.rs"
       "src/components.rs"
       "src/game.rs"
@@ -71,6 +75,7 @@ let
       "src/scoring.rs"
       "src/scriptures.rs"
       "src/stats.rs"
+      "src/study_sets.rs"
     ];
   };
 

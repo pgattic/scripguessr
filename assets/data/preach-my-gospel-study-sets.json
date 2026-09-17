@@ -1,0 +1,8780 @@
+{
+  "source": "preach_my_gospel_2_0.pdf",
+  "boxes": [
+    {
+      "line": 671,
+      "chapter": 1,
+      "passages": 10
+    },
+    {
+      "line": 887,
+      "chapter": 1,
+      "passages": 5
+    },
+    {
+      "line": 1034,
+      "chapter": 1,
+      "passages": 7
+    },
+    {
+      "line": 1127,
+      "chapter": 1,
+      "passages": 7
+    },
+    {
+      "line": 1325,
+      "chapter": 1,
+      "passages": 5
+    },
+    {
+      "line": 1438,
+      "chapter": 1,
+      "passages": 9
+    },
+    {
+      "line": 1619,
+      "chapter": 1,
+      "passages": 6
+    },
+    {
+      "line": 1940,
+      "chapter": 2,
+      "passages": 4
+    },
+    {
+      "line": 1955,
+      "chapter": 2,
+      "passages": 7
+    },
+    {
+      "line": 2739,
+      "chapter": 3,
+      "passages": 8
+    },
+    {
+      "line": 2906,
+      "chapter": 3,
+      "passages": 5
+    },
+    {
+      "line": 3333,
+      "chapter": 3,
+      "passages": 11
+    },
+    {
+      "line": 3456,
+      "chapter": 3,
+      "passages": 7
+    },
+    {
+      "line": 3594,
+      "chapter": 3,
+      "passages": 13
+    },
+    {
+      "line": 3695,
+      "chapter": 3,
+      "passages": 8
+    },
+    {
+      "line": 3973,
+      "chapter": 3,
+      "passages": 9
+    },
+    {
+      "line": 4149,
+      "chapter": 3,
+      "passages": 4
+    },
+    {
+      "line": 4257,
+      "chapter": 3,
+      "passages": 4
+    },
+    {
+      "line": 4820,
+      "chapter": 3,
+      "passages": 10
+    },
+    {
+      "line": 4850,
+      "chapter": 3,
+      "passages": 8
+    },
+    {
+      "line": 5007,
+      "chapter": 3,
+      "passages": 16
+    },
+    {
+      "line": 5119,
+      "chapter": 3,
+      "passages": 15
+    },
+    {
+      "line": 5313,
+      "chapter": 3,
+      "passages": 19
+    },
+    {
+      "line": 5415,
+      "chapter": 3,
+      "passages": 6
+    },
+    {
+      "line": 5498,
+      "chapter": 3,
+      "passages": 10
+    },
+    {
+      "line": 5654,
+      "chapter": 3,
+      "passages": 10
+    },
+    {
+      "line": 6111,
+      "chapter": 3,
+      "passages": 8
+    },
+    {
+      "line": 6211,
+      "chapter": 3,
+      "passages": 13
+    },
+    {
+      "line": 6372,
+      "chapter": 3,
+      "passages": 9
+    },
+    {
+      "line": 6568,
+      "chapter": 3,
+      "passages": 24
+    },
+    {
+      "line": 6755,
+      "chapter": 3,
+      "passages": 18
+    },
+    {
+      "line": 6861,
+      "chapter": 3,
+      "passages": 7
+    },
+    {
+      "line": 6963,
+      "chapter": 3,
+      "passages": 8
+    },
+    {
+      "line": 7271,
+      "chapter": 3,
+      "passages": 14
+    },
+    {
+      "line": 7299,
+      "chapter": 3,
+      "passages": 12
+    },
+    {
+      "line": 7539,
+      "chapter": 3,
+      "passages": 16
+    },
+    {
+      "line": 7565,
+      "chapter": 3,
+      "passages": 9
+    },
+    {
+      "line": 7709,
+      "chapter": 3,
+      "passages": 5
+    },
+    {
+      "line": 7816,
+      "chapter": 3,
+      "passages": 6
+    },
+    {
+      "line": 7982,
+      "chapter": 3,
+      "passages": 7
+    },
+    {
+      "line": 8081,
+      "chapter": 3,
+      "passages": 4
+    },
+    {
+      "line": 8184,
+      "chapter": 3,
+      "passages": 7
+    },
+    {
+      "line": 8271,
+      "chapter": 3,
+      "passages": 3
+    },
+    {
+      "line": 8352,
+      "chapter": 3,
+      "passages": 9
+    },
+    {
+      "line": 8442,
+      "chapter": 3,
+      "passages": 2
+    },
+    {
+      "line": 8583,
+      "chapter": 3,
+      "passages": 10
+    },
+    {
+      "line": 8788,
+      "chapter": 3,
+      "passages": 10
+    },
+    {
+      "line": 8948,
+      "chapter": 3,
+      "passages": 11
+    },
+    {
+      "line": 9062,
+      "chapter": 3,
+      "passages": 5
+    },
+    {
+      "line": 9214,
+      "chapter": 4,
+      "passages": 5
+    },
+    {
+      "line": 9547,
+      "chapter": 4,
+      "passages": 10
+    },
+    {
+      "line": 9946,
+      "chapter": 4,
+      "passages": 23
+    },
+    {
+      "line": 10134,
+      "chapter": 4,
+      "passages": 6
+    },
+    {
+      "line": 10516,
+      "chapter": 5,
+      "passages": 7
+    },
+    {
+      "line": 10598,
+      "chapter": 5,
+      "passages": 16
+    },
+    {
+      "line": 11330,
+      "chapter": 6,
+      "passages": 10
+    },
+    {
+      "line": 11420,
+      "chapter": 6,
+      "passages": 14
+    },
+    {
+      "line": 11572,
+      "chapter": 6,
+      "passages": 6
+    },
+    {
+      "line": 11604,
+      "chapter": 6,
+      "passages": 13
+    },
+    {
+      "line": 11700,
+      "chapter": 6,
+      "passages": 5
+    },
+    {
+      "line": 11789,
+      "chapter": 6,
+      "passages": 4
+    },
+    {
+      "line": 11868,
+      "chapter": 6,
+      "passages": 8
+    },
+    {
+      "line": 11966,
+      "chapter": 6,
+      "passages": 9
+    },
+    {
+      "line": 12052,
+      "chapter": 6,
+      "passages": 17
+    },
+    {
+      "line": 12143,
+      "chapter": 6,
+      "passages": 9
+    },
+    {
+      "line": 12179,
+      "chapter": 6,
+      "passages": 12
+    },
+    {
+      "line": 12270,
+      "chapter": 6,
+      "passages": 7
+    },
+    {
+      "line": 13374,
+      "chapter": 8,
+      "passages": 5
+    },
+    {
+      "line": 13408,
+      "chapter": 8,
+      "passages": 3
+    },
+    {
+      "line": 13975,
+      "chapter": 8,
+      "passages": 8
+    },
+    {
+      "line": 14600,
+      "chapter": 9,
+      "passages": 4
+    },
+    {
+      "line": 15053,
+      "chapter": 9,
+      "passages": 4
+    },
+    {
+      "line": 15753,
+      "chapter": 9,
+      "passages": 8
+    },
+    {
+      "line": 16671,
+      "chapter": 10,
+      "passages": 5
+    },
+    {
+      "line": 16763,
+      "chapter": 10,
+      "passages": 5
+    },
+    {
+      "line": 16956,
+      "chapter": 10,
+      "passages": 4
+    },
+    {
+      "line": 17144,
+      "chapter": 10,
+      "passages": 12
+    },
+    {
+      "line": 18411,
+      "chapter": 11,
+      "passages": 9
+    },
+    {
+      "line": 18586,
+      "chapter": 11,
+      "passages": 3
+    },
+    {
+      "line": 19040,
+      "chapter": 12,
+      "passages": 10
+    },
+    {
+      "line": 20211,
+      "chapter": 13,
+      "passages": 13
+    },
+    {
+      "line": 20402,
+      "chapter": 13,
+      "passages": 8
+    }
+  ],
+  "unique_passage_count": 602,
+  "sets": [
+    {
+      "id": "preach-my-gospel-chapter-1",
+      "name": "PMG 1: Fulfill Your Missionary Purpose",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 17,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 26,
+          "verses": [
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 11,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 35,
+          "verses": [
+            24
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 53,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 2,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 11,
+          "verses": [
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Articles of Faith",
+          "chapter": 1,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 29,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 42,
+          "verses": [
+            31
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 62,
+          "verses": [
+            45
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 5,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 14,
+          "verses": [
+            8
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 15,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 19,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 45,
+          "verses": [
+            56,
+            57
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Galatians",
+          "chapter": 5,
+          "verses": [
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 19,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 13,
+          "verses": [
+            39
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 29,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 17,
+          "verses": [
+            7,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 8,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 9,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Mark",
+          "chapter": 1,
+          "verses": [
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 4,
+          "verses": [
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 17,
+          "verses": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 18,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 22,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 28,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 8,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 10,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 15,
+          "verses": [
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 68,
+          "verses": [
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-2",
+      "name": "PMG 2: Search the Scriptures and Put on the Armor of God",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 4,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            118
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 11,
+          "verses": [
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 39,
+          "verses": [
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 16,
+          "verses": [
+            13
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-3",
+      "name": "PMG 3: Study and Teach the Gospel of Jesus Christ",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 43,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 52,
+          "verses": [
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 15,
+          "verses": [
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 12,
+          "verses": [
+            32
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 17,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 31,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 84,
+          "verses": [
+            85
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 6,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 22,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 3,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 17,
+          "verses": [
+            36
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 14,
+          "verses": [
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 93,
+          "verses": [
+            29
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 130,
+          "verses": [
+            22
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 1,
+          "verses": [
+            39
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 3,
+          "verses": [
+            25
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 17,
+          "verses": [
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 8,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 12,
+          "verses": [
+            9
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 1,
+          "verses": [
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jacob",
+          "chapter": 4,
+          "verses": [
+            4,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 8,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            37,
+            38
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 1,
+          "verses": [
+            68,
+            69,
+            70
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 10,
+          "verses": [
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 4,
+          "verses": [
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Amos",
+          "chapter": 3,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 11,
+          "verses": [
+            40
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 11,
+          "verses": [
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 19,
+          "verses": [
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 45,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 3,
+          "verses": [
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 John",
+          "chapter": 1,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 28,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 24,
+          "verses": [
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 20,
+          "verses": [
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Galatians",
+          "chapter": 1,
+          "verses": [
+            6,
+            7,
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Thessalonians",
+          "chapter": 2,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Timothy",
+          "chapter": 4,
+          "verses": [
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Peter",
+          "chapter": 2,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Amos",
+          "chapter": 8,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 27,
+          "verses": [
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 112,
+          "verses": [
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 115,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Joseph Smith\u2014History",
+          "chapter": 1,
+          "verses": [
+            68,
+            69,
+            70,
+            71,
+            72
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 3,
+          "verses": [
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 4,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 1,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Joseph Smith\u2014History",
+          "chapter": 1,
+          "verses": [
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 8,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 17,
+          "verses": [
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 3,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 17,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 138,
+          "verses": [
+            53,
+            54,
+            55,
+            56
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 3,
+          "verses": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 1,
+          "verses": [
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Job",
+          "chapter": 38,
+          "verses": [
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Jeremiah",
+          "chapter": 1,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 30,
+          "verses": [
+            44
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 2,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 6,
+          "verses": [
+            63
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 1,
+          "verses": [
+            27
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 1,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Corinthians",
+          "chapter": 5,
+          "verses": [
+            6,
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 2,
+          "verses": [
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 3,
+          "verses": [
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 4,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 7,
+          "verses": [
+            32
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 1,
+          "verses": [
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 2,
+          "verses": [
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            15,
+            16,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 12,
+          "verses": [
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 5,
+          "verses": [
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 2,
+          "verses": [
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 29,
+          "verses": [
+            36,
+            39
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 101,
+          "verses": [
+            78
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 12,
+          "verses": [
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            31,
+            32,
+            33,
+            34,
+            35
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 42,
+          "verses": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Joshua",
+          "chapter": 24,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 5,
+          "verses": [
+            11
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 3,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 John",
+          "chapter": 1,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 6,
+          "verses": [
+            57
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 76,
+          "verses": [
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            6,
+            7,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 15,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 11,
+          "verses": [
+            42,
+            43,
+            44,
+            45
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 40,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 14,
+          "verses": [
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 24,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 11,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            20,
+            21,
+            22,
+            41,
+            42
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            34
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 40,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 138,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 3,
+          "verses": [
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 4,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Ecclesiastes",
+          "chapter": 12,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 11,
+          "verses": [
+            42,
+            43,
+            44
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 22,
+          "verses": [
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 42,
+          "verses": [
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 21,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 22,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 23,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 24,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 25,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 76,
+          "verses": [
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 137,
+          "verses": [
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 14,
+          "verses": [
+            10
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Corinthians",
+          "chapter": 12,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            8,
+            9,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 7,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 25,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 2,
+          "verses": [
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 11,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 3,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 130,
+          "verses": [
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 2,
+          "verses": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 36,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 61,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Corinthians",
+          "chapter": 7,
+          "verses": [
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 5,
+          "verses": [
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 12,
+          "verses": [
+            32,
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 42,
+          "verses": [
+            13,
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            8,
+            9,
+            10,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 11,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 6,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 2,
+          "verses": [
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 8,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 28,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 5,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 22,
+          "verses": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            75,
+            76,
+            77,
+            78,
+            79
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 27,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 11,
+          "verses": [
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 130,
+          "verses": [
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 24,
+          "verses": [
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 3,
+          "verses": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Galatians",
+          "chapter": 5,
+          "verses": [
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 33,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 6,
+          "verses": [
+            61
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            11,
+            12,
+            18,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            36,
+            37
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 19,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 19,
+          "verses": [
+            31
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            38,
+            41
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 33,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 19,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 10,
+          "verses": [
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 13,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 22,
+          "verses": [
+            31
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 15,
+          "verses": [
+            9
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 14,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 25,
+          "verses": [
+            26
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 68,
+          "verses": [
+            25
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 2,
+          "verses": [
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 5,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 2,
+          "verses": [
+            11
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 3,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 12,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Enos",
+          "chapter": 1,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 6,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 13,
+          "verses": [
+            28
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 37,
+          "verses": [
+            36,
+            37
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 6,
+          "verses": [
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 9,
+          "verses": [
+            7,
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 10,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 19,
+          "verses": [
+            28
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 19,
+          "verses": [
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            50,
+            51
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 29,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            34,
+            35,
+            36
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 20,
+          "verses": [
+            31
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Timothy",
+          "chapter": 3,
+          "verses": [
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Peter",
+          "chapter": 1,
+          "verses": [
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 2,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 5,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            45,
+            46,
+            47,
+            48
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            32
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 22,
+          "verses": [
+            36,
+            37,
+            38,
+            39,
+            40
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 25,
+          "verses": [
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Mark",
+          "chapter": 12,
+          "verses": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 10,
+          "verses": [
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 13,
+          "verses": [
+            34,
+            35
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            15,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 John",
+          "chapter": 4,
+          "verses": [
+            7,
+            8,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 John",
+          "chapter": 5,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Joshua",
+          "chapter": 22,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 15,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 12,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            4,
+            37,
+            38
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 21,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 136,
+          "verses": [
+            37,
+            38
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 2,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 13,
+          "verses": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 35,
+          "verses": [
+            24
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 59,
+          "verses": [
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Exodus",
+          "chapter": 20,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Deuteronomy",
+          "chapter": 5,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 12,
+          "verses": [
+            27,
+            28,
+            29,
+            30
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            22
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 59,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 63,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 5,
+          "verses": [
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 5,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 119,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 120,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 6,
+          "verses": [
+            33
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 7,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 14,
+          "verses": [
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Leviticus",
+          "chapter": 27,
+          "verses": [
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Malachi",
+          "chapter": 3,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 59,
+          "verses": [
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            124
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 89,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 6,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 59,
+          "verses": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 12,
+          "verses": [
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Exodus",
+          "chapter": 20,
+          "verses": [
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Exodus",
+          "chapter": 31,
+          "verses": [
+            12,
+            13,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Isaiah",
+          "chapter": 58,
+          "verses": [
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 134,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Articles of Faith",
+          "chapter": 1,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 2,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            15,
+            16,
+            26
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 23,
+          "verses": [
+            18
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            38
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 1,
+          "verses": [
+            27
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 2,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            81
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 6,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 59,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            76
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Isaiah",
+          "chapter": 58,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 4,
+          "verses": [
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 13,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 84,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 107,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 121,
+          "verses": [
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Articles of Faith",
+          "chapter": 1,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 9,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 15,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 5,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 49,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 5,
+          "verses": [
+            25
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Genesis",
+          "chapter": 2,
+          "verses": [
+            18,
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 56,
+          "verses": [
+            47
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 57,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 68,
+          "verses": [
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Ephesians",
+          "chapter": 6,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Proverbs",
+          "chapter": 22,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 128,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            29
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 3,
+          "verses": [
+            18,
+            19,
+            20,
+            21
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-4",
+      "name": "PMG 4: Seek and Rely on the Spirit",
+      "passages": [
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 43,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 95,
+          "verses": [
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 97,
+          "verses": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 109,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 131,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 33,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 50,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 2,
+          "verses": [
+            37,
+            38
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 2,
+          "verses": [
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            14
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 7,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 50,
+          "verses": [
+            13,
+            14,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 10,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 31,
+          "verses": [
+            11
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 75,
+          "verses": [
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 79,
+          "verses": [
+            1,
+            2
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 28,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 52,
+          "verses": [
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 33,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            43,
+            44,
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 11,
+          "verses": [
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 5,
+          "verses": [
+            18
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 33,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 75,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 100,
+          "verses": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 10,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Mark",
+          "chapter": 13,
+          "verses": [
+            11
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 2,
+          "verses": [
+            4,
+            5,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Exodus",
+          "chapter": 4,
+          "verses": [
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            32,
+            33,
+            34,
+            35,
+            36
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 80,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 24,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jacob",
+          "chapter": 6,
+          "verses": [
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 29,
+          "verses": [
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mormon",
+          "chapter": 9,
+          "verses": [
+            7,
+            8,
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 11,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Thessalonians",
+          "chapter": 5,
+          "verses": [
+            19,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-5",
+      "name": "PMG 5: Use the Power of the Book of Mormon",
+      "passages": [
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            29
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 3,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 19,
+          "verses": [
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 33,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 7,
+          "verses": [
+            62
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 6,
+          "verses": [
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 9,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 4,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 25,
+          "verses": [
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 26,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 29,
+          "verses": [
+            11,
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 33,
+          "verses": [
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jacob",
+          "chapter": 1,
+          "verses": [
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jacob",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Enos",
+          "chapter": 1,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jarom",
+          "chapter": 1,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Omni",
+          "chapter": 1,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Words of Mormon",
+          "chapter": 1,
+          "verses": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 37,
+          "verses": [
+            2,
+            14
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 5,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mormon",
+          "chapter": 8,
+          "verses": [
+            35
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-6",
+      "name": "PMG 6: Seek Christlike Attributes",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            21,
+            27
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 13,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 2,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 28,
+          "verses": [
+            30
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 8,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 93,
+          "verses": [
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 4,
+          "verses": [
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            24,
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            16,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 11,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            46
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 15,
+          "verses": [
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            33
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 11,
+          "verses": [
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 10,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 11,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 5,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 5,
+          "verses": [
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            4,
+            32
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            40,
+            41,
+            42
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 138,
+          "verses": [
+            14
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 6,
+          "verses": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 22,
+          "verses": [
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            45,
+            46,
+            47,
+            48
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 13,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 19,
+          "verses": [
+            9
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 7,
+          "verses": [
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 26,
+          "verses": [
+            30
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 2,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 28,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            24
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            28
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            125
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Timothy",
+          "chapter": 4,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 25,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 46,
+          "verses": [
+            33
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 121,
+          "verses": [
+            45,
+            46
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Peter",
+          "chapter": 1,
+          "verses": [
+            3,
+            4,
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 22,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 53,
+          "verses": [
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Daniel",
+          "chapter": 6,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 124,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 17,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 11,
+          "verses": [
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            77,
+            78,
+            79,
+            80
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 42,
+          "verses": [
+            61
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 76,
+          "verses": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            118
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 24,
+          "verses": [
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 31,
+          "verses": [
+            31
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 5,
+          "verses": [
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Romans",
+          "chapter": 8,
+          "verses": [
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Corinthians",
+          "chapter": 6,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "James",
+          "chapter": 5,
+          "verses": [
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 12,
+          "verses": [
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 26,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 26,
+          "verses": [
+            39
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 12,
+          "verses": [
+            8
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 112,
+          "verses": [
+            10
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 136,
+          "verses": [
+            32,
+            33
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 23,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 15,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 16,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Timothy",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Proverbs",
+          "chapter": 13,
+          "verses": [
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 26,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 9,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 10,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 107,
+          "verses": [
+            99,
+            100
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 4,
+          "verses": [
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 75,
+          "verses": [
+            2,
+            3,
+            4,
+            5
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 123,
+          "verses": [
+            12,
+            13,
+            14
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 127,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 130,
+          "verses": [
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 5,
+          "verses": [
+            8
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 15,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 56,
+          "verses": [
+            45,
+            46,
+            47,
+            48
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 57,
+          "verses": [
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 82,
+          "verses": [
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 7,
+          "verses": [
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 7,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 14,
+          "verses": [
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 3,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 121,
+          "verses": [
+            41,
+            42,
+            43,
+            44,
+            45
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Articles of Faith",
+          "chapter": 1,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Philippians",
+          "chapter": 4,
+          "verses": [
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Peter",
+          "chapter": 1,
+          "verses": [
+            5,
+            6,
+            7,
+            8
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-8",
+      "name": "PMG 8: Accomplish the Work through Goals and Plans",
+      "passages": [
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Moses",
+          "chapter": 1,
+          "verses": [
+            39
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 88,
+          "verses": [
+            119
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 4,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31
+          ]
+        },
+        {
+          "canon": "PearlOfGreatPrice",
+          "book": "Abraham",
+          "chapter": 5,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 14,
+          "verses": [
+            28,
+            29,
+            30,
+            31,
+            32
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 17,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 2,
+          "verses": [
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Ether",
+          "chapter": 3,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 58,
+          "verses": [
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 101,
+          "verses": [
+            78
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 2,
+          "verses": [
+            26,
+            27,
+            28,
+            29
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Helaman",
+          "chapter": 14,
+          "verses": [
+            30,
+            31
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 38,
+          "verses": [
+            23,
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Hebrews",
+          "chapter": 13,
+          "verses": [
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 51,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 78,
+          "verses": [
+            22
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-9",
+      "name": "PMG 9: Find People to Teach",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 16,
+          "verses": [
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 33,
+          "verses": [
+            6
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 84,
+          "verses": [
+            45,
+            46,
+            47,
+            88
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 136,
+          "verses": [
+            32,
+            33
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 24,
+          "verses": [
+            12
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 28,
+          "verses": [
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 33,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 60,
+          "verses": [
+            2,
+            3,
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 2,
+          "verses": [
+            1,
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 110,
+          "verses": [
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 128,
+          "verses": [
+            16,
+            17,
+            18
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 138,
+          "verses": [
+            32,
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "OldTestament",
+          "book": "Malachi",
+          "chapter": 4,
+          "verses": [
+            5,
+            6
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 15,
+          "verses": [
+            29
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 3,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Peter",
+          "chapter": 4,
+          "verses": [
+            6
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-10",
+      "name": "PMG 10: Teach to Build Faith in Jesus Christ",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "1 Nephi",
+          "chapter": 19,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 4,
+          "verses": [
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            7,
+            8,
+            9,
+            10,
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "2 Timothy",
+          "chapter": 3,
+          "verses": [
+            15,
+            16,
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 33,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 62,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 84,
+          "verses": [
+            61
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 100,
+          "verses": [
+            5,
+            6,
+            7,
+            8
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 15,
+          "verses": [
+            26
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 84,
+          "verses": [
+            85
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 68,
+          "verses": [
+            2,
+            3
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 10,
+          "verses": [
+            19,
+            20
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 8,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 27,
+          "verses": [
+            35
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 12,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 26,
+          "verses": [
+            1
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 28,
+          "verses": [
+            30
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Jacob",
+          "chapter": 4,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 98,
+          "verses": [
+            11,
+            12
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 25,
+          "verses": [
+            4,
+            7,
+            28
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 32,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 13,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            3
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            24
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-11",
+      "name": "PMG 11: Help People Make and Keep Commitments",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            62
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 2,
+          "verses": [
+            41
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            27
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 14,
+          "verses": [
+            7
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 7,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 37,
+          "verses": [
+            17
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 1,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 76,
+          "verses": [
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-12",
+      "name": "PMG 12: Help People Prepare for Baptism and Confirmation",
+      "passages": [
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 2,
+          "verses": [
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 9,
+          "verses": [
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 31,
+          "verses": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Mosiah",
+          "chapter": 18,
+          "verses": [
+            8,
+            9,
+            10,
+            13
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 7,
+          "verses": [
+            14,
+            15
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 27,
+          "verses": [
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 6,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 8,
+          "verses": [
+            25,
+            26
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 20,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 22,
+          "verses": [
+            1,
+            2,
+            3,
+            4
+          ]
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-13",
+      "name": "PMG 13: Unite with Leaders and Members to Establish the Church",
+      "passages": [
+        {
+          "canon": "BookOfMormon",
+          "book": "2 Nephi",
+          "chapter": 26,
+          "verses": [
+            24,
+            25,
+            26,
+            27,
+            28,
+            33
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 26,
+          "verses": [
+            37
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 7,
+          "verses": [
+            48
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 22,
+          "verses": [
+            36,
+            37,
+            38,
+            39
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Matthew",
+          "chapter": 25,
+          "verses": [
+            40
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "John",
+          "chapter": 13,
+          "verses": [
+            34,
+            35
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Acts",
+          "chapter": 10,
+          "verses": [
+            34
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "3 Nephi",
+          "chapter": 18,
+          "verses": [
+            24,
+            25
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 60,
+          "verses": [
+            2
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            33,
+            34
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 10,
+          "verses": [
+            32
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "1 Corinthians",
+          "chapter": 12,
+          "verses": [
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Moroni",
+          "chapter": 6,
+          "verses": [
+            4
+          ]
+        },
+        {
+          "canon": "DoctrineAndCovenants",
+          "book": "D&C",
+          "chapter": 18,
+          "verses": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ]
+        },
+        {
+          "canon": "NewTestament",
+          "book": "Luke",
+          "chapter": 15,
+          "verses": [
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 31,
+          "verses": [
+            5,
+            34,
+            35,
+            36,
+            37,
+            38
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 32,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 33,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 34,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 4,
+          "verses": [
+            19
+          ]
+        },
+        {
+          "canon": "BookOfMormon",
+          "book": "Alma",
+          "chapter": 5,
+          "verses": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -521,20 +521,25 @@ mod tests {
     #[test]
     fn every_curated_study_passage_resolves_from_scripture_data() {
         let state = AppState::new(Duration::from_secs(60)).unwrap();
-        let set = built_in_study_sets().remove(0);
-        let request = NewGameRequest {
-            round_count: set.passages.len(),
-            difficulty: Difficulty::Normal,
-            scope: set.resolved_guess_scope(),
-            passages: set.passages,
-            prompt_policy: set.prompt_policy,
-        };
-
         let mut rng = SmallRng::seed_from_u64(1);
-        let verses = study_passages(&state.library, &request, &mut rng).unwrap();
+        for set in built_in_study_sets() {
+            let expected_count = set.passages.len();
+            let request = NewGameRequest {
+                round_count: expected_count,
+                difficulty: Difficulty::Normal,
+                scope: set.resolved_guess_scope(),
+                passages: set.passages,
+                prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
+            };
 
-        assert_eq!(verses.len(), 96);
-        assert!(verses.iter().all(|verse| !verse.text.is_empty()));
+            let verses = study_passages(&state.library, &request, &mut rng).unwrap();
+            assert_eq!(verses.len(), expected_count, "set: {}", set.name);
+            assert!(
+                verses.iter().all(|verse| !verse.text.is_empty()),
+                "set: {}",
+                set.name
+            );
+        }
     }
 
     fn app() -> (Router, AppState) {

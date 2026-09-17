@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::sync::OnceLock;
 
 use crate::scriptures::{BookScope, Canon, CanonScope, GameMode, GameScope, Reference};
 
@@ -190,6 +191,11 @@ fn full_canons_for_passages(passages: &[StudyPassage]) -> GameScope {
 }
 
 pub fn built_in_study_sets() -> Vec<StudySet> {
+    static SETS: OnceLock<Vec<StudySet>> = OnceLock::new();
+    SETS.get_or_init(build_built_in_study_sets).clone()
+}
+
+fn build_built_in_study_sets() -> Vec<StudySet> {
     let old_testament = old_testament_mastery();
     let new_testament = new_testament_mastery();
     let book_of_mormon = book_of_mormon_mastery();
@@ -204,7 +210,7 @@ pub fn built_in_study_sets() -> Vec<StudySet> {
     .flat_map(|set| set.passages.clone())
     .collect();
 
-    vec![
+    let mut sets = vec![
         StudySet {
             id: "doctrinal-mastery-all".to_string(),
             name: "All Doctrinal Mastery".to_string(),
@@ -216,7 +222,58 @@ pub fn built_in_study_sets() -> Vec<StudySet> {
         new_testament,
         book_of_mormon,
         doctrine_and_covenants,
-    ]
+    ];
+    sets.extend(preach_my_gospel_study_sets());
+    sets
+}
+
+fn preach_my_gospel_study_sets() -> Vec<StudySet> {
+    #[derive(Deserialize)]
+    struct Data {
+        sets: Vec<DataSet>,
+    }
+
+    #[derive(Deserialize)]
+    struct DataSet {
+        id: String,
+        name: String,
+        passages: Vec<StudyPassage>,
+    }
+
+    let data: Data = serde_json::from_str(include_str!(
+        "../assets/data/preach-my-gospel-study-sets.json"
+    ))
+    .expect("Preach My Gospel study-set data must be valid");
+    let mut all_passages = Vec::new();
+    let mut chapter_sets = data
+        .sets
+        .into_iter()
+        .map(|set| {
+            for passage in &set.passages {
+                if !all_passages.contains(passage) {
+                    all_passages.push(passage.clone());
+                }
+            }
+            StudySet {
+                id: set.id,
+                name: set.name,
+                passages: set.passages,
+                guess_scope: StudyGuessScope::FullCanons,
+                prompt_policy: PromptPolicy::Automatic,
+            }
+        })
+        .collect::<Vec<_>>();
+    chapter_sets.insert(
+        0,
+        StudySet {
+            id: "preach-my-gospel-scripture-study".to_string(),
+            name: "Preach My Gospel Scripture Study".to_string(),
+            passages: all_passages,
+            guess_scope: StudyGuessScope::AllStandardWorks,
+            prompt_policy: PromptPolicy::Automatic,
+        },
+    );
+    chapter_sets
 }
 
 fn passage(canon: Canon, book: &str, chapter: u16, start: u16, end: u16) -> StudyPassage {
@@ -498,5 +555,22 @@ mod tests {
 
         assert!(scope.includes_book(Canon::BookOfMormon, "Alma"));
         assert!(!scope.includes_book(Canon::BookOfMormon, "Jacob"));
+    }
+
+    #[test]
+    fn preach_my_gospel_sets_use_automatic_prompts() {
+        let sets = built_in_study_sets();
+        let combined = sets
+            .iter()
+            .find(|set| set.id == "preach-my-gospel-scripture-study")
+            .unwrap();
+
+        assert_eq!(combined.passages.len(), 602);
+        assert_eq!(combined.prompt_policy, PromptPolicy::Automatic);
+        assert!(
+            sets.iter()
+                .filter(|set| set.id.starts_with("preach-my-gospel-chapter-"))
+                .all(|set| !set.passages.is_empty())
+        );
     }
 }
