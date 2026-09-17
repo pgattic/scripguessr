@@ -827,7 +827,7 @@ button {
 
 .chapter-reader {
   display: grid;
-  gap: 10px;
+  gap: 0;
   padding: 16px;
   overflow: auto;
 }
@@ -837,6 +837,10 @@ button {
   font-family: Georgia, "Times New Roman", serif;
   font-size: 1.05rem;
   line-height: 1.55;
+}
+
+.chapter-verse + .chapter-verse {
+  margin-top: 10px;
 }
 
 .chapter-verse sup {
@@ -850,9 +854,13 @@ button {
 }
 
 .answer-verse {
-  padding: 8px 10px;
+  padding: 5px 10px;
   border-left: 3px solid var(--accent);
   background: var(--accent-soft);
+}
+
+.answer-verse + .answer-verse {
+  margin-top: 0;
 }
 
 .round-list {
