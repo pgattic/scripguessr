@@ -6,7 +6,7 @@ use crate::scriptures::{BookScope, Canon, CanonScope, GameMode, GameScope, Refer
 #[cfg(target_arch = "wasm32")]
 const STORAGE_KEY: &str = "scripguessr.study-sets.v1";
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Eq, Serialize)]
 pub struct StudyPassage {
     pub canon: Canon,
     pub book: String,

@@ -1,9 +1,9 @@
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 use std::net::SocketAddr;
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, SystemTime};
 
-use axum::extract::{Path, State};
+use axum::extract::{DefaultBodyLimit, Path, State};
 use axum::http::StatusCode;
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
@@ -31,6 +31,10 @@ const PEARL_OF_GREAT_PRICE_DATA: &str =
 const OLD_TESTAMENT_DATA: &str = include_str!("../assets/data/old-testament-flat.json");
 const NEW_TESTAMENT_DATA: &str = include_str!("../assets/data/new-testament-flat.json");
 const DEFAULT_GAME_TTL: Duration = Duration::from_secs(6 * 60 * 60);
+const MAX_GAME_ROUNDS: usize = 1_000;
+const MAX_STUDY_PASSAGES: usize = 2_000;
+const MAX_VERSES_PER_PASSAGE: usize = 200;
+const MAX_GAME_REQUEST_BYTES: usize = 512 * 1024;
 
 pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     init_tracing();
@@ -64,6 +68,7 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .route("/api/games", post(create_game))
         .route("/api/games/{game_id}/guesses", post(submit_guess))
         .layer(TraceLayer::new_for_http())
+        .layer(DefaultBodyLimit::max(MAX_GAME_REQUEST_BYTES))
         .layer(CorsLayer::permissive())
         .fallback_service(ServeDir::new(static_dir.into()).append_index_html_on_directories(true))
         .with_state(state)
@@ -115,7 +120,7 @@ impl AppState {
 
 #[derive(Clone)]
 struct ServerGame {
-    request: NewGameRequest,
+    scope: crate::scriptures::GameScope,
     rounds: Vec<RoundAnswer>,
     last_seen_at: SystemTime,
 }
@@ -171,40 +176,54 @@ async fn create_game(
 ) -> Result<Json<NewGameResponse>, ApiError> {
     state.prune_games();
 
-    if request.scope.canons.is_empty() || (request.round_count == 0 && request.passages.is_empty())
-    {
-        return Err(ApiError::bad_request("Game must include rounds and scope"));
-    }
-
-    let scoped_playable_count =
-        playable_verse_count(&state.library, request.difficulty, &request.scope);
-    if scoped_playable_count == 0 && request.passages.is_empty() {
-        return Err(ApiError::bad_request("No playable verses found"));
-    }
-
     let mut rng = SmallRng::from_os_rng();
-    let mut rounds = if request.passages.is_empty() {
-        let mut rounds = Vec::with_capacity(request.round_count);
-        for _round in 0..request.round_count {
-            rounds.push(
-                random_verse(&state.library, &request, scoped_playable_count, &mut rng)?.into(),
-            );
+    let (difficulty, scope, rounds, playable_count) = match request {
+        NewGameRequest::Random {
+            round_count,
+            difficulty,
+            scope,
+        } => {
+            validate_game_basics(round_count, &scope)?;
+            let playable_count = playable_verse_count(&state.library, difficulty, &scope);
+            if playable_count == 0 {
+                return Err(ApiError::bad_request("No playable verses found"));
+            }
+            let mut rounds = Vec::with_capacity(round_count);
+            for _round in 0..round_count {
+                rounds.push(
+                    random_verse(&state.library, difficulty, &scope, playable_count, &mut rng)?
+                        .into(),
+                );
+            }
+            (difficulty, scope, rounds, playable_count)
         }
-        rounds
-    } else {
-        study_passages(&state.library, &request, &mut rng)?
+        NewGameRequest::Study {
+            round_count,
+            difficulty,
+            scope,
+            passages,
+            prompt_policy,
+        } => {
+            validate_game_basics(round_count, &scope)?;
+            validate_study_passages(&scope, &passages)?;
+            let rounds = study_passages(
+                &state.library,
+                passages,
+                round_count,
+                prompt_policy,
+                &mut rng,
+            )?;
+            let playable_count = rounds.len();
+            (difficulty, scope, rounds, playable_count)
+        }
     };
-    rounds.shuffle(&mut rng);
-    if !request.passages.is_empty() && request.round_count > 0 {
-        rounds.truncate(request.round_count);
-    }
     let round_count = rounds.len();
 
     let game_id = rng.random::<u64>().to_string();
     state.games.lock().expect("game store poisoned").insert(
         game_id.clone(),
         ServerGame {
-            request: request.clone(),
+            scope: scope.clone(),
             rounds: rounds.clone(),
             last_seen_at: SystemTime::now(),
         },
@@ -218,14 +237,11 @@ async fn create_game(
                 text: round.text.clone(),
             })
             .collect(),
-        scope: request.scope.clone(),
-        metadata: metadata_for(&state.library, request.difficulty, &request.scope),
-        playable_verse_count: if request.passages.is_empty() {
-            scoped_playable_count
-        } else {
-            round_count
-        },
-        total_verse_count: total_verse_count(&state.library, &request.scope),
+        difficulty,
+        scope: scope.clone(),
+        metadata: metadata_for(&state.library, difficulty, &scope),
+        playable_verse_count: playable_count,
+        total_verse_count: total_verse_count(&state.library, &scope),
         max_total_score: round_count as u32 * crate::scoring::MAX_SCORE,
     }))
 }
@@ -237,24 +253,25 @@ async fn submit_guess(
 ) -> Result<Json<GuessResponse>, ApiError> {
     state.prune_games();
 
-    let game = {
+    let (scope, round) = {
         let mut games = state.games.lock().expect("game store poisoned");
         let game = games
             .get_mut(&game_id)
             .ok_or_else(|| ApiError::not_found("Game not found"))?;
         game.last_seen_at = SystemTime::now();
-        game.clone()
+        let round = game
+            .rounds
+            .get(request.round_index)
+            .cloned()
+            .ok_or_else(|| ApiError::bad_request("Round not found"))?;
+        (game.scope.clone(), round)
     };
-    let round = game
-        .rounds
-        .get(request.round_index)
-        .ok_or_else(|| ApiError::bad_request("Round not found"))?;
     let answer = round.passage.clone();
     let answer_reference = answer
         .first_reference()
         .ok_or_else(|| ApiError::bad_request("Round has no answer verses"))?;
     let score = state.library.score(
-        &game.request.scope,
+        &scope,
         &answer_reference,
         request.canon,
         &request.book,
@@ -274,7 +291,7 @@ async fn submit_guess(
 
     Ok(Json(GuessResponse {
         answer,
-        source_passage: round.source_passage.clone(),
+        source_passage: round.source_passage,
         guess: GuessReference {
             canon: request.canon,
             book: request.book,
@@ -287,23 +304,25 @@ async fn submit_guess(
 
 fn random_verse(
     library: &ScriptureLibrary,
-    request: &NewGameRequest,
+    difficulty: crate::scriptures::Difficulty,
+    scope: &crate::scriptures::GameScope,
     playable_count: usize,
     rng: &mut SmallRng,
 ) -> Result<Verse, ApiError> {
     let mut index = rng.random_range(0..playable_count);
 
-    for canon_scope in &request.scope.canons {
+    for canon_scope in &scope.canons {
         let scriptures = library
             .scriptures(canon_scope.canon)
             .ok_or_else(|| ApiError::bad_request("Unknown canon"))?;
-        let pool = scriptures.scoped_verses_for_difficulty(request.difficulty, &canon_scope.books);
-
-        if index < pool.len() {
-            return Ok(pool[index].clone());
+        let count = scriptures.scoped_verse_count_for_difficulty(difficulty, &canon_scope.books);
+        if index < count {
+            return scriptures
+                .scoped_verse_for_difficulty(difficulty, &canon_scope.books, index)
+                .cloned()
+                .ok_or_else(|| ApiError::bad_request("No playable verses found"));
         }
-
-        index -= pool.len();
+        index -= count;
     }
 
     Err(ApiError::bad_request("No playable verses found"))
@@ -311,21 +330,24 @@ fn random_verse(
 
 fn study_passages(
     library: &ScriptureLibrary,
-    request: &NewGameRequest,
+    passages: Vec<crate::study_sets::StudyPassage>,
+    round_count: usize,
+    prompt_policy: crate::study_sets::PromptPolicy,
     rng: &mut SmallRng,
 ) -> Result<Vec<RoundAnswer>, ApiError> {
-    let mut verses = Vec::with_capacity(request.passages.len());
-    for passage in &request.passages {
-        if !request.scope.includes_book(passage.canon, &passage.book) {
-            return Err(ApiError::bad_request(
-                "Study passage is outside the game scope",
-            ));
+    let mut seen = HashSet::with_capacity(passages.len());
+    let mut selected = Vec::with_capacity(passages.len().min(round_count));
+    for passage in passages {
+        if seen.insert(passage.clone()) {
+            selected.push(passage);
         }
-        if passage.verses.is_empty() {
-            return Err(ApiError::bad_request("Study passage has no verses"));
-        }
+    }
+    selected.shuffle(rng);
+    selected.truncate(round_count);
 
-        let shown_passage = if request.prompt_policy.shows_whole_passage(passage) {
+    let mut rounds = Vec::with_capacity(selected.len());
+    for passage in selected {
+        let shown_passage = if prompt_policy.shows_whole_passage(&passage) {
             passage.clone()
         } else {
             let index = rng.random_range(0..passage.verses.len());
@@ -346,22 +368,55 @@ fn study_passages(
                 )
             })
             .ok_or_else(|| ApiError::bad_request("Study passage was not found"))?;
-        if !verses
-            .iter()
-            .any(|existing: &RoundAnswer| existing.source_passage == *passage)
-        {
-            verses.push(RoundAnswer {
-                passage: shown_passage,
-                source_passage: passage.clone(),
-                text: verse.text,
-            });
-        }
+        rounds.push(RoundAnswer {
+            passage: shown_passage,
+            source_passage: passage,
+            text: verse.text,
+        });
     }
 
-    if verses.is_empty() {
+    if rounds.is_empty() {
         return Err(ApiError::bad_request("No study passages found"));
     }
-    Ok(verses)
+    Ok(rounds)
+}
+
+fn validate_game_basics(
+    round_count: usize,
+    scope: &crate::scriptures::GameScope,
+) -> Result<(), ApiError> {
+    if scope.canons.is_empty() || round_count == 0 {
+        return Err(ApiError::bad_request("Game must include rounds and scope"));
+    }
+    if round_count > MAX_GAME_ROUNDS {
+        return Err(ApiError::bad_request("Too many rounds requested"));
+    }
+    Ok(())
+}
+
+fn validate_study_passages(
+    scope: &crate::scriptures::GameScope,
+    passages: &[crate::study_sets::StudyPassage],
+) -> Result<(), ApiError> {
+    if passages.is_empty() {
+        return Err(ApiError::bad_request("Study game must include passages"));
+    }
+    if passages.len() > MAX_STUDY_PASSAGES {
+        return Err(ApiError::bad_request("Too many study passages"));
+    }
+    for passage in passages {
+        if !scope.includes_book(passage.canon, &passage.book) {
+            return Err(ApiError::bad_request(
+                "Study passage is outside the game scope",
+            ));
+        }
+        if passage.verses.is_empty() || passage.verses.len() > MAX_VERSES_PER_PASSAGE {
+            return Err(ApiError::bad_request(
+                "Study passage has an invalid verse count",
+            ));
+        }
+    }
+    Ok(())
 }
 
 fn metadata_for(
@@ -467,27 +522,41 @@ mod tests {
     use tower::ServiceExt;
 
     fn test_request() -> NewGameRequest {
-        NewGameRequest {
+        NewGameRequest::Random {
             round_count: 1,
             difficulty: Difficulty::Normal,
             scope: GameMode::BookOfMormon.scope(),
-            passages: Vec::new(),
-            prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
+        }
+    }
+
+    fn alma_scope() -> GameScope {
+        GameScope {
+            canons: vec![CanonScope {
+                canon: Canon::BookOfMormon,
+                books: BookScope::Selected(vec!["Alma".to_string()]),
+            }],
         }
     }
 
     fn alma_request() -> NewGameRequest {
-        NewGameRequest {
+        NewGameRequest::Random {
             round_count: 1,
             difficulty: Difficulty::Normal,
-            scope: GameScope {
-                canons: vec![CanonScope {
-                    canon: Canon::BookOfMormon,
-                    books: BookScope::Selected(vec!["Alma".to_string()]),
-                }],
-            },
-            passages: Vec::new(),
-            prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
+            scope: alma_scope(),
+        }
+    }
+
+    fn study_request(
+        scope: GameScope,
+        passages: Vec<crate::study_sets::StudyPassage>,
+        prompt_policy: crate::study_sets::PromptPolicy,
+    ) -> NewGameRequest {
+        NewGameRequest::Study {
+            round_count: passages.len(),
+            difficulty: Difficulty::Normal,
+            scope,
+            passages,
+            prompt_policy,
         }
     }
 
@@ -497,7 +566,7 @@ mod tests {
         state.games.lock().unwrap().insert(
             "expired".to_string(),
             ServerGame {
-                request: test_request(),
+                scope: GameMode::BookOfMormon.scope(),
                 rounds: Vec::new(),
                 last_seen_at: SystemTime::UNIX_EPOCH,
             },
@@ -505,7 +574,7 @@ mod tests {
         state.games.lock().unwrap().insert(
             "active".to_string(),
             ServerGame {
-                request: test_request(),
+                scope: GameMode::BookOfMormon.scope(),
                 rounds: Vec::new(),
                 last_seen_at: SystemTime::now(),
             },
@@ -524,15 +593,14 @@ mod tests {
         let mut rng = SmallRng::seed_from_u64(1);
         for set in built_in_study_sets() {
             let expected_count = set.passages.len();
-            let request = NewGameRequest {
-                round_count: expected_count,
-                difficulty: Difficulty::Normal,
-                scope: set.resolved_guess_scope(),
-                passages: set.passages,
-                prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
-            };
-
-            let verses = study_passages(&state.library, &request, &mut rng).unwrap();
+            let verses = study_passages(
+                &state.library,
+                set.passages,
+                expected_count,
+                crate::study_sets::PromptPolicy::WholePassage,
+                &mut rng,
+            )
+            .unwrap();
             assert_eq!(verses.len(), expected_count, "set: {}", set.name);
             assert!(
                 verses.iter().all(|verse| !verse.text.is_empty()),
@@ -624,7 +692,7 @@ mod tests {
             "/api/metadata",
             MetadataRequest {
                 difficulty: Difficulty::Normal,
-                scope: alma_request().scope,
+                scope: alma_scope(),
             },
         )
         .await;
@@ -660,6 +728,42 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn create_game_rejects_excessive_round_counts() {
+        let (app, _state) = app();
+        let request = NewGameRequest::Random {
+            round_count: MAX_GAME_ROUNDS + 1,
+            difficulty: Difficulty::Normal,
+            scope: GameMode::BookOfMormon.scope(),
+        };
+
+        let response = post_json(app, "/api/games", request).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn study_game_resolves_only_the_requested_number_of_rounds() {
+        let (app, state) = app();
+        let set = built_in_study_sets()
+            .into_iter()
+            .find(|set| set.passages.len() > 10)
+            .unwrap();
+        let request = NewGameRequest::Study {
+            round_count: 5,
+            difficulty: Difficulty::Normal,
+            scope: set.resolved_guess_scope(),
+            passages: set.passages,
+            prompt_policy: set.prompt_policy,
+        };
+
+        let response = post_json(app, "/api/games", request).await;
+        let body: NewGameResponse = read_json(response).await;
+
+        assert_eq!(body.rounds.len(), 5);
+        assert_eq!(state.games.lock().unwrap()[&body.game_id].rounds.len(), 5);
+    }
+
+    #[tokio::test]
     async fn create_game_uses_selected_book_scope() {
         let (app, state) = app();
         let response = post_json(app.clone(), "/api/games", alma_request()).await;
@@ -681,7 +785,7 @@ mod tests {
     #[tokio::test]
     async fn create_review_game_uses_each_requested_verse_once() {
         let (app, state) = app();
-        let references = vec![
+        let references = [
             crate::scriptures::Reference {
                 canon: Canon::BookOfMormon,
                 book: "Alma".to_string(),
@@ -695,12 +799,15 @@ mod tests {
                 verse: 6,
             },
         ];
-        let mut request = alma_request();
-        request.round_count = 0;
-        request.passages = references
+        let passages = references
             .iter()
             .map(crate::study_sets::StudyPassage::single)
             .collect();
+        let request = study_request(
+            alma_scope(),
+            passages,
+            crate::study_sets::PromptPolicy::WholePassage,
+        );
 
         let response = post_json(app, "/api/games", request).await;
 
@@ -766,8 +873,11 @@ mod tests {
             chapter: 7,
             verses: vec![11, 12, 13],
         };
-        let mut request = alma_request();
-        request.passages = vec![passage.clone()];
+        let request = study_request(
+            alma_scope(),
+            vec![passage.clone()],
+            crate::study_sets::PromptPolicy::WholePassage,
+        );
 
         let response = post_json(app.clone(), "/api/games", request).await;
         let game: NewGameResponse = read_json(response).await;
@@ -799,9 +909,11 @@ mod tests {
             chapter: 7,
             verses: vec![45, 46, 47, 48],
         };
-        let mut request = test_request();
-        request.passages = vec![passage.clone()];
-        request.prompt_policy = crate::study_sets::PromptPolicy::Automatic;
+        let request = study_request(
+            GameMode::BookOfMormon.scope(),
+            vec![passage.clone()],
+            crate::study_sets::PromptPolicy::Automatic,
+        );
 
         let response = post_json(app.clone(), "/api/games", request).await;
         let game: NewGameResponse = read_json(response).await;
@@ -830,7 +942,7 @@ mod tests {
         state.games.lock().unwrap().insert(
             "expired".to_string(),
             ServerGame {
-                request: test_request(),
+                scope: GameMode::BookOfMormon.scope(),
                 rounds: Vec::new(),
                 last_seen_at: SystemTime::UNIX_EPOCH,
             },

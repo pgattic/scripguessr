@@ -70,7 +70,7 @@ impl ScriptureLibrary {
     }
 }
 
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, PartialOrd, Ord, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Hash, PartialEq, Eq, PartialOrd, Ord, Serialize)]
 pub enum Canon {
     BookOfMormon,
     DoctrineAndCovenants,
@@ -297,6 +297,7 @@ impl Scriptures {
         }
     }
 
+    #[cfg_attr(not(test), allow(dead_code))]
     pub fn scoped_verses_for_difficulty(
         &self,
         difficulty: Difficulty,
@@ -318,6 +319,18 @@ impl Scriptures {
             .iter()
             .filter(|verse| scope.includes(&verse.reference.book))
             .count()
+    }
+
+    pub fn scoped_verse_for_difficulty(
+        &self,
+        difficulty: Difficulty,
+        scope: &BookScope,
+        index: usize,
+    ) -> Option<&Verse> {
+        self.verses_for_difficulty(difficulty)
+            .iter()
+            .filter(|verse| scope.includes(&verse.reference.book))
+            .nth(index)
     }
 
     pub fn scoped_total_verse_count(&self, scope: &BookScope) -> usize {

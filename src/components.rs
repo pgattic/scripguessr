@@ -192,15 +192,18 @@ fn request_guess_submission(mut game: Signal<Game>) {
 fn VersePanel(game: Signal<Game>) -> Element {
     let snapshot = game.read().clone();
     let round_number = snapshot.current_round_index + 1;
-    let mode_label = snapshot
-        .active_game_label
-        .clone()
+    let active = snapshot.active_game.as_ref();
+    let mode_label = active
+        .and_then(|game| game.label.clone())
         .unwrap_or_else(|| snapshot.settings.selection_label());
+    let round_count = active
+        .map(|game| game.round_count)
+        .unwrap_or(snapshot.rounds.len());
 
     rsx! {
         section { class: "panel verse-panel",
             div { class: "verse-label",
-                span { "Round {round_number} of {snapshot.settings.round_count}" }
+                span { "Round {round_number} of {round_count}" }
                 span { "{mode_label}" }
             }
 
@@ -352,7 +355,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
     let selected_chapter = snapshot.selected_chapter;
     let guessed = snapshot.current_round().guess.is_some();
     let step = snapshot.active_step;
-    let canon_count = snapshot.settings.scope.canons.len();
+    let canon_count = snapshot.guess_scope().canons.len();
     let book_count = selected_canon
         .map(|canon| snapshot.books_for(canon).len())
         .unwrap_or_default();
@@ -386,7 +389,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
         match step {
             GuessStep::Canon => rsx! {
                 div { class: "grid",
-                    for canon in snapshot.settings.scope.canons.iter().map(|scope| scope.canon) {
+                    for canon in snapshot.guess_scope().canons.iter().map(|scope| scope.canon) {
                         button {
                             class: if selected_canon == Some(canon) { "choice active" } else { "choice" },
                             disabled: guessed,

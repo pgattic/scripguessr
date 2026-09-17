@@ -5,20 +5,27 @@ use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope};
 use crate::study_sets::{PromptPolicy, StudyPassage};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct NewGameRequest {
-    pub round_count: usize,
-    pub difficulty: Difficulty,
-    pub scope: GameScope,
-    #[serde(default)]
-    pub passages: Vec<StudyPassage>,
-    #[serde(default)]
-    pub prompt_policy: PromptPolicy,
+#[serde(tag = "kind", rename_all = "snake_case")]
+pub enum NewGameRequest {
+    Random {
+        round_count: usize,
+        difficulty: Difficulty,
+        scope: GameScope,
+    },
+    Study {
+        round_count: usize,
+        difficulty: Difficulty,
+        scope: GameScope,
+        passages: Vec<StudyPassage>,
+        prompt_policy: PromptPolicy,
+    },
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NewGameResponse {
     pub game_id: String,
     pub rounds: Vec<RoundPrompt>,
+    pub difficulty: Difficulty,
     pub scope: GameScope,
     pub metadata: Vec<CanonMetadata>,
     pub playable_verse_count: usize,

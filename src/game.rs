@@ -31,7 +31,7 @@ pub struct Game {
     pub loading_game: bool,
     pub submitting_guess: bool,
     pub error: Option<String>,
-    pub active_game_label: Option<String>,
+    pub active_game: Option<ActiveGame>,
 }
 
 impl Game {
@@ -60,7 +60,7 @@ impl Game {
             loading_game: false,
             submitting_guess: false,
             error: None,
-            active_game_label: None,
+            active_game: None,
         }
     }
 
@@ -83,12 +83,10 @@ impl Game {
     }
 
     pub fn new_game_request(&self) -> NewGameRequest {
-        NewGameRequest {
+        NewGameRequest::Random {
             round_count: self.settings.round_count,
             difficulty: self.settings.difficulty,
             scope: self.settings.scope.clone(),
-            passages: Vec::new(),
-            prompt_policy: PromptPolicy::WholePassage,
         }
     }
 
@@ -120,7 +118,7 @@ impl Game {
         if set.passages.is_empty() {
             return None;
         }
-        Some(NewGameRequest {
+        Some(NewGameRequest::Study {
             round_count: round_count.min(set.passages.len()),
             difficulty: self.settings.difficulty,
             scope: set.resolved_guess_scope(),
@@ -130,6 +128,9 @@ impl Game {
     }
 
     pub fn apply_metadata(&mut self, response: MetadataResponse) {
+        if self.screen != Screen::Setup {
+            return;
+        }
         if response.difficulty != self.settings.difficulty || response.scope != self.settings.scope
         {
             return;
@@ -148,9 +149,14 @@ impl Game {
     }
 
     pub fn metadata_current(&self) -> bool {
-        self.metadata_difficulty == self.settings.difficulty
-            && self.metadata_scope == self.settings.scope
-            && (!self.metadata.is_empty() || self.settings.scope.canons.is_empty())
+        let (difficulty, scope) = self
+            .active_game
+            .as_ref()
+            .map(|game| (game.difficulty, &game.scope))
+            .unwrap_or((self.settings.difficulty, &self.settings.scope));
+        self.metadata_difficulty == difficulty
+            && self.metadata_scope == *scope
+            && (!self.metadata.is_empty() || scope.canons.is_empty())
     }
 
     pub fn begin_starting_game(&mut self) {
@@ -169,10 +175,15 @@ impl Game {
     }
 
     pub fn start_game_named(&mut self, response: NewGameResponse, label: Option<String>) {
-        self.settings.scope = response.scope.clone();
-        self.settings.round_count = response.rounds.len();
+        self.active_game = Some(ActiveGame {
+            round_count: response.rounds.len(),
+            difficulty: response.difficulty,
+            scope: response.scope.clone(),
+            max_total_score: response.max_total_score,
+            label: label.clone(),
+        });
         self.game_id = Some(response.game_id);
-        self.metadata_difficulty = self.settings.difficulty;
+        self.metadata_difficulty = response.difficulty;
         self.metadata_scope = response.scope;
         self.metadata = response.metadata;
         self.playable_verse_count = response.playable_verse_count;
@@ -192,7 +203,6 @@ impl Game {
         self.loading_game = false;
         self.submitting_guess = false;
         self.error = None;
-        self.active_game_label = label;
         self.screen = Screen::Playing;
     }
 
@@ -203,7 +213,7 @@ impl Game {
         self.rounds.clear();
         self.current_round_index = 0;
         self.game_id = None;
-        self.active_game_label = None;
+        self.active_game = None;
         self.clear_guess();
     }
 
@@ -390,7 +400,17 @@ impl Game {
     }
 
     pub fn max_total_score(&self) -> u32 {
-        self.settings.round_count as u32 * MAX_SCORE
+        self.active_game
+            .as_ref()
+            .map(|game| game.max_total_score)
+            .unwrap_or(self.settings.round_count as u32 * MAX_SCORE)
+    }
+
+    pub fn guess_scope(&self) -> &GameScope {
+        self.active_game
+            .as_ref()
+            .map(|game| &game.scope)
+            .unwrap_or(&self.settings.scope)
     }
 
     pub fn select_canon(&mut self, canon: Canon) {
@@ -452,8 +472,9 @@ impl Game {
             return;
         }
 
-        if self.active_step == GuessStep::Canon && self.settings.scope.canons.len() == 1 {
-            self.selected_canon = self.settings.scope.canons.first().map(|scope| scope.canon);
+        let scope = self.guess_scope();
+        if self.active_step == GuessStep::Canon && scope.canons.len() == 1 {
+            self.selected_canon = scope.canons.first().map(|scope| scope.canon);
             self.active_step = GuessStep::Book;
         }
 
@@ -564,8 +585,7 @@ impl Game {
 
     pub fn books_for(&self, canon: Canon) -> Vec<BookInfo> {
         let book_scope = self
-            .settings
-            .scope
+            .guess_scope()
             .canon_scope(canon)
             .map(|scope| &scope.books)
             .unwrap_or(&BookScope::All);
@@ -620,7 +640,11 @@ impl Game {
 
     fn record_finished_game(&mut self) {
         let finished_game = FinishedGame {
-            difficulty: self.settings.difficulty,
+            difficulty: self
+                .active_game
+                .as_ref()
+                .map(|game| game.difficulty)
+                .unwrap_or(self.settings.difficulty),
             score: self.total_score(),
             possible_score: self.max_total_score(),
             rounds: self
@@ -639,6 +663,15 @@ impl Game {
 
         self.last_game_new_best = self.stats.record_game(finished_game);
     }
+}
+
+#[derive(Clone, PartialEq)]
+pub struct ActiveGame {
+    pub round_count: usize,
+    pub difficulty: Difficulty,
+    pub scope: GameScope,
+    pub max_total_score: u32,
+    pub label: Option<String>,
 }
 
 #[derive(Clone, PartialEq)]
@@ -769,4 +802,41 @@ pub struct GuessResult {
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::api::RoundPrompt;
+
+    #[test]
+    fn starting_a_study_game_preserves_setup_preferences() {
+        let mut game = Game::new();
+        let settings = game.settings.clone();
+        let study_scope = GameMode::AllStandardWorks.scope();
+
+        game.start_game_named(
+            NewGameResponse {
+                game_id: "study-game".to_string(),
+                rounds: vec![RoundPrompt {
+                    text: "A verse".to_string(),
+                }],
+                difficulty: Difficulty::Hard,
+                scope: study_scope.clone(),
+                metadata: Vec::new(),
+                playable_verse_count: 1,
+                total_verse_count: 1,
+                max_total_score: MAX_SCORE,
+            },
+            Some("Study set".to_string()),
+        );
+
+        assert_eq!(game.settings, settings);
+        assert_eq!(game.guess_scope(), &study_scope);
+        assert_eq!(game.active_game.as_ref().unwrap().round_count, 1);
+
+        game.change_settings();
+        assert_eq!(game.settings, settings);
+        assert!(game.active_game.is_none());
+    }
 }
