@@ -123,13 +123,16 @@ struct ServerGame {
 #[derive(Clone)]
 struct RoundAnswer {
     passage: crate::study_sets::StudyPassage,
+    source_passage: crate::study_sets::StudyPassage,
     text: String,
 }
 
 impl From<Verse> for RoundAnswer {
     fn from(verse: Verse) -> Self {
+        let passage = crate::study_sets::StudyPassage::single(&verse.reference);
         Self {
-            passage: crate::study_sets::StudyPassage::single(&verse.reference),
+            source_passage: passage.clone(),
+            passage,
             text: verse.text,
         }
     }
@@ -189,7 +192,7 @@ async fn create_game(
         }
         rounds
     } else {
-        study_passages(&state.library, &request)?
+        study_passages(&state.library, &request, &mut rng)?
     };
     rounds.shuffle(&mut rng);
     if !request.passages.is_empty() && request.round_count > 0 {
@@ -242,12 +245,11 @@ async fn submit_guess(
         game.last_seen_at = SystemTime::now();
         game.clone()
     };
-    let answer = game
+    let round = game
         .rounds
         .get(request.round_index)
-        .ok_or_else(|| ApiError::bad_request("Round not found"))?
-        .passage
-        .clone();
+        .ok_or_else(|| ApiError::bad_request("Round not found"))?;
+    let answer = round.passage.clone();
     let answer_reference = answer
         .first_reference()
         .ok_or_else(|| ApiError::bad_request("Round has no answer verses"))?;
@@ -272,6 +274,7 @@ async fn submit_guess(
 
     Ok(Json(GuessResponse {
         answer,
+        source_passage: round.source_passage.clone(),
         guess: GuessReference {
             canon: request.canon,
             book: request.book,
@@ -309,6 +312,7 @@ fn random_verse(
 fn study_passages(
     library: &ScriptureLibrary,
     request: &NewGameRequest,
+    rng: &mut SmallRng,
 ) -> Result<Vec<RoundAnswer>, ApiError> {
     let mut verses = Vec::with_capacity(request.passages.len());
     for passage in &request.passages {
@@ -321,18 +325,34 @@ fn study_passages(
             return Err(ApiError::bad_request("Study passage has no verses"));
         }
 
+        let shown_passage = if request.prompt_policy.shows_whole_passage(passage) {
+            passage.clone()
+        } else {
+            let index = rng.random_range(0..passage.verses.len());
+            crate::study_sets::StudyPassage {
+                canon: passage.canon,
+                book: passage.book.clone(),
+                chapter: passage.chapter,
+                verses: vec![passage.verses[index]],
+            }
+        };
         let verse = library
             .scriptures(passage.canon)
             .and_then(|scriptures| {
-                scriptures.passage(&passage.book, passage.chapter, &passage.verses)
+                scriptures.passage(
+                    &shown_passage.book,
+                    shown_passage.chapter,
+                    &shown_passage.verses,
+                )
             })
             .ok_or_else(|| ApiError::bad_request("Study passage was not found"))?;
         if !verses
             .iter()
-            .any(|existing: &RoundAnswer| existing.passage == *passage)
+            .any(|existing: &RoundAnswer| existing.source_passage == *passage)
         {
             verses.push(RoundAnswer {
-                passage: passage.clone(),
+                passage: shown_passage,
+                source_passage: passage.clone(),
                 text: verse.text,
             });
         }
@@ -452,6 +472,7 @@ mod tests {
             difficulty: Difficulty::Normal,
             scope: GameMode::BookOfMormon.scope(),
             passages: Vec::new(),
+            prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
         }
     }
 
@@ -466,6 +487,7 @@ mod tests {
                 }],
             },
             passages: Vec::new(),
+            prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
         }
     }
 
@@ -505,9 +527,11 @@ mod tests {
             difficulty: Difficulty::Normal,
             scope: set.resolved_guess_scope(),
             passages: set.passages,
+            prompt_policy: set.prompt_policy,
         };
 
-        let verses = study_passages(&state.library, &request).unwrap();
+        let mut rng = SmallRng::seed_from_u64(1);
+        let verses = study_passages(&state.library, &request, &mut rng).unwrap();
 
         assert_eq!(verses.len(), 96);
         assert!(verses.iter().all(|verse| !verse.text.is_empty()));
@@ -759,6 +783,40 @@ mod tests {
         assert_eq!(body.answer, passage);
         assert!(body.answer.contains_verse(11));
         assert!(body.answer.contains_verse(13));
+    }
+
+    #[tokio::test]
+    async fn automatic_prompt_policy_uses_one_verse_from_long_passages() {
+        let (app, _state) = app();
+        let passage = crate::study_sets::StudyPassage {
+            canon: Canon::BookOfMormon,
+            book: "Moroni".to_string(),
+            chapter: 7,
+            verses: vec![45, 46, 47, 48],
+        };
+        let mut request = test_request();
+        request.passages = vec![passage.clone()];
+        request.prompt_policy = crate::study_sets::PromptPolicy::Automatic;
+
+        let response = post_json(app.clone(), "/api/games", request).await;
+        let game: NewGameResponse = read_json(response).await;
+        let response = post_json(
+            app,
+            &format!("/api/games/{}/guesses", game.game_id),
+            GuessRequest {
+                round_index: 0,
+                canon: passage.canon,
+                book: passage.book.clone(),
+                chapter: passage.chapter,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: GuessResponse = read_json(response).await;
+        assert_eq!(body.answer.verses.len(), 1);
+        assert_eq!(body.source_passage, passage);
+        assert!(body.source_passage.contains_verse(body.answer.verses[0]));
     }
 
     #[tokio::test]

@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
 use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope};
-use crate::study_sets::StudyPassage;
+use crate::study_sets::{PromptPolicy, StudyPassage};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NewGameRequest {
@@ -11,6 +11,8 @@ pub struct NewGameRequest {
     pub scope: GameScope,
     #[serde(default)]
     pub passages: Vec<StudyPassage>,
+    #[serde(default)]
+    pub prompt_policy: PromptPolicy,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -63,6 +65,7 @@ pub struct GuessRequest {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GuessResponse {
     pub answer: StudyPassage,
+    pub source_passage: StudyPassage,
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,

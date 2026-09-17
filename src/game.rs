@@ -5,7 +5,7 @@ use crate::api::{
 use crate::scoring::{MAX_SCORE, Score};
 use crate::scriptures::{BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope};
 use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
-use crate::study_sets::{CustomStudySets, StudyGuessScope, StudyPassage, StudySet};
+use crate::study_sets::{CustomStudySets, PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
 
 #[derive(Clone, PartialEq)]
 pub struct Game {
@@ -88,6 +88,7 @@ impl Game {
             difficulty: self.settings.difficulty,
             scope: self.settings.scope.clone(),
             passages: Vec::new(),
+            prompt_policy: PromptPolicy::WholePassage,
         }
     }
 
@@ -105,6 +106,7 @@ impl Game {
                 name: "Marked verses".to_string(),
                 passages,
                 guess_scope: StudyGuessScope::FullCanons,
+                prompt_policy: PromptPolicy::WholePassage,
             },
             round_count,
         )
@@ -123,6 +125,7 @@ impl Game {
             difficulty: self.settings.difficulty,
             scope: set.resolved_guess_scope(),
             passages: set.passages.clone(),
+            prompt_policy: set.prompt_policy,
         })
     }
 
@@ -233,6 +236,7 @@ impl Game {
             name: "Untitled set".to_string(),
             passages: Vec::new(),
             guess_scope: StudyGuessScope::FullCanons,
+            prompt_policy: PromptPolicy::Automatic,
         });
         self.custom_study_sets.save();
         id
@@ -272,6 +276,18 @@ impl Game {
             .find(|set| set.id == id)
         {
             set.guess_scope = guess_scope;
+            self.custom_study_sets.save();
+        }
+    }
+
+    pub fn set_study_prompt_policy(&mut self, id: &str, prompt_policy: PromptPolicy) {
+        if let Some(set) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|set| set.id == id)
+        {
+            set.prompt_policy = prompt_policy;
             self.custom_study_sets.save();
         }
     }
@@ -485,6 +501,7 @@ impl Game {
         if let Some(round) = self.rounds.get_mut(self.current_round_index) {
             round.guess = Some(GuessResult {
                 answer: response.answer,
+                source_passage: response.source_passage,
                 guess: response.guess,
                 score: response.score,
                 chapter_verses: response.chapter_verses,
@@ -748,6 +765,7 @@ pub struct Round {
 #[derive(Clone, PartialEq)]
 pub struct GuessResult {
     pub answer: StudyPassage,
+    pub source_passage: StudyPassage,
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,

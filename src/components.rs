@@ -9,7 +9,9 @@ use crate::loader::{create_game, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
 use crate::scriptures::{BookScope, Canon, Difficulty, GameMode};
 use crate::stats::{ReviewItem, Stats};
-use crate::study_sets::{StudyGuessScope, StudyPassage, StudySet, built_in_study_sets};
+use crate::study_sets::{
+    PromptPolicy, StudyGuessScope, StudyPassage, StudySet, built_in_study_sets,
+};
 
 #[component]
 pub fn App() -> Element {
@@ -935,6 +937,30 @@ fn StudySetDetail(
                 PassageEditor { game, set_id: set.id.clone() }
             }
 
+            div { class: "setup-group study-prompt-policy",
+                span { class: "setup-label", "What should each round show?" }
+                if custom {
+                    div { class: "segmented prompt-policy-options",
+                        for policy in PromptPolicy::ALL {
+                            button {
+                                class: if set.prompt_policy == policy { "segment active" } else { "segment" },
+                                onclick: {
+                                    let id = set.id.clone();
+                                    move |_| game.write().set_study_prompt_policy(&id, policy)
+                                },
+                                "{policy.label()}"
+                            }
+                        }
+                    }
+                    p { class: "muted setting-description", "{set.prompt_policy.description()}" }
+                } else {
+                    div { class: "ready compact-ready",
+                        span { class: "muted", "Rounds show" }
+                        strong { "{set.prompt_policy.label()}" }
+                    }
+                }
+            }
+
             div { class: "setup-group study-answer-scope",
                 span { class: "setup-label", "Answer choices" }
                 if custom {
@@ -998,7 +1024,10 @@ fn StudySetDetail(
                 div { class: "study-passage-list",
                     for (index, passage) in set.passages.iter().enumerate() {
                         div { class: "study-passage-row",
-                            span { "{passage.label()}" }
+                            div { class: "study-passage-copy",
+                                span { "{passage.label()}" }
+                                small { class: "muted", "{set.prompt_policy.behavior_label(passage)}" }
+                            }
                             if custom {
                                 {
                                     let remove_id = set.id.clone();
@@ -1492,6 +1521,7 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
     let marked_for_review = game.read().current_result_marked_for_review();
     let (feedback_title, feedback_detail) = result_feedback(&result);
     let answer_label = result.answer.label();
+    let source_label = result.source_passage.label();
 
     rsx! {
         div { class: "result",
@@ -1516,6 +1546,12 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
                 div {
                     span { class: "muted", "Guess" }
                     strong { "{result.guess.book} {result.guess.chapter}" }
+                }
+            }
+            if result.source_passage != result.answer {
+                div { class: "ready result-source",
+                    span { class: "muted", "Study passage" }
+                    strong { "{source_label}" }
                 }
             }
             div { class: "actions compact-actions",

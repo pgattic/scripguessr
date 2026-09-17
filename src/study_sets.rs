@@ -49,6 +49,8 @@ pub struct StudySet {
     pub passages: Vec<StudyPassage>,
     #[serde(default)]
     pub guess_scope: StudyGuessScope,
+    #[serde(default)]
+    pub prompt_policy: PromptPolicy,
 }
 
 impl StudySet {
@@ -66,6 +68,50 @@ impl StudySet {
         self.passages
             .iter()
             .all(|passage| scope.includes_book(passage.canon, &passage.book))
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
+pub enum PromptPolicy {
+    #[default]
+    Automatic,
+    SingleVerse,
+    WholePassage,
+}
+
+impl PromptPolicy {
+    pub const ALL: [Self; 3] = [Self::Automatic, Self::SingleVerse, Self::WholePassage];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Automatic => "Automatic",
+            Self::SingleVerse => "One verse",
+            Self::WholePassage => "Whole passage",
+        }
+    }
+
+    pub fn description(self) -> &'static str {
+        match self {
+            Self::Automatic => "Short passages stay together; longer passages use one verse.",
+            Self::SingleVerse => "Each round uses one randomly selected verse from its passage.",
+            Self::WholePassage => "Each round shows every verse in its passage.",
+        }
+    }
+
+    pub fn shows_whole_passage(self, passage: &StudyPassage) -> bool {
+        match self {
+            Self::Automatic => passage.verses.len() <= 3,
+            Self::SingleVerse => false,
+            Self::WholePassage => true,
+        }
+    }
+
+    pub fn behavior_label(self, passage: &StudyPassage) -> &'static str {
+        if self.shows_whole_passage(passage) {
+            "Whole passage"
+        } else {
+            "Random verse"
+        }
     }
 }
 
@@ -164,6 +210,7 @@ pub fn built_in_study_sets() -> Vec<StudySet> {
             name: "All Doctrinal Mastery".to_string(),
             passages: all,
             guess_scope: StudyGuessScope::AllStandardWorks,
+            prompt_policy: PromptPolicy::WholePassage,
         },
         old_testament,
         new_testament,
@@ -233,6 +280,7 @@ fn old_testament_mastery() -> StudySet {
                 },
             ],
         }),
+        prompt_policy: PromptPolicy::WholePassage,
     }
 }
 
@@ -268,6 +316,7 @@ fn new_testament_mastery() -> StudySet {
             passage(NT, "Revelation", 20, 12, 12),
         ],
         guess_scope: StudyGuessScope::FullCanons,
+        prompt_policy: PromptPolicy::WholePassage,
     }
 }
 
@@ -303,6 +352,7 @@ fn book_of_mormon_mastery() -> StudySet {
             passage(BOM, "Moroni", 10, 4, 5),
         ],
         guess_scope: StudyGuessScope::FullCanons,
+        prompt_policy: PromptPolicy::WholePassage,
     }
 }
 
@@ -349,6 +399,7 @@ fn doctrine_and_covenants_mastery() -> StudySet {
                 },
             ],
         }),
+        prompt_policy: PromptPolicy::WholePassage,
     }
 }
 
@@ -441,6 +492,7 @@ mod tests {
                 verses: vec![21],
             }],
             guess_scope: StudyGuessScope::BooksInSet,
+            prompt_policy: PromptPolicy::Automatic,
         };
         let scope = set.resolved_guess_scope();
 
