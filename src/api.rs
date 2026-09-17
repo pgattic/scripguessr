@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::scoring::{MAX_SCORE, Score};
+use crate::scoring::Score;
 use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope, Reference};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -8,6 +8,8 @@ pub struct NewGameRequest {
     pub round_count: usize,
     pub difficulty: Difficulty,
     pub scope: GameScope,
+    #[serde(default)]
+    pub review_references: Vec<Reference>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -76,11 +78,4 @@ pub struct GuessReference {
 pub struct ChapterVerse {
     pub verse: u16,
     pub text: String,
-}
-
-impl NewGameRequest {
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
-    pub fn max_total_score(&self) -> u32 {
-        self.round_count as u32 * MAX_SCORE
-    }
 }

@@ -104,6 +104,23 @@ fn request_new_game(mut game: Signal<Game>) {
     });
 }
 
+fn request_review_game(mut game: Signal<Game>) {
+    let Some(request) = game.read().review_game_request() else {
+        return;
+    };
+    game.write().begin_starting_game();
+
+    spawn(async move {
+        match create_game(request).await {
+            Ok(response) => {
+                game.write().start_game(response);
+                scroll_round_into_view_on_mobile();
+            }
+            Err(error) => game.write().fail_request(error),
+        }
+    });
+}
+
 fn request_guess_submission(mut game: Signal<Game>) {
     let game_id = game.read().game_id.clone();
     let request = game.read().guess_request();
@@ -831,6 +848,18 @@ fn ReviewPanel(game: Signal<Game>) -> Element {
                         class: "button secondary",
                         onclick: move |_| game.write().change_settings(),
                         "Home"
+                    }
+                    if !items.is_empty() {
+                        button {
+                            class: "button",
+                            disabled: snapshot.loading_game,
+                            onclick: move |_| request_review_game(game),
+                            if snapshot.loading_game {
+                                "Starting..."
+                            } else {
+                                "Practice marked"
+                            }
+                        }
                     }
                 }
             }

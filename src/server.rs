@@ -9,6 +9,7 @@ use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use rand::rngs::SmallRng;
+use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
@@ -152,25 +153,35 @@ async fn create_game(
 ) -> Result<Json<NewGameResponse>, ApiError> {
     state.prune_games();
 
-    if request.round_count == 0 || request.scope.canons.is_empty() {
+    if request.scope.canons.is_empty()
+        || (request.round_count == 0 && request.review_references.is_empty())
+    {
         return Err(ApiError::bad_request("Game must include rounds and scope"));
     }
 
-    let playable_count = playable_verse_count(&state.library, request.difficulty, &request.scope);
-    if playable_count == 0 {
+    let scoped_playable_count =
+        playable_verse_count(&state.library, request.difficulty, &request.scope);
+    if scoped_playable_count == 0 && request.review_references.is_empty() {
         return Err(ApiError::bad_request("No playable verses found"));
     }
 
     let mut rng = SmallRng::from_os_rng();
-    let mut rounds = Vec::with_capacity(request.round_count);
-    for _round in 0..request.round_count {
-        rounds.push(random_verse(
-            &state.library,
-            &request,
-            playable_count,
-            &mut rng,
-        )?);
-    }
+    let mut rounds = if request.review_references.is_empty() {
+        let mut rounds = Vec::with_capacity(request.round_count);
+        for _round in 0..request.round_count {
+            rounds.push(random_verse(
+                &state.library,
+                &request,
+                scoped_playable_count,
+                &mut rng,
+            )?);
+        }
+        rounds
+    } else {
+        review_verses(&state.library, &request)?
+    };
+    rounds.shuffle(&mut rng);
+    let round_count = rounds.len();
 
     let game_id = rng.random::<u64>().to_string();
     state.games.lock().expect("game store poisoned").insert(
@@ -192,9 +203,13 @@ async fn create_game(
             .collect(),
         scope: request.scope.clone(),
         metadata: metadata_for(&state.library, request.difficulty, &request.scope),
-        playable_verse_count: playable_count,
+        playable_verse_count: if request.review_references.is_empty() {
+            scoped_playable_count
+        } else {
+            round_count
+        },
         total_verse_count: total_verse_count(&state.library, &request.scope),
-        max_total_score: request.max_total_score(),
+        max_total_score: round_count as u32 * crate::scoring::MAX_SCORE,
     }))
 }
 
@@ -272,6 +287,39 @@ fn random_verse(
     }
 
     Err(ApiError::bad_request("No playable verses found"))
+}
+
+fn review_verses(
+    library: &ScriptureLibrary,
+    request: &NewGameRequest,
+) -> Result<Vec<Verse>, ApiError> {
+    let mut verses = Vec::with_capacity(request.review_references.len());
+    for reference in &request.review_references {
+        if !request
+            .scope
+            .includes_book(reference.canon, &reference.book)
+        {
+            return Err(ApiError::bad_request(
+                "Review verse is outside the game scope",
+            ));
+        }
+
+        let verse = library
+            .scriptures(reference.canon)
+            .and_then(|scriptures| scriptures.verse(reference))
+            .ok_or_else(|| ApiError::bad_request("Review verse was not found"))?;
+        if !verses
+            .iter()
+            .any(|existing: &Verse| existing.reference == verse.reference)
+        {
+            verses.push(verse);
+        }
+    }
+
+    if verses.is_empty() {
+        return Err(ApiError::bad_request("No review verses found"));
+    }
+    Ok(verses)
 }
 
 fn metadata_for(
@@ -380,6 +428,7 @@ mod tests {
             round_count: 1,
             difficulty: Difficulty::Normal,
             scope: GameMode::BookOfMormon.scope(),
+            review_references: Vec::new(),
         }
     }
 
@@ -393,6 +442,7 @@ mod tests {
                     books: BookScope::Selected(vec!["Alma".to_string()]),
                 }],
             },
+            review_references: Vec::new(),
         }
     }
 
@@ -557,6 +607,43 @@ mod tests {
             .reference
             .clone();
         assert_eq!(answer.book, "Alma");
+    }
+
+    #[tokio::test]
+    async fn create_review_game_uses_each_requested_verse_once() {
+        let (app, state) = app();
+        let references = vec![
+            crate::scriptures::Reference {
+                canon: Canon::BookOfMormon,
+                book: "Alma".to_string(),
+                chapter: 32,
+                verse: 21,
+            },
+            crate::scriptures::Reference {
+                canon: Canon::BookOfMormon,
+                book: "Alma".to_string(),
+                chapter: 37,
+                verse: 6,
+            },
+        ];
+        let mut request = alma_request();
+        request.round_count = 0;
+        request.review_references = references.clone();
+
+        let response = post_json(app, "/api/games", request).await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: NewGameResponse = read_json(response).await;
+        assert_eq!(body.rounds.len(), references.len());
+        assert_eq!(body.playable_verse_count, references.len());
+
+        let games = state.games.lock().unwrap();
+        let rounds = &games.get(&body.game_id).unwrap().rounds;
+        assert!(
+            references
+                .iter()
+                .all(|reference| rounds.iter().any(|round| round.reference == *reference))
+        );
     }
 
     #[tokio::test]

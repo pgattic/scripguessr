@@ -65,6 +65,7 @@
           packages.dev = pkgs.writeShellApplication {
             name = "scripguessr-dev";
             runtimeInputs = with pkgs; [
+              gcc
               cargo
               dioxus-cli
               lld

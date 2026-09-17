@@ -71,7 +71,49 @@ impl Game {
             round_count: self.settings.round_count,
             difficulty: self.settings.difficulty,
             scope: self.settings.scope.clone(),
+            review_references: Vec::new(),
         }
+    }
+
+    pub fn review_game_request(&self) -> Option<NewGameRequest> {
+        let references = self
+            .stats
+            .review_items
+            .iter()
+            .map(|item| item.reference.clone())
+            .collect::<Vec<_>>();
+        if references.is_empty() {
+            return None;
+        }
+
+        let canons = Canon::ALL
+            .iter()
+            .copied()
+            .filter_map(|canon| {
+                let books = references
+                    .iter()
+                    .filter(|reference| reference.canon == canon)
+                    .map(|reference| reference.book.clone())
+                    .fold(Vec::new(), |mut books, book| {
+                        if !books.contains(&book) {
+                            books.push(book);
+                        }
+                        books
+                    });
+
+                (!books.is_empty()).then_some(CanonScope {
+                    canon,
+                    books: BookScope::Selected(books),
+                })
+            })
+            .collect();
+
+        Some(NewGameRequest {
+            round_count: references.len(),
+            difficulty: self.settings.difficulty,
+            scope: GameScope { canons },
+            review_references: references,
+        })
     }
 
     pub fn apply_metadata(&mut self, response: MetadataResponse) {
@@ -110,6 +152,8 @@ impl Game {
     }
 
     pub fn start_game(&mut self, response: NewGameResponse) {
+        self.settings.scope = response.scope.clone();
+        self.settings.round_count = response.rounds.len();
         self.game_id = Some(response.game_id);
         self.metadata_difficulty = self.settings.difficulty;
         self.metadata_scope = response.scope;

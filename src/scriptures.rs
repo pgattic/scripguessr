@@ -253,6 +253,13 @@ impl Scriptures {
             .collect()
     }
 
+    pub fn verse(&self, reference: &Reference) -> Option<Verse> {
+        self.verses
+            .iter()
+            .find(|verse| verse.reference == *reference)
+            .cloned()
+    }
+
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn verse_count_for_difficulty(&self, difficulty: Difficulty) -> usize {
         self.verses_for_difficulty(difficulty).len()
