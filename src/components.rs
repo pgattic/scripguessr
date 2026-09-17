@@ -1515,7 +1515,12 @@ fn ReviewDetail(
 #[component]
 fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
     let mut reader_open = use_signal(|| false);
-    let label = result.score.distance_label();
+    let same_canon = result.answer.canon == result.guess.canon;
+    let label = if same_canon {
+        result.score.distance_label()
+    } else {
+        "Wrong canon".to_string()
+    };
     let chapter_title = format!("{} {}", result.answer.book, result.answer.chapter);
     let score_percent = result.score.points.saturating_mul(100) / MAX_SCORE;
     let marked_for_review = game.read().current_result_marked_for_review();
@@ -1581,6 +1586,13 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
 }
 
 fn result_feedback(result: &GuessResult) -> (&'static str, String) {
+    if result.answer.canon != result.guess.canon {
+        return (
+            "Different canon",
+            "The answer was in a different canon.".to_string(),
+        );
+    }
+
     if result.score.chapter_distance == 0 {
         return (
             "Exact match",
@@ -1589,15 +1601,13 @@ fn result_feedback(result: &GuessResult) -> (&'static str, String) {
     }
 
     let distance = result.score.distance_label().to_lowercase();
-    if result.answer.canon == result.guess.canon && result.answer.book == result.guess.book {
+    if result.answer.book == result.guess.book {
         (
             "Same book",
             format!("Your guess was {distance} in the same book."),
         )
-    } else if result.answer.canon == result.guess.canon {
-        ("Same canon", format!("Your guess was {distance}."))
     } else {
-        ("Different canon", format!("Your guess was {distance}."))
+        ("Same canon", format!("Your guess was {distance}."))
     }
 }
 

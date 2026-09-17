@@ -29,6 +29,10 @@ impl ScriptureLibrary {
         guess_book: &str,
         guess_chapter: u16,
     ) -> Score {
+        if answer.canon != guess_canon {
+            return Score::from_chapter_distance(u32::MAX);
+        }
+
         let Some(answer_index) =
             self.chapter_index(scope, answer.canon, &answer.book, answer.chapter)
         else {
@@ -666,7 +670,7 @@ mod tests {
     }
 
     #[test]
-    fn library_scores_across_loaded_canons_in_mode_order() {
+    fn guesses_in_the_wrong_canon_score_zero() {
         let mut library = ScriptureLibrary::default();
         library.insert(
             Canon::OldTestament,
@@ -708,8 +712,8 @@ mod tests {
             1,
         );
 
-        assert_eq!(score.chapter_distance, 1);
-        assert_eq!(score.points, 978);
+        assert_eq!(score.chapter_distance, u32::MAX);
+        assert_eq!(score.points, 0);
     }
 
     #[test]
