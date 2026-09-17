@@ -1,4 +1,5 @@
 use dioxus::prelude::*;
+use std::sync::Arc;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
@@ -815,10 +816,17 @@ fn StudySetsPanel(game: Signal<Game>) -> Element {
     let custom_sets = snapshot.custom_study_sets.sets.clone();
     let selected = built_ins
         .iter()
-        .chain(custom_sets.iter())
         .find(|set| set.id == selected_id())
         .cloned()
-        .or_else(|| built_ins.first().cloned());
+        .map(|set| (set, false))
+        .or_else(|| {
+            custom_sets
+                .iter()
+                .find(|set| set.id == selected_id())
+                .cloned()
+                .map(|set| (Arc::new(set), true))
+        })
+        .or_else(|| built_ins.first().cloned().map(|set| (set, false)));
 
     rsx! {
         div { class: "study-layout",
@@ -886,11 +894,11 @@ fn StudySetsPanel(game: Signal<Game>) -> Element {
                         span { class: "muted", "Scripture catalog" }
                         strong { "Loading" }
                     }
-                } else if let Some(set) = selected {
+                } else if let Some((set, custom)) = selected {
                     StudySetDetail {
                         game,
-                        set: set.clone(),
-                        custom: custom_sets.iter().any(|candidate| candidate.id == set.id),
+                        set,
+                        custom,
                         selected_id,
                     }
                 }
@@ -902,14 +910,16 @@ fn StudySetsPanel(game: Signal<Game>) -> Element {
 #[component]
 fn StudySetDetail(
     game: Signal<Game>,
-    set: StudySet,
+    set: Arc<StudySet>,
     custom: bool,
     selected_id: Signal<String>,
 ) -> Element {
     let mut round_count = use_signal(|| 10_usize);
+    let mut visible_passages = use_signal(|| 50_usize);
     let snapshot = game.read().clone();
+    let passage_count = set.passages.len();
     let set_id = set.id.clone();
-    let practice_set = set.clone();
+    let practice_set = set.as_ref().clone();
     let guess_scope_covers_passages = set.guess_scope_covers_passages();
     let custom_scope_start = set.resolved_guess_scope();
     let mut round_choices = vec![5_usize];
@@ -1025,7 +1035,7 @@ fn StudySetDetail(
                 p { class: "muted", "Add at least one passage to practice this set." }
             } else {
                 div { class: "study-passage-list",
-                    for (index, passage) in set.passages.iter().enumerate() {
+                    for (index, passage) in set.passages.iter().take(visible_passages()).enumerate() {
                         div { class: "study-passage-row",
                             div { class: "study-passage-copy",
                                 span { "{passage.label()}" }
@@ -1043,6 +1053,18 @@ fn StudySetDetail(
                                     }
                                 }
                             }
+                        }
+                    }
+                }
+                if passage_count > visible_passages() {
+                    div { class: "passage-list-footer",
+                        span { class: "muted", "Showing {visible_passages()} of {passage_count}" }
+                        button {
+                            class: "button secondary compact-button",
+                            onclick: move |_| visible_passages.set(
+                                (visible_passages() + 50).min(passage_count)
+                            ),
+                            "Show more"
                         }
                     }
                 }
@@ -1245,10 +1267,16 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
         .find(|item| item.name == book)
         .map(|item| item.chapters.clone())
         .unwrap_or_default();
+    let max_verse = books
+        .iter()
+        .find(|item| item.name == book)
+        .and_then(|item| item.verse_count(chapter()))
+        .unwrap_or_default();
     let valid = !book.is_empty()
         && chapters.contains(&chapter())
         && start_verse() > 0
         && end_verse() >= start_verse()
+        && end_verse() <= max_verse
         && end_verse() - start_verse() < 200;
 
     rsx! {
@@ -1264,6 +1292,8 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                                 selected_canon.set(next);
                                 selected_book.set(String::new());
                                 chapter.set(1);
+                                start_verse.set(1);
+                                end_verse.set(1);
                             }
                         },
                         for item in Canon::ALL {
@@ -1278,6 +1308,8 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                         onchange: move |event| {
                             selected_book.set(event.value());
                             chapter.set(1);
+                            start_verse.set(1);
+                            end_verse.set(1);
                         },
                         for item in books.iter() {
                             option { value: "{item.name}", "{item.name}" }
@@ -1291,6 +1323,8 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                         onchange: move |event| {
                             if let Ok(value) = event.value().parse() {
                                 chapter.set(value);
+                                start_verse.set(1);
+                                end_verse.set(1);
                             }
                         },
                         for item in chapters {
@@ -1303,6 +1337,7 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                     input {
                         r#type: "number",
                         min: "1",
+                        max: "{max_verse}",
                         value: "{start_verse}",
                         oninput: move |event| {
                             if let Ok(value) = event.value().parse() {
@@ -1316,6 +1351,7 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                     input {
                         r#type: "number",
                         min: "1",
+                        max: "{max_verse}",
                         value: "{end_verse}",
                         oninput: move |event| {
                             if let Ok(value) = event.value().parse() {

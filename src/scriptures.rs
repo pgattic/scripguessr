@@ -284,6 +284,18 @@ impl Scriptures {
         })
     }
 
+    pub fn contains_passage(&self, book: &str, chapter: u16, verses: &[u16]) -> bool {
+        let Some(max_verse) = self
+            .books
+            .iter()
+            .find(|candidate| candidate.name == book)
+            .and_then(|book| book.verse_count(chapter))
+        else {
+            return false;
+        };
+        !verses.is_empty() && verses.iter().all(|verse| *verse > 0 && *verse <= max_verse)
+    }
+
     #[cfg_attr(not(test), allow(dead_code))]
     pub fn verse_count_for_difficulty(&self, difficulty: Difficulty) -> usize {
         self.verses_for_difficulty(difficulty).len()
@@ -354,16 +366,21 @@ impl Scriptures {
                 books.push(BookInfo {
                     name: reference.book.clone(),
                     chapters: Vec::new(),
+                    chapter_verse_counts: Vec::new(),
                 });
             }
 
             let book = books.last_mut().expect("book was just inserted if missing");
             if book.chapters.last() != Some(&reference.chapter) {
                 book.chapters.push(reference.chapter);
+                book.chapter_verse_counts.push(0);
                 chapter_order.push(ChapterRef {
                     book: reference.book.clone(),
                     chapter: reference.chapter,
                 });
+            }
+            if let Some(count) = book.chapter_verse_counts.last_mut() {
+                *count = (*count).max(reference.verse);
             }
 
             verses.push(Verse {
@@ -496,6 +513,17 @@ fn normalized_words(text: &str) -> Vec<String> {
 pub struct BookInfo {
     pub name: String,
     pub chapters: Vec<u16>,
+    pub chapter_verse_counts: Vec<u16>,
+}
+
+impl BookInfo {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn verse_count(&self, chapter: u16) -> Option<u16> {
+        self.chapters
+            .iter()
+            .position(|candidate| *candidate == chapter)
+            .and_then(|index| self.chapter_verse_counts.get(index).copied())
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -577,6 +605,8 @@ mod tests {
         assert_eq!(scriptures.books[0].chapters, vec![1, 2]);
         assert_eq!(scriptures.books[1].name, "2 Nephi");
         assert_eq!(scriptures.books[1].chapters, vec![1, 2]);
+        assert_eq!(scriptures.books[1].verse_count(1), Some(1));
+        assert_eq!(scriptures.books[1].verse_count(2), Some(1));
         assert_eq!(scriptures.verses.len(), 5);
     }
 

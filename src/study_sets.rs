@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
 use crate::scriptures::{BookScope, Canon, CanonScope, GameMode, GameScope, Reference};
 
@@ -190,9 +190,14 @@ fn full_canons_for_passages(passages: &[StudyPassage]) -> GameScope {
     }
 }
 
-pub fn built_in_study_sets() -> Vec<StudySet> {
-    static SETS: OnceLock<Vec<StudySet>> = OnceLock::new();
-    SETS.get_or_init(build_built_in_study_sets).clone()
+pub fn built_in_study_sets() -> &'static [Arc<StudySet>] {
+    static SETS: OnceLock<Vec<Arc<StudySet>>> = OnceLock::new();
+    SETS.get_or_init(|| {
+        build_built_in_study_sets()
+            .into_iter()
+            .map(Arc::new)
+            .collect()
+    })
 }
 
 fn build_built_in_study_sets() -> Vec<StudySet> {
@@ -528,7 +533,7 @@ mod tests {
     #[test]
     fn book_of_mormon_mastery_uses_the_full_canon_for_guesses() {
         let set = built_in_study_sets()
-            .into_iter()
+            .iter()
             .find(|set| set.id == "doctrinal-mastery-book-of-mormon")
             .unwrap();
         let scope = set.resolved_guess_scope();

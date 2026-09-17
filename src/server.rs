@@ -205,7 +205,7 @@ async fn create_game(
             prompt_policy,
         } => {
             validate_game_basics(round_count, &scope)?;
-            validate_study_passages(&scope, &passages)?;
+            validate_study_passages(&state.library, &scope, &passages)?;
             let rounds = study_passages(
                 &state.library,
                 passages,
@@ -395,6 +395,7 @@ fn validate_game_basics(
 }
 
 fn validate_study_passages(
+    library: &ScriptureLibrary,
     scope: &crate::scriptures::GameScope,
     passages: &[crate::study_sets::StudyPassage],
 ) -> Result<(), ApiError> {
@@ -414,6 +415,12 @@ fn validate_study_passages(
             return Err(ApiError::bad_request(
                 "Study passage has an invalid verse count",
             ));
+        }
+        let exists = library.scriptures(passage.canon).is_some_and(|scriptures| {
+            scriptures.contains_passage(&passage.book, passage.chapter, &passage.verses)
+        });
+        if !exists {
+            return Err(ApiError::bad_request("Study passage was not found"));
         }
     }
     Ok(())
@@ -595,7 +602,7 @@ mod tests {
             let expected_count = set.passages.len();
             let verses = study_passages(
                 &state.library,
-                set.passages,
+                set.passages.clone(),
                 expected_count,
                 crate::study_sets::PromptPolicy::WholePassage,
                 &mut rng,
@@ -745,14 +752,14 @@ mod tests {
     async fn study_game_resolves_only_the_requested_number_of_rounds() {
         let (app, state) = app();
         let set = built_in_study_sets()
-            .into_iter()
+            .iter()
             .find(|set| set.passages.len() > 10)
             .unwrap();
         let request = NewGameRequest::Study {
             round_count: 5,
             difficulty: Difficulty::Normal,
             scope: set.resolved_guess_scope(),
-            passages: set.passages,
+            passages: set.passages.clone(),
             prompt_policy: set.prompt_policy,
         };
 
@@ -761,6 +768,36 @@ mod tests {
 
         assert_eq!(body.rounds.len(), 5);
         assert_eq!(state.games.lock().unwrap()[&body.game_id].rounds.len(), 5);
+    }
+
+    #[tokio::test]
+    async fn study_game_rejects_an_invalid_unselected_passage() {
+        let (app, _state) = app();
+        let mut passages = (1..=10)
+            .map(|verse| crate::study_sets::StudyPassage {
+                canon: Canon::BookOfMormon,
+                book: "1 Nephi".to_string(),
+                chapter: 1,
+                verses: vec![verse],
+            })
+            .collect::<Vec<_>>();
+        passages.push(crate::study_sets::StudyPassage {
+            canon: Canon::BookOfMormon,
+            book: "1 Nephi".to_string(),
+            chapter: 1,
+            verses: vec![999],
+        });
+        let request = NewGameRequest::Study {
+            round_count: 1,
+            difficulty: Difficulty::Normal,
+            scope: GameMode::BookOfMormon.scope(),
+            passages,
+            prompt_policy: crate::study_sets::PromptPolicy::WholePassage,
+        };
+
+        let response = post_json(app, "/api/games", request).await;
+
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 
     #[tokio::test]
