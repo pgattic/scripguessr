@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
 use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope, Reference};
+use crate::study_sets::StudyPassage;
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct NewGameRequest {
@@ -9,7 +10,7 @@ pub struct NewGameRequest {
     pub difficulty: Difficulty,
     pub scope: GameScope,
     #[serde(default)]
-    pub review_references: Vec<Reference>,
+    pub passages: Vec<StudyPassage>,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

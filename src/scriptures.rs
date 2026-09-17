@@ -253,11 +253,31 @@ impl Scriptures {
             .collect()
     }
 
-    pub fn verse(&self, reference: &Reference) -> Option<Verse> {
-        self.verses
+    pub fn passage(&self, book: &str, chapter: u16, verses: &[u16]) -> Option<Verse> {
+        let first = *verses.first()?;
+        let selected = verses
             .iter()
-            .find(|verse| verse.reference == *reference)
-            .cloned()
+            .map(|number| {
+                self.verses.iter().find(|verse| {
+                    verse.reference.book == book
+                        && verse.reference.chapter == chapter
+                        && verse.reference.verse == *number
+                })
+            })
+            .collect::<Option<Vec<_>>>()?;
+        Some(Verse {
+            reference: Reference {
+                canon: selected.first()?.reference.canon,
+                book: book.to_string(),
+                chapter,
+                verse: first,
+            },
+            text: selected
+                .iter()
+                .map(|verse| verse.text.as_str())
+                .collect::<Vec<_>>()
+                .join(" "),
+        })
     }
 
     #[cfg_attr(not(test), allow(dead_code))]

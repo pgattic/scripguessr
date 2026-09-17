@@ -528,6 +528,152 @@ button {
   padding: 18px;
 }
 
+.study-layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.study-list-panel,
+.study-detail-panel {
+  padding: 18px;
+}
+
+.study-set-list,
+.study-passage-list,
+.study-detail {
+  display: grid;
+  gap: 8px;
+}
+
+.study-custom-label {
+  margin-top: 16px;
+}
+
+.study-set-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 10px;
+  background: var(--raised);
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.study-set-row.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.study-name-input {
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-weight: 700;
+}
+
+.passage-editor {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised-soft);
+}
+
+.passage-fields {
+  display: grid;
+  grid-template-columns: minmax(130px, 1.2fr) minmax(130px, 1.2fr) minmax(80px, 0.7fr) minmax(90px, 0.7fr) minmax(90px, 0.7fr) auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.passage-fields label {
+  display: grid;
+  gap: 5px;
+  color: var(--muted-strong);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.passage-fields select,
+.passage-fields input {
+  min-width: 0;
+  min-height: 42px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 8px 9px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+}
+
+.study-passage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 7px 2px;
+}
+
+.text-button {
+  border: 0;
+  padding: 5px;
+  background: transparent;
+  color: var(--muted-strong);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.study-actions {
+  justify-content: flex-end;
+}
+
+.study-answer-scope {
+  margin-top: 8px;
+}
+
+.answer-scope-options {
+  grid-template-columns: repeat(4, minmax(105px, 1fr));
+}
+
+.study-scope-editor {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised-soft);
+}
+
+.study-book-grid {
+  margin-top: 2px;
+}
+
+.compact-ready {
+  padding: 10px 12px;
+}
+
+.compact-button {
+  min-height: 36px;
+  padding: 7px 10px;
+}
+
 .review-list {
   display: grid;
   gap: 8px;
@@ -729,6 +875,7 @@ button {
 @media (max-width: 840px) {
   .layout,
   .review-layout,
+  .study-layout,
   .setup-layout,
   .topbar {
     grid-template-columns: 1fr;
@@ -741,6 +888,14 @@ button {
 
   .picker {
     width: 100%;
+  }
+
+  .passage-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .answer-scope-options {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -776,5 +931,9 @@ button {
 
   .scope-book-actions .button {
     flex: 1 1 120px;
+  }
+
+  .passage-fields {
+    grid-template-columns: 1fr;
   }
 }

@@ -153,20 +153,19 @@ async fn create_game(
 ) -> Result<Json<NewGameResponse>, ApiError> {
     state.prune_games();
 
-    if request.scope.canons.is_empty()
-        || (request.round_count == 0 && request.review_references.is_empty())
+    if request.scope.canons.is_empty() || (request.round_count == 0 && request.passages.is_empty())
     {
         return Err(ApiError::bad_request("Game must include rounds and scope"));
     }
 
     let scoped_playable_count =
         playable_verse_count(&state.library, request.difficulty, &request.scope);
-    if scoped_playable_count == 0 && request.review_references.is_empty() {
+    if scoped_playable_count == 0 && request.passages.is_empty() {
         return Err(ApiError::bad_request("No playable verses found"));
     }
 
     let mut rng = SmallRng::from_os_rng();
-    let mut rounds = if request.review_references.is_empty() {
+    let mut rounds = if request.passages.is_empty() {
         let mut rounds = Vec::with_capacity(request.round_count);
         for _round in 0..request.round_count {
             rounds.push(random_verse(
@@ -178,9 +177,12 @@ async fn create_game(
         }
         rounds
     } else {
-        review_verses(&state.library, &request)?
+        study_passages(&state.library, &request)?
     };
     rounds.shuffle(&mut rng);
+    if !request.passages.is_empty() && request.round_count > 0 {
+        rounds.truncate(request.round_count);
+    }
     let round_count = rounds.len();
 
     let game_id = rng.random::<u64>().to_string();
@@ -203,7 +205,7 @@ async fn create_game(
             .collect(),
         scope: request.scope.clone(),
         metadata: metadata_for(&state.library, request.difficulty, &request.scope),
-        playable_verse_count: if request.review_references.is_empty() {
+        playable_verse_count: if request.passages.is_empty() {
             scoped_playable_count
         } else {
             round_count
@@ -289,25 +291,27 @@ fn random_verse(
     Err(ApiError::bad_request("No playable verses found"))
 }
 
-fn review_verses(
+fn study_passages(
     library: &ScriptureLibrary,
     request: &NewGameRequest,
 ) -> Result<Vec<Verse>, ApiError> {
-    let mut verses = Vec::with_capacity(request.review_references.len());
-    for reference in &request.review_references {
-        if !request
-            .scope
-            .includes_book(reference.canon, &reference.book)
-        {
+    let mut verses = Vec::with_capacity(request.passages.len());
+    for passage in &request.passages {
+        if !request.scope.includes_book(passage.canon, &passage.book) {
             return Err(ApiError::bad_request(
-                "Review verse is outside the game scope",
+                "Study passage is outside the game scope",
             ));
+        }
+        if passage.verses.is_empty() {
+            return Err(ApiError::bad_request("Study passage has no verses"));
         }
 
         let verse = library
-            .scriptures(reference.canon)
-            .and_then(|scriptures| scriptures.verse(reference))
-            .ok_or_else(|| ApiError::bad_request("Review verse was not found"))?;
+            .scriptures(passage.canon)
+            .and_then(|scriptures| {
+                scriptures.passage(&passage.book, passage.chapter, &passage.verses)
+            })
+            .ok_or_else(|| ApiError::bad_request("Study passage was not found"))?;
         if !verses
             .iter()
             .any(|existing: &Verse| existing.reference == verse.reference)
@@ -317,7 +321,7 @@ fn review_verses(
     }
 
     if verses.is_empty() {
-        return Err(ApiError::bad_request("No review verses found"));
+        return Err(ApiError::bad_request("No study passages found"));
     }
     Ok(verses)
 }
@@ -418,6 +422,7 @@ impl IntoResponse for ApiError {
 mod tests {
     use super::*;
     use crate::scriptures::{BookScope, CanonScope, Difficulty, GameMode, GameScope};
+    use crate::study_sets::built_in_study_sets;
     use axum::body::{Body, to_bytes};
     use axum::http::{Method, Request, header};
     use serde::de::DeserializeOwned;
@@ -428,7 +433,7 @@ mod tests {
             round_count: 1,
             difficulty: Difficulty::Normal,
             scope: GameMode::BookOfMormon.scope(),
-            review_references: Vec::new(),
+            passages: Vec::new(),
         }
     }
 
@@ -442,7 +447,7 @@ mod tests {
                     books: BookScope::Selected(vec!["Alma".to_string()]),
                 }],
             },
-            review_references: Vec::new(),
+            passages: Vec::new(),
         }
     }
 
@@ -471,6 +476,23 @@ mod tests {
         let games = state.games.lock().unwrap();
         assert!(!games.contains_key("expired"));
         assert!(games.contains_key("active"));
+    }
+
+    #[test]
+    fn every_curated_study_passage_resolves_from_scripture_data() {
+        let state = AppState::new(Duration::from_secs(60)).unwrap();
+        let set = built_in_study_sets().remove(0);
+        let request = NewGameRequest {
+            round_count: set.passages.len(),
+            difficulty: Difficulty::Normal,
+            scope: set.resolved_guess_scope(),
+            passages: set.passages,
+        };
+
+        let verses = study_passages(&state.library, &request).unwrap();
+
+        assert_eq!(verses.len(), 96);
+        assert!(verses.iter().all(|verse| !verse.text.is_empty()));
     }
 
     fn app() -> (Router, AppState) {
@@ -628,7 +650,10 @@ mod tests {
         ];
         let mut request = alma_request();
         request.round_count = 0;
-        request.review_references = references.clone();
+        request.passages = references
+            .iter()
+            .map(crate::study_sets::StudyPassage::single)
+            .collect();
 
         let response = post_json(app, "/api/games", request).await;
 

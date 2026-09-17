@@ -18,6 +18,7 @@
 - Added mixed-canon game modes for Bible, restoration scripture, and all standard works.
 - Reworked game setup so presets set canon toggles, and skipped single-option chooser levels.
 - Moved scripture metadata, round generation, guess scoring, and chapter-reader payloads to a real backend.
+- Added built-in doctrinal mastery study sets and locally persisted custom passage lists.
 
 ## Current Priority
 

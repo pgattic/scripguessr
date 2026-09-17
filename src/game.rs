@@ -7,17 +7,20 @@ use crate::scriptures::{
     BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope, Reference,
 };
 use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
+use crate::study_sets::{CustomStudySets, StudyGuessScope, StudyPassage, StudySet};
 
 #[derive(Clone, PartialEq)]
 pub struct Game {
     pub game_id: Option<String>,
     pub metadata: Vec<CanonMetadata>,
+    pub study_metadata: Vec<CanonMetadata>,
     pub metadata_difficulty: Difficulty,
     pub metadata_scope: GameScope,
     pub playable_verse_count: usize,
     pub total_verse_count: usize,
     pub settings: GameSettings,
     pub stats: Stats,
+    pub custom_study_sets: CustomStudySets,
     pub last_game_new_best: bool,
     pub screen: Screen,
     pub rounds: Vec<Round>,
@@ -30,6 +33,7 @@ pub struct Game {
     pub loading_game: bool,
     pub submitting_guess: bool,
     pub error: Option<String>,
+    pub active_game_label: Option<String>,
 }
 
 impl Game {
@@ -38,12 +42,14 @@ impl Game {
         Self {
             game_id: None,
             metadata: Vec::new(),
+            study_metadata: Vec::new(),
             metadata_difficulty: Difficulty::Normal,
             metadata_scope: settings.scope.clone(),
             playable_verse_count: 0,
             total_verse_count: 0,
             settings,
             stats: Stats::load(),
+            custom_study_sets: CustomStudySets::load(),
             last_game_new_best: false,
             screen: Screen::Setup,
             rounds: Vec::new(),
@@ -56,6 +62,7 @@ impl Game {
             loading_game: false,
             submitting_guess: false,
             error: None,
+            active_game_label: None,
         }
     }
 
@@ -66,53 +73,58 @@ impl Game {
         }
     }
 
+    pub fn study_metadata_request(&self) -> MetadataRequest {
+        MetadataRequest {
+            difficulty: Difficulty::Normal,
+            scope: GameMode::AllStandardWorks.scope(),
+        }
+    }
+
+    pub fn apply_study_metadata(&mut self, response: MetadataResponse) {
+        self.study_metadata = response.metadata;
+    }
+
     pub fn new_game_request(&self) -> NewGameRequest {
         NewGameRequest {
             round_count: self.settings.round_count,
             difficulty: self.settings.difficulty,
             scope: self.settings.scope.clone(),
-            review_references: Vec::new(),
+            passages: Vec::new(),
         }
     }
 
     pub fn review_game_request(&self) -> Option<NewGameRequest> {
-        let references = self
+        let passages = self
             .stats
             .review_items
             .iter()
-            .map(|item| item.reference.clone())
+            .map(|item| StudyPassage::single(&item.reference))
             .collect::<Vec<_>>();
-        if references.is_empty() {
+        let round_count = passages.len();
+        self.study_set_game_request(
+            &StudySet {
+                id: "review".to_string(),
+                name: "Marked verses".to_string(),
+                passages,
+                guess_scope: StudyGuessScope::FullCanons,
+            },
+            round_count,
+        )
+    }
+
+    pub fn study_set_game_request(
+        &self,
+        set: &StudySet,
+        round_count: usize,
+    ) -> Option<NewGameRequest> {
+        if set.passages.is_empty() {
             return None;
         }
-
-        let canons = Canon::ALL
-            .iter()
-            .copied()
-            .filter_map(|canon| {
-                let books = references
-                    .iter()
-                    .filter(|reference| reference.canon == canon)
-                    .map(|reference| reference.book.clone())
-                    .fold(Vec::new(), |mut books, book| {
-                        if !books.contains(&book) {
-                            books.push(book);
-                        }
-                        books
-                    });
-
-                (!books.is_empty()).then_some(CanonScope {
-                    canon,
-                    books: BookScope::Selected(books),
-                })
-            })
-            .collect();
-
         Some(NewGameRequest {
-            round_count: references.len(),
+            round_count: round_count.min(set.passages.len()),
             difficulty: self.settings.difficulty,
-            scope: GameScope { canons },
-            review_references: references,
+            scope: set.resolved_guess_scope(),
+            passages: set.passages.clone(),
         })
     }
 
@@ -152,6 +164,10 @@ impl Game {
     }
 
     pub fn start_game(&mut self, response: NewGameResponse) {
+        self.start_game_named(response, None);
+    }
+
+    pub fn start_game_named(&mut self, response: NewGameResponse, label: Option<String>) {
         self.settings.scope = response.scope.clone();
         self.settings.round_count = response.rounds.len();
         self.game_id = Some(response.game_id);
@@ -175,6 +191,7 @@ impl Game {
         self.loading_game = false;
         self.submitting_guess = false;
         self.error = None;
+        self.active_game_label = label;
         self.screen = Screen::Playing;
     }
 
@@ -185,12 +202,98 @@ impl Game {
         self.rounds.clear();
         self.current_round_index = 0;
         self.game_id = None;
+        self.active_game_label = None;
         self.clear_guess();
     }
 
     pub fn open_review(&mut self) {
         self.screen = Screen::Review;
         self.error = None;
+    }
+
+    pub fn open_study_sets(&mut self) {
+        self.screen = Screen::StudySets;
+        self.error = None;
+    }
+
+    pub fn create_study_set(&mut self) -> String {
+        let mut number = self.custom_study_sets.sets.len() + 1;
+        let id = loop {
+            let candidate = format!("custom-{number}");
+            if self
+                .custom_study_sets
+                .sets
+                .iter()
+                .all(|set| set.id != candidate)
+            {
+                break candidate;
+            }
+            number += 1;
+        };
+        self.custom_study_sets.sets.push(StudySet {
+            id: id.clone(),
+            name: "Untitled set".to_string(),
+            passages: Vec::new(),
+            guess_scope: StudyGuessScope::FullCanons,
+        });
+        self.custom_study_sets.save();
+        id
+    }
+
+    pub fn rename_study_set(&mut self, id: &str, name: String) {
+        if let Some(set) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|set| set.id == id)
+        {
+            set.name = name;
+            self.custom_study_sets.save();
+        }
+    }
+
+    pub fn add_study_passage(&mut self, id: &str, passage: StudyPassage) {
+        if let Some(set) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|set| set.id == id)
+        {
+            if !set.passages.contains(&passage) {
+                set.passages.push(passage);
+                self.custom_study_sets.save();
+            }
+        }
+    }
+
+    pub fn set_study_guess_scope(&mut self, id: &str, guess_scope: StudyGuessScope) {
+        if let Some(set) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|set| set.id == id)
+        {
+            set.guess_scope = guess_scope;
+            self.custom_study_sets.save();
+        }
+    }
+
+    pub fn remove_study_passage(&mut self, id: &str, index: usize) {
+        if let Some(set) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|set| set.id == id)
+            && index < set.passages.len()
+        {
+            set.passages.remove(index);
+            self.custom_study_sets.save();
+        }
+    }
+
+    pub fn delete_study_set(&mut self, id: &str) {
+        self.custom_study_sets.sets.retain(|set| set.id != id);
+        self.custom_study_sets.save();
     }
 
     pub fn set_round_count(&mut self, round_count: usize) {
@@ -612,6 +715,7 @@ pub enum Screen {
     Setup,
     Playing,
     Review,
+    StudySets,
 }
 
 #[derive(Clone, Copy, PartialEq)]
