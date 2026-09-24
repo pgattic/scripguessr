@@ -742,8 +742,6 @@ button {
   width: 181px;
   margin-inline: auto;
   margin-bottom: 18px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-soft);
   break-inside: avoid;
 }
 

@@ -718,7 +718,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .map(|metadata| metadata.books.clone())
         .unwrap_or_default();
     let mut selected_layers = use_signal(Vec::<String>::new);
-    let mut collapsed_categories = use_signal(Vec::<AtlasCategory>::new);
+    let mut collapsed_categories = use_signal(|| AtlasCategory::ALL.to_vec());
     let mut mobile_layers_open = use_signal(|| false);
     let mut selected_chapter = use_signal(|| None::<(String, u16)>);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
@@ -921,7 +921,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                             }
                         }
                     }
-                    for category in [AtlasCategory::Person, AtlasCategory::Narrative, AtlasCategory::Event, AtlasCategory::Teaching] {
+                    for category in AtlasCategory::ALL {
                         div { class: "atlas-layer-group",
                             {
                                 let collapsed = collapsed_categories().contains(&category);

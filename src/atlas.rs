@@ -8,6 +8,9 @@ pub enum AtlasCategory {
 
 impl AtlasCategory {
     #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub const ALL: [Self; 4] = [Self::Person, Self::Narrative, Self::Event, Self::Teaching];
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
     pub fn label(self) -> &'static str {
         match self {
             Self::Person => "People",
