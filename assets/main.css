@@ -419,8 +419,10 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
-.chapter-grid {
-  grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
+.chapter-matrix {
+  display: grid;
+  grid-template-columns: repeat(5, var(--chapter-column, minmax(0, 1fr)));
+  gap: var(--chapter-gap, 8px);
 }
 
 .choice {
@@ -712,46 +714,38 @@ button {
 
 .atlas-scroll {
   width: 100%;
-  overflow-x: auto;
   padding: 4px 2px 10px;
 }
 
 .atlas-books {
   display: grid;
-  gap: 8px;
-  min-width: 760px;
+  gap: 18px;
 }
 
 .atlas-book-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  min-height: 30px;
+  display: grid;
+  gap: 7px;
+  justify-items: start;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border-soft);
 }
 
 .atlas-book-name {
-  flex: 0 0 94px;
-  overflow: hidden;
   color: var(--muted-strong);
-  font-size: 0.75rem;
-  text-align: right;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 0.82rem;
 }
 
 .atlas-chapters {
-  display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: 25px;
-  gap: 3px;
+  --chapter-column: 30px;
+  --chapter-gap: 4px;
 }
 
 .atlas-chapter {
   position: relative;
   display: grid;
   place-items: center;
-  width: 25px;
-  height: 25px;
+  width: 30px;
+  height: 30px;
   border: 1px solid var(--border-soft);
   border-radius: 3px;
   padding: 0;

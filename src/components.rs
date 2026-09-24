@@ -65,6 +65,11 @@ pub fn App() -> Element {
         .read()
         .as_ref()
         .and_then(|result| result.as_ref().err().cloned());
+    let study_load_error = study_metadata_resource
+        .value()
+        .read()
+        .as_ref()
+        .and_then(|result| result.as_ref().err().cloned());
 
     rsx! {
         document::Stylesheet {
@@ -127,7 +132,7 @@ pub fn App() -> Element {
                         StudySetsPanel { game: game }
                     },
                     Screen::Atlas => rsx! {
-                        AtlasPanel { game: game }
+                        AtlasPanel { game: game, load_error: study_load_error }
                     },
                 }
             }
@@ -438,7 +443,7 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
                 let book_name = selected_book.clone().unwrap_or_default();
                 let canon = selected_canon.expect("canon selected before chapter step");
                 rsx! {
-                    div { class: "grid chapter-grid",
+                    div { class: "grid chapter-grid chapter-matrix",
                         for chapter in snapshot.chapters_for(canon, &book_name) {
                             button {
                                 class: if selected_chapter == Some(chapter) { "choice active" } else { "choice" },
@@ -701,7 +706,7 @@ struct AtlasReaderData {
 }
 
 #[component]
-fn AtlasPanel(game: Signal<Game>) -> Element {
+fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
     let snapshot = game.read().clone();
     let books = snapshot
         .study_metadata
@@ -748,9 +753,16 @@ fn AtlasPanel(game: Signal<Game>) -> Element {
                 }
 
                 if books.is_empty() {
-                    div { class: "ready atlas-loading",
-                        span { class: "muted", "Scripture catalog" }
-                        strong { "Loading" }
+                    if let Some(error) = load_error {
+                        div { class: "callout warning",
+                            strong { "Atlas unavailable" }
+                            span { "{error}" }
+                        }
+                    } else {
+                        div { class: "ready atlas-loading",
+                            span { class: "muted", "Scripture catalog" }
+                            strong { "Loading" }
+                        }
                     }
                 } else {
                     div { class: "atlas-scroll",
@@ -758,7 +770,7 @@ fn AtlasPanel(game: Signal<Game>) -> Element {
                             for book in books.iter() {
                                 div { class: "atlas-book-row",
                                     strong { class: "atlas-book-name", "{book.name}" }
-                                    div { class: "atlas-chapters",
+                                    div { class: "atlas-chapters chapter-matrix",
                                         for chapter in book.chapters.iter().copied() {
                                             {
                                                 let book_name = book.name.clone();
