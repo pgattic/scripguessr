@@ -790,6 +790,16 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 {
                                     let chronology = book_chronology(&book.name);
                                     let era = era_starting_at(&book.name);
+                                    let chronology_title = chronology.map(|chronology| {
+                                        if let Some(era) = era {
+                                            format!(
+                                                "{}. {}. Dates are approximate.",
+                                                chronology.note, era.name
+                                            )
+                                        } else {
+                                            format!("{}. Dates are approximate.", chronology.note)
+                                        }
+                                    });
                                     rsx! {
                                     div { class: "atlas-book-row", id: atlas_book_id(&book.name),
                                     div { class: "atlas-book-heading",
@@ -797,12 +807,9 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                         if let Some(chronology) = chronology {
                                             span {
                                                 class: "atlas-book-dates",
-                                                title: "{chronology.note}. Dates are approximate.",
+                                                title: chronology_title,
                                                 "{chronology.dates}"
                                             }
-                                        }
-                                        if let Some(era) = era {
-                                            span { class: "atlas-era-inline", "• {era.name}" }
                                         }
                                     }
                                     div { class: "atlas-chapters chapter-matrix",

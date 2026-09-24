@@ -741,31 +741,30 @@ button {
 }
 
 .atlas-books {
-  display: grid;
-  gap: 18px;
+  columns: 166px;
+  column-gap: 24px;
+  column-rule: 1px solid var(--border-soft);
 }
 
 .atlas-book-row {
   display: grid;
   gap: 7px;
   justify-items: start;
+  width: 166px;
+  margin-bottom: 18px;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--border-soft);
+  break-inside: avoid;
 }
 
 .atlas-book-heading {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  flex-wrap: wrap;
+  display: grid;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
 }
 
 .atlas-book-dates {
-  color: var(--muted);
-  font-size: 0.7rem;
-}
-
-.atlas-era-inline {
   color: var(--muted);
   font-size: 0.7rem;
 }
