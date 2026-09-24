@@ -745,15 +745,31 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                             "Home"
                         }
                         if let Some(set) = practice_set.clone() {
-                            button {
-                                class: "button",
-                                disabled: snapshot.loading_game,
-                                onclick: move |_| request_study_game(
-                                    game,
-                                    set.clone(),
-                                    10.min(set.passages.len()),
-                                ),
-                                if snapshot.loading_game { "Starting" } else { "Practice highlighted" }
+                            {
+                                let practice_set = set.clone();
+                                let saved_set = set;
+                                let saved_selection = active_ids.clone();
+                                rsx! {
+                                    button {
+                                        class: "button",
+                                        disabled: snapshot.loading_game,
+                                        onclick: move |_| request_study_game(
+                                            game,
+                                            practice_set.clone(),
+                                            10.min(practice_set.passages.len()),
+                                        ),
+                                        if snapshot.loading_game { "Starting" } else { "Practice highlighted" }
+                                    }
+                                    button {
+                                        class: "button secondary",
+                                        disabled: selection_saved,
+                                        onclick: move |_| {
+                                            game.write().save_custom_study_set(saved_set.clone());
+                                            saved_atlas_selection.set(Some(saved_selection.clone()));
+                                        },
+                                        if selection_saved { "Saved" } else { "Save as study set" }
+                                    }
+                                }
                             }
                         }
                     }
@@ -897,27 +913,6 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 class: "button secondary compact-button atlas-mobile-layer-close",
                                 onclick: move |_| mobile_layers_open.set(false),
                                 "Done"
-                            }
-                        }
-                    }
-                    if let Some(set) = practice_set.clone() {
-                        {
-                            let saved_selection = active_ids.clone();
-                            rsx! {
-                                div { class: "atlas-save-row",
-                                    button {
-                                        class: "button secondary compact-button",
-                                        disabled: selection_saved,
-                                        onclick: move |_| {
-                                            game.write().save_custom_study_set(set.clone());
-                                            saved_atlas_selection.set(Some(saved_selection.clone()));
-                                        },
-                                        if selection_saved { "Saved" } else { "Save as study set" }
-                                    }
-                                    if selection_saved {
-                                        span { class: "muted", "Available in Study sets" }
-                                    }
-                                }
                             }
                         }
                     }

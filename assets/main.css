@@ -872,17 +872,6 @@ button {
   gap: 8px;
 }
 
-.atlas-save-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  margin-top: 12px;
-}
-
-.atlas-save-row span {
-  font-size: 0.78rem;
-}
-
 .atlas-layer-toggle {
   display: grid;
   grid-template-columns: auto auto minmax(0, 1fr);
