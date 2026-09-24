@@ -8,21 +8,53 @@ import subprocess
 import tempfile
 from pathlib import Path
 
-CHAPTERS = [
-    (403, 1807, "Fulfill Your Missionary Purpose"),
-    (1807, 2493, "Search the Scriptures and Put on the Armor of God"),
-    (2493, 9147, "Study and Teach the Gospel of Jesus Christ"),
-    (9147, 10174, "Seek and Rely on the Spirit"),
-    (10174, 11085, "Use the Power of the Book of Mormon"),
-    (11085, 12540, "Seek Christlike Attributes"),
-    (12540, 13134, "Learn Your Mission Language"),
-    (13134, 14310, "Accomplish the Work through Goals and Plans"),
-    (14310, 15969, "Find People to Teach"),
-    (15969, 18001, "Teach to Build Faith in Jesus Christ"),
-    (18001, 18718, "Help People Make and Keep Commitments"),
-    (18718, 19604, "Help People Prepare for Baptism and Confirmation"),
-    (19604, 10**9, "Unite with Leaders and Members to Establish the Church"),
+CHAPTER_TITLES = [
+    "Fulfill Your Missionary Purpose",
+    "Search the Scriptures and Put on the Armor of God",
+    "Study and Teach the Gospel of Jesus Christ",
+    "Seek and Rely on the Spirit",
+    "Use the Power of the Book of Mormon",
+    "Seek Christlike Attributes",
+    "Learn Your Mission Language",
+    "Accomplish the Work through Goals and Plans",
+    "Find People to Teach",
+    "Teach to Build Faith in Jesus Christ",
+    "Help People Make and Keep Commitments",
+    "Help People Prepare for Baptism and Confirmation",
+    "Unite with Leaders and Members to Establish the Church",
 ]
+
+EXPECTED_BOX_COUNTS = {
+    1: 7,
+    2: 2,
+    3: 41,
+    4: 3,
+    5: 2,
+    6: 12,
+    7: 0,
+    8: 3,
+    9: 3,
+    10: 4,
+    11: 2,
+    12: 1,
+    13: 2,
+}
+EXPECTED_PASSAGE_COUNTS = {
+    1: 49,
+    2: 11,
+    3: 340,
+    4: 38,
+    5: 23,
+    6: 109,
+    7: 0,
+    8: 16,
+    9: 16,
+    10: 25,
+    11: 12,
+    12: 10,
+    13: 21,
+}
+EXPECTED_UNIQUE_PASSAGES = 602
 
 STOP_PREFIXES = (
     "Personal Study",
@@ -56,11 +88,32 @@ def load_catalog(root: Path):
     return catalog
 
 
-def source_chapter(line_number):
-    for number, (start, end, title) in enumerate(CHAPTERS, 1):
-        if start <= line_number < end:
-            return number, title
-    raise ValueError(f"Scripture Study box outside known chapters at line {line_number}")
+def chapter_markers(lines):
+    markers = []
+    expected = 1
+    for index, line in enumerate(lines):
+        match = re.fullmatch(r"CHAPTER\s+(\d+)", line.strip())
+        if match and int(match.group(1)) == expected:
+            markers.append((index, expected))
+            expected += 1
+            if expected > len(CHAPTER_TITLES):
+                break
+    if len(markers) != len(CHAPTER_TITLES):
+        raise ValueError(
+            f"Expected {len(CHAPTER_TITLES)} ordered chapter markers, found {len(markers)}"
+        )
+    return markers
+
+
+def source_chapter(line_index, markers):
+    chapter = None
+    for start, number in markers:
+        if start > line_index:
+            break
+        chapter = number
+    if chapter is None:
+        raise ValueError(f"Scripture Study box precedes chapter 1 at line {line_index + 1}")
+    return chapter, CHAPTER_TITLES[chapter - 1]
 
 
 def study_blocks(lines):
@@ -80,7 +133,7 @@ def study_blocks(lines):
             block.append(text)
             if re.search(r"\d+(?::\d+)?", text):
                 found_reference = True
-        yield index + 1, block
+        yield index, block
 
 
 def book_pattern(catalog):
@@ -157,27 +210,40 @@ def extract(root, pdf):
         subprocess.run(["pdftotext", "-raw", str(pdf), text_file.name], check=True)
         lines = Path(text_file.name).read_text(errors="replace").splitlines()
 
+    markers = chapter_markers(lines)
     chapter_passages = {number: [] for number in range(1, 14)}
     audit = []
-    for line_number, block in study_blocks(lines):
-        chapter_number, chapter_title = source_chapter(line_number)
+    for line_index, block in study_blocks(lines):
+        chapter_number, chapter_title = source_chapter(line_index, markers)
         inherited_book = None
         extracted = []
+        citation_lines = []
         for line in block:
             segments = reference_segments(line, pattern, aliases, inherited_book)
+            line_passages = []
             for book, segment in segments:
                 inherited_book = book
-                extracted.extend(parse_segment(book, segment, catalog))
+                line_passages.extend(parse_segment(book, segment, catalog))
+            if line_passages:
+                citation_lines.append(line)
+                extracted.extend(line_passages)
         if not extracted:
-            raise ValueError(f"No scripture references found near line {line_number}: {block}")
-        audit.append({"line": line_number, "chapter": chapter_number, "passages": len(extracted)})
+            raise ValueError(f"No scripture references found near line {line_index + 1}: {block}")
+        audit.append(
+            {
+                "box": len(audit) + 1,
+                "chapter": chapter_number,
+                "passages": len(extracted),
+                "citations": citation_lines,
+            }
+        )
         for passage in extracted:
             if passage not in chapter_passages[chapter_number]:
                 chapter_passages[chapter_number].append(passage)
 
     sets = []
     all_passages = []
-    for number, (_, _, title) in enumerate(CHAPTERS, 1):
+    for number, title in enumerate(CHAPTER_TITLES, 1):
         passages = chapter_passages[number]
         if not passages:
             continue
@@ -189,22 +255,50 @@ def extract(root, pdf):
                 "passages": passages,
             }
         )
-    return {
+    result = {
         "source": pdf.name,
         "boxes": audit,
         "unique_passage_count": len(all_passages),
         "sets": sets,
     }
+    validate_result(result)
+    return result
+
+
+def validate_result(result):
+    box_counts = {number: 0 for number in range(1, 14)}
+    for box in result["boxes"]:
+        box_counts[box["chapter"]] += 1
+    if box_counts != EXPECTED_BOX_COUNTS:
+        raise ValueError(f"Scripture Study box counts changed: {box_counts}")
+
+    passage_counts = {number: 0 for number in range(1, 14)}
+    for study_set in result["sets"]:
+        number = int(study_set["id"].rsplit("-", 1)[1])
+        passage_counts[number] = len(study_set["passages"])
+    if passage_counts != EXPECTED_PASSAGE_COUNTS:
+        raise ValueError(f"Unique chapter passage counts changed: {passage_counts}")
+    if result["unique_passage_count"] != EXPECTED_UNIQUE_PASSAGES:
+        raise ValueError(
+            "Unique passage count changed: "
+            f"{result['unique_passage_count']} != {EXPECTED_UNIQUE_PASSAGES}"
+        )
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("pdf", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     result = extract(root, args.pdf)
-    args.output.write_text(json.dumps(result, indent=2) + "\n")
+    rendered = json.dumps(result, indent=2) + "\n"
+    if args.check:
+        if not args.output.exists() or args.output.read_text() != rendered:
+            raise SystemExit(f"Generated study-set data is stale: {args.output}")
+    else:
+        args.output.write_text(rendered)
     print(
         f"Extracted {len(result['boxes'])} boxes, "
         f"{result['unique_passage_count']} unique passages"

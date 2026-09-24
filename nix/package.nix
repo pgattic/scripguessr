@@ -12,72 +12,7 @@ let
   pname = "scripguessr";
   version = "0.1.0";
 
-  sourceWith =
-    {
-      files,
-      dirs,
-    }:
-    lib.cleanSourceWith {
-      src = ../.;
-      filter =
-        path: type:
-        let
-          root = toString ../.;
-          relative = lib.removePrefix "${root}/" (toString path);
-        in
-        (type == "directory" && builtins.elem relative dirs) || builtins.elem relative files;
-    };
-
-  cargoFiles = [
-    "Cargo.lock"
-    "Cargo.toml"
-  ];
-
-  serverSrc = sourceWith {
-    dirs = [
-      ""
-      "assets"
-      "assets/data"
-      "src"
-    ];
-    files = cargoFiles ++ [
-      "assets/data/book-of-mormon-flat.json"
-      "assets/data/doctrine-and-covenants-flat.json"
-      "assets/data/new-testament-flat.json"
-      "assets/data/old-testament-flat.json"
-      "assets/data/pearl-of-great-price-flat.json"
-      "assets/data/preach-my-gospel-study-sets.json"
-      "src/api.rs"
-      "src/main.rs"
-      "src/scoring.rs"
-      "src/scriptures.rs"
-      "src/server.rs"
-      "src/study_sets.rs"
-    ];
-  };
-
-  webSrc = sourceWith {
-    dirs = [
-      ""
-      "assets"
-      "assets/data"
-      "src"
-    ];
-    files = cargoFiles ++ [
-      "Dioxus.toml"
-      "assets/main.css"
-      "assets/data/preach-my-gospel-study-sets.json"
-      "src/api.rs"
-      "src/components.rs"
-      "src/game.rs"
-      "src/loader.rs"
-      "src/main.rs"
-      "src/scoring.rs"
-      "src/scriptures.rs"
-      "src/stats.rs"
-      "src/study_sets.rs"
-    ];
-  };
+  sources = import ./sources.nix { inherit lib; };
 
   commonArgs = {
     inherit pname version;
@@ -86,7 +21,7 @@ let
   };
 
   serverArgs = commonArgs // {
-    src = serverSrc;
+    src = sources.server;
   };
 
   serverCargoArtifacts = craneLib.buildDepsOnly serverArgs;
@@ -101,7 +36,7 @@ let
 
   webArgs = commonArgs // {
     pname = "${pname}-web";
-    src = webSrc;
+    src = sources.web;
     nativeBuildInputs = [
       binaryen
       dioxus-cli
@@ -133,6 +68,7 @@ stdenv.mkDerivation {
   inherit pname version;
 
   dontUnpack = true;
+  passthru = { inherit server web; };
 
   installPhase = ''
     runHook preInstall

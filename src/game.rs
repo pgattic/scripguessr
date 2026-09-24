@@ -548,11 +548,7 @@ impl Game {
         };
 
         self.stats.toggle_review_item(ReviewItem {
-            reference: guess
-                .answer
-                .first_reference()
-                .expect("round answers always contain at least one verse"),
-            passage: Some(guess.answer.clone()),
+            passage: guess.answer.clone(),
             text: round.text.clone(),
             score: guess.score.points,
         })

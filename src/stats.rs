@@ -6,7 +6,10 @@ use crate::scriptures::{Difficulty, Reference};
 use crate::study_sets::StudyPassage;
 
 #[cfg(target_arch = "wasm32")]
-const STORAGE_KEY: &str = "scripguessr.stats.v1";
+const STORAGE_KEY: &str = "scripguessr.stats.v2";
+#[cfg(target_arch = "wasm32")]
+const LEGACY_STORAGE_KEY: &str = "scripguessr.stats.v1";
+const STORAGE_VERSION: u8 = 2;
 
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 pub struct Stats {
@@ -142,20 +145,87 @@ pub struct BookStats {
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ReviewItem {
-    // Kept for backwards-compatible local-storage deserialization.
-    pub reference: Reference,
-    #[serde(default)]
-    pub passage: Option<StudyPassage>,
+    pub passage: StudyPassage,
     pub text: String,
     pub score: u32,
 }
 
 impl ReviewItem {
     pub fn passage(&self) -> StudyPassage {
-        self.passage
-            .clone()
-            .unwrap_or_else(|| StudyPassage::single(&self.reference))
+        self.passage.clone()
     }
+}
+
+#[derive(Deserialize, Serialize)]
+struct StoredStats {
+    version: u8,
+    data: Stats,
+}
+
+#[derive(Deserialize)]
+struct LegacyStats {
+    games_played: u32,
+    rounds_played: u32,
+    total_score: u32,
+    total_possible_score: u32,
+    best_score: Option<ScoreMark>,
+    best_by_difficulty: BTreeMap<Difficulty, ScoreMark>,
+    books: BTreeMap<String, BookStats>,
+    #[serde(default)]
+    review_items: Vec<LegacyReviewItem>,
+}
+
+#[derive(Deserialize)]
+struct LegacyReviewItem {
+    reference: Reference,
+    #[serde(default)]
+    passage: Option<StudyPassage>,
+    text: String,
+    score: u32,
+}
+
+impl From<LegacyStats> for Stats {
+    fn from(legacy: LegacyStats) -> Self {
+        Self {
+            games_played: legacy.games_played,
+            rounds_played: legacy.rounds_played,
+            total_score: legacy.total_score,
+            total_possible_score: legacy.total_possible_score,
+            best_score: legacy.best_score,
+            best_by_difficulty: legacy.best_by_difficulty,
+            books: legacy.books,
+            review_items: legacy
+                .review_items
+                .into_iter()
+                .map(|item| ReviewItem {
+                    passage: item
+                        .passage
+                        .unwrap_or_else(|| StudyPassage::single(&item.reference)),
+                    text: item.text,
+                    score: item.score,
+                })
+                .collect(),
+        }
+    }
+}
+
+fn decode_stored_stats(json: &str) -> Option<Stats> {
+    let stored: StoredStats = serde_json::from_str(json).ok()?;
+    (stored.version == STORAGE_VERSION).then_some(stored.data)
+}
+
+fn migrate_legacy_stats(json: &str) -> Option<Stats> {
+    serde_json::from_str::<LegacyStats>(json)
+        .ok()
+        .map(Into::into)
+}
+
+fn encode_stats(stats: &Stats) -> Option<String> {
+    serde_json::to_string(&StoredStats {
+        version: STORAGE_VERSION,
+        data: stats.clone(),
+    })
+    .ok()
 }
 
 impl BookStats {
@@ -196,8 +266,20 @@ fn percent(score: u32, possible_score: u32) -> Option<u32> {
 #[cfg(target_arch = "wasm32")]
 fn load_stats() -> Option<Stats> {
     let storage = web_sys::window()?.local_storage().ok()??;
-    let json = storage.get_item(STORAGE_KEY).ok()??;
-    serde_json::from_str(&json).ok()
+    if let Some(json) = storage.get_item(STORAGE_KEY).ok().flatten()
+        && let Some(stats) = decode_stored_stats(&json)
+    {
+        return Some(stats);
+    }
+
+    let legacy = storage.get_item(LEGACY_STORAGE_KEY).ok()??;
+    let stats = migrate_legacy_stats(&legacy)?;
+    if let Some(json) = encode_stats(&stats)
+        && storage.set_item(STORAGE_KEY, &json).is_ok()
+    {
+        let _ = storage.remove_item(LEGACY_STORAGE_KEY);
+    }
+    Some(stats)
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -212,7 +294,7 @@ fn save_stats(stats: &Stats) {
     else {
         return;
     };
-    let Ok(json) = serde_json::to_string(stats) else {
+    let Some(json) = encode_stats(stats) else {
         return;
     };
     let _ = storage.set_item(STORAGE_KEY, &json);
@@ -304,13 +386,12 @@ mod tests {
     fn review_items_toggle_by_reference() {
         let mut stats = Stats::default();
         let item = ReviewItem {
-            reference: Reference {
+            passage: StudyPassage::single(&Reference {
                 canon: crate::scriptures::Canon::BookOfMormon,
                 book: "Alma".to_string(),
                 chapter: 32,
                 verse: 21,
-            },
-            passage: None,
+            }),
             text: "And now as I said concerning faith".to_string(),
             score: 612,
         };
@@ -334,8 +415,7 @@ mod tests {
             verse: 17,
         };
         stats.review_items.push(ReviewItem {
-            reference: reference.clone(),
-            passage: None,
+            passage: StudyPassage::single(&reference),
             text: "When ye are in the service of your fellow beings".to_string(),
             score: 734,
         });
@@ -343,5 +423,30 @@ mod tests {
         assert!(stats.remove_review_item(&StudyPassage::single(&reference)));
         assert!(stats.review_items.is_empty());
         assert!(!stats.remove_review_item(&StudyPassage::single(&reference)));
+    }
+
+    #[test]
+    fn migrates_legacy_review_references_to_passages() {
+        let json = r#"{
+            "games_played":1,
+            "rounds_played":1,
+            "total_score":700,
+            "total_possible_score":1000,
+            "best_score":null,
+            "best_by_difficulty":{},
+            "books":{},
+            "review_items":[{
+                "reference":{"canon":"BookOfMormon","book":"Alma","chapter":32,"verse":21},
+                "text":"Faith is not to have a perfect knowledge",
+                "score":700
+            }]
+        }"#;
+
+        let stats = migrate_legacy_stats(json).unwrap();
+
+        assert_eq!(stats.review_items[0].passage.label(), "Alma 32:21");
+        let encoded = encode_stats(&stats).unwrap();
+        assert_eq!(decode_stored_stats(&encoded), Some(stats));
+        assert!(!encoded.contains("reference"));
     }
 }

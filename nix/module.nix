@@ -1,4 +1,6 @@
-{ defaultPackage ? null }:
+{
+  defaultPackage ? null,
+}:
 
 {
   config,

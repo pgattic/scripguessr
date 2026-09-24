@@ -23,7 +23,6 @@
       systems = [
         "x86_64-linux"
         "aarch64-linux"
-        "x86_64-darwin"
         "aarch64-darwin"
       ];
 
@@ -31,6 +30,15 @@
         { config, pkgs, ... }:
         let
           craneLib = inputs.crane.mkLib pkgs;
+          sources = import ./nix/sources.nix { inherit (pkgs) lib; };
+          checkArgs = {
+            pname = "scripguessr-checks";
+            version = "0.1.0";
+            src = sources.check;
+            strictDeps = true;
+            nativeBuildInputs = [ pkgs.lld ];
+          };
+          checkCargoArtifacts = craneLib.buildDepsOnly checkArgs;
         in
         {
           devShells.default = pkgs.mkShell {
@@ -39,6 +47,7 @@
               clippy
               dioxus-cli
               lld
+              poppler-utils
               python3
               rustc
               rustfmt
@@ -54,13 +63,52 @@
               rustfmt
             ];
             text = ''
-              nixfmt flake.nix
+              nixfmt flake.nix nix/*.nix
               cargo fmt --all
             '';
           };
 
           packages.default = pkgs.callPackage ./nix/package.nix { inherit craneLib; };
           packages.scripguessr = config.packages.default;
+
+          checks = {
+            rust-tests = craneLib.cargoTest (
+              checkArgs
+              // {
+                cargoArtifacts = checkCargoArtifacts;
+                cargoTestExtraArgs = "--all-targets";
+              }
+            );
+
+            rust-clippy = craneLib.cargoClippy (
+              checkArgs
+              // {
+                cargoArtifacts = checkCargoArtifacts;
+                cargoClippyExtraArgs = "--all-targets -- --deny warnings";
+              }
+            );
+
+            web = config.packages.default.passthru.web;
+
+            pmg-data =
+              pkgs.runCommand "scripguessr-pmg-data-check"
+                {
+                  nativeBuildInputs = [
+                    pkgs.python3
+                    pkgs.poppler-utils
+                  ];
+                  src = sources.pmg;
+                }
+                ''
+                  cp -R "$src" source
+                  chmod -R u+w source
+                  python3 source/scripts/extract_pmg_study_sets.py \
+                    source/preach_my_gospel_2_0.pdf \
+                    source/assets/data/preach-my-gospel-study-sets.json \
+                    --check
+                  touch "$out"
+                '';
+          };
 
           packages.dev = pkgs.writeShellApplication {
             name = "scripguessr-dev";

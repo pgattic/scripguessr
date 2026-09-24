@@ -2,414 +2,1108 @@
   "source": "preach_my_gospel_2_0.pdf",
   "boxes": [
     {
-      "line": 671,
+      "box": 1,
       "chapter": 1,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "Alma 5; 32 \u201cThe Living Christ\u201d",
+        "2 Nephi 32:2\u20133",
+        "Alma 17:2\u20133; 26:21\u201322",
+        "Doctrine and Covenants 11:21; 35:24;",
+        "42:12\u201317; 53:3",
+        "1 Corinthians 2:4"
+      ]
     },
     {
-      "line": 887,
+      "box": 2,
       "chapter": 1,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "2 Nephi 31; 32:1\u20136",
+        "3 Nephi 11:31\u201340; 27:13\u201322",
+        "Articles of Faith 1:4"
+      ]
     },
     {
-      "line": 1034,
+      "box": 3,
       "chapter": 1,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "Alma 29:1\u20134; 42:31; 62:45",
+        "Helaman 5:11\u201312",
+        "Doctrine and Covenants 14:8; 15:6;",
+        "18:10\u201316"
+      ]
     },
     {
-      "line": 1127,
+      "box": 4,
       "chapter": 1,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "3 Nephi 19:1\u201313",
+        "Doctrine and Covenants 45:56\u201357",
+        "John 14:26",
+        "Galatians 5:22\u201325",
+        "2 Nephi 31:12\u201317; 32:1\u20135 Acts 19:1\u20136"
+      ]
     },
     {
-      "line": 1325,
+      "box": 5,
       "chapter": 1,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "1 Nephi 13:39",
+        "2 Nephi 29:8\u201310",
+        "Moroni 10:3\u20135",
+        "Doctrine and Covenants 20:5\u201316;",
+        "42:12\u201314"
+      ]
     },
     {
-      "line": 1438,
+      "box": 6,
       "chapter": 1,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "3 Nephi 17:7, 21",
+        "Matthew 8:1\u20134; 9:1\u20138",
+        "Mark 1:21\u201328",
+        "John 4:46\u201354",
+        "Alma 17:19\u201325; 18:8\u201310; 22:3",
+        "3 Nephi 27:21"
+      ]
     },
     {
-      "line": 1619,
+      "box": 7,
       "chapter": 1,
-      "passages": 6
+      "passages": 6,
+      "citations": [
+        "Mosiah 28:3",
+        "Alma 8:14\u201315",
+        "Helaman 10:3\u20135",
+        "Ether 12:13\u201315",
+        "Doctrine and Covenants 15:4\u20136;",
+        "68:2\u20136"
+      ]
     },
     {
-      "line": 1940,
+      "box": 8,
       "chapter": 2,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "2 Nephi 4:15\u201316; 32:3 Doctrine and Covenants 58:26\u201328;",
+        "88:118"
+      ]
     },
     {
-      "line": 1955,
+      "box": 9,
       "chapter": 2,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "2 Nephi 32:5 Alma 5:45\u201346",
+        "Moroni 10:5",
+        "Doctrine and Covenants 11:12\u201314;",
+        "39:5\u20136",
+        "John 14:26; 16:13"
+      ]
     },
     {
-      "line": 2739,
+      "box": 10,
       "chapter": 3,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Mosiah 18:18\u201320 Doctrine and Covenants 43:15\u201316;",
+        "52:9",
+        "1 Nephi 15:14",
+        "Alma 12:32; 17:2\u20133; 31:5",
+        "Doctrine and Covenants 84:85"
+      ]
     },
     {
-      "line": 2906,
+      "box": 11,
       "chapter": 3,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "2 Nephi 31:4\u201312",
+        "Moroni 6",
+        "Doctrine and Covenants 20:37; 22",
+        "Matthew 3:13\u201317"
+      ]
     },
     {
-      "line": 3333,
+      "box": 12,
       "chapter": 3,
-      "passages": 11
+      "passages": 11,
+      "citations": [
+        "1 Nephi 17:36",
+        "Mosiah 4:9",
+        "3 Nephi 14:9\u201311",
+        "Doctrine and Covenants 93:29;",
+        "130:22",
+        "Moses 1:39",
+        "Abraham 3:25",
+        "Acts 17:27\u201329",
+        "Romans 8:16",
+        "Hebrews 12:9",
+        "Genesis 1:26\u201327"
+      ]
     },
     {
-      "line": 3456,
+      "box": 13,
       "chapter": 3,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "Jacob 4:4, 6",
+        "Mosiah 8:13\u201318",
+        "Doctrine and Covenants 1:37\u201338",
+        "Luke 1:68\u201370",
+        "Acts 10:34\u201343",
+        "Ephesians 4:11\u201314",
+        "Amos 3:7"
+      ]
     },
     {
-      "line": 3594,
+      "box": 14,
       "chapter": 3,
-      "passages": 13
+      "passages": 13,
+      "citations": [
+        "2 Nephi 2:6\u20138; 9:1\u201324; 31",
+        "Alma 7:11\u201313; 11:40; 34:8\u201310",
+        "3 Nephi 11:31\u201341; 27:1\u201322",
+        "Doctrine and Covenants 19:15\u201319; 45:3\u20135",
+        "John 3:16\u201317",
+        "1 Corinthians 15:1\u20134, 20\u201322",
+        "1 John 1:7"
+      ]
     },
     {
-      "line": 3695,
+      "box": 15,
       "chapter": 3,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "2 Nephi 28",
+        "Matthew 24:9\u201311",
+        "Acts 20:28\u201330",
+        "Galatians 1:6\u20139",
+        "2 Thessalonians 2:1\u201312 (Joseph Smith",
+        "2 Timothy 4:3\u20134",
+        "2 Peter 2:1\u20132",
+        "Amos 8:11\u201312"
+      ]
     },
     {
-      "line": 3973,
+      "box": 16,
       "chapter": 3,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "2 Nephi 3",
+        "3 Nephi 27:3\u20138",
+        "Doctrine and Covenants 27:12\u201313;",
+        "112:30\u201332; 115:4",
+        "Joseph Smith\u2014History 1:68\u201372",
+        "Acts 3:19\u201322",
+        "Ephesians 4:5",
+        "James 1:5"
+      ]
     },
     {
-      "line": 4149,
+      "box": 17,
       "chapter": 3,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Moroni 10:4\u20135",
+        "Doctrine and Covenants 1:17\u201323;",
+        "20:1\u201312",
+        "Joseph Smith\u2014History 1:27\u201362"
+      ]
     },
     {
-      "line": 4257,
+      "box": 18,
       "chapter": 3,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Moroni 10:3\u20135",
+        "Alma 5:45\u201346",
+        "Doctrine and Covenants 8:2\u20133",
+        "John 14:26"
+      ]
     },
     {
-      "line": 4820,
+      "box": 19,
       "chapter": 3,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "Acts 17:28\u201329 Hebrews 12:9",
+        "Moses 1:39",
+        "Abraham 3:25\u201326",
+        "John 17:3",
+        "Doctrine and Covenants 138:53\u201356",
+        "Abraham 3:22\u201328",
+        "Ephesians 1:3\u20134",
+        "Job 38:4\u20137",
+        "Jeremiah 1:5"
+      ]
     },
     {
-      "line": 4850,
+      "box": 20,
       "chapter": 3,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "1 Nephi 17:36",
+        "Alma 30:44",
+        "Doctrine and Covenants 88:41\u201347",
+        "Moses 2; 6:63",
+        "Genesis 1:27",
+        "Joseph Smith Translation, John 1:1\u20133",
+        "2 Corinthians 5:6\u20137"
+      ]
     },
     {
-      "line": 5007,
+      "box": 21,
       "chapter": 3,
-      "passages": 16
+      "passages": 16,
+      "citations": [
+        "2 Nephi 2",
+        "Moses 2:26\u201331; 3:15\u201317; 4:6\u201312; 7:32",
+        "Genesis 1:26\u201331; 2:15\u201317",
+        "2 Nephi 2:15\u201316, 22\u201327; 9:6\u201310",
+        "Alma 12:22\u201334",
+        "Moses 4; 5:8\u201312",
+        "Genesis 2:16\u201317; 3",
+        "Doctrine and Covenants 29:36, 39;",
+        "101:78"
+      ]
     },
     {
-      "line": 5119,
+      "box": 22,
       "chapter": 3,
-      "passages": 15
+      "passages": 15,
+      "citations": [
+        "2 Nephi 2:21; 9:27",
+        "Mosiah 3:19",
+        "Alma 12:21\u201324; 34:31\u201335; 42:2\u201310",
+        "Abraham 3:25\u201326",
+        "2 Nephi 2:26\u201329 Joshua 24:15",
+        "Moroni 7:12\u201319",
+        "Helaman 5:11",
+        "Romans 3:23",
+        "1 John 1:8\u201310",
+        "3 Nephi 27:19 Moses 6:57"
+      ]
     },
     {
-      "line": 5313,
+      "box": 23,
       "chapter": 3,
-      "passages": 19
+      "passages": 19,
+      "citations": [
+        "2 Nephi 2:6\u20138",
+        "Mosiah 3:5\u201312",
+        "Alma 7:11\u201313; 11:40; 34:8\u201310",
+        "Doctrine and Covenants 18:11\u201312;",
+        "19:15\u201319; 45:3\u20135; 76:40\u201343",
+        "John 3:16\u201317",
+        "1 John 1:7",
+        "2 Nephi 9:6\u20137, 13",
+        "Mosiah 15:7\u201312",
+        "Alma 11:42\u201345; 40:23",
+        "Helaman 14:15\u201319",
+        "Luke 24:1\u201310, 36\u201339",
+        "John 11:25\u201326",
+        "1 Corinthians 15:20\u201322, 41\u201342"
+      ]
     },
     {
-      "line": 5415,
+      "box": 24,
       "chapter": 3,
-      "passages": 6
+      "passages": 6,
+      "citations": [
+        "Alma 34:34; 40",
+        "Doctrine and Covenants 138",
+        "1 Peter 3:18\u201320; 4:6",
+        "Ecclesiastes 12:7"
+      ]
     },
     {
-      "line": 5498,
+      "box": 25,
       "chapter": 3,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "2 Nephi 9:6\u20137, 13",
+        "Alma 11:42\u201344; 22:14; 42:13\u201315,",
+        "21\u201325",
+        "1 Corinthians 15:20\u201322"
+      ]
     },
     {
-      "line": 5654,
+      "box": 26,
       "chapter": 3,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "2 Nephi 9:15",
+        "Mosiah 3:24",
+        "3 Nephi 27:14\u201316",
+        "Doctrine and Covenants 76:50\u2013113;",
+        "88:20\u201332; 137:7\u201310",
+        "John 14:2",
+        "Romans 14:10",
+        "1 Corinthians 15:40\u201341",
+        "2 Corinthians 12:2"
+      ]
     },
     {
-      "line": 6111,
+      "box": 27,
       "chapter": 3,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Alma 11:40 John 3:16\u201317",
+        "2 Nephi 2:6\u20138; 9:21\u201324",
+        "Alma 34:8\u20139, 14\u201316",
+        "Moroni 7:27\u201328",
+        "Doctrine and Covenants 45:3\u20135",
+        "1 Corinthians 15:20\u201322"
+      ]
     },
     {
-      "line": 6211,
+      "box": 28,
       "chapter": 3,
-      "passages": 13
+      "passages": 13,
+      "citations": [
+        "1 Nephi 7:12",
+        "2 Nephi 9:23; 25:23",
+        "Moroni 7:33\u201334; 10:7",
+        "Alma 32 Ephesians 2:8",
+        "Ether 12 Hebrews 11",
+        "1 Nephi 3:7",
+        "Doctrine and Covenants 130:20\u201321",
+        "James 2:17\u201326",
+        "Alma 34"
+      ]
     },
     {
-      "line": 6372,
+      "box": 29,
       "chapter": 3,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Alma 34:8\u201317; 36:6\u201321",
+        "Doctrine and Covenants 18:10\u201313;",
+        "58:42\u201343; 61:2",
+        "2 Corinthians 7:9\u201310",
+        "Helaman 5:10\u201311",
+        "Alma 12:32\u201334; 42:13, 21\u201324"
+      ]
     },
     {
-      "line": 6568,
+      "box": 30,
       "chapter": 3,
-      "passages": 24
+      "passages": 24,
+      "citations": [
+        "2 Nephi 31:4\u201318 Matthew 3:13\u201317",
+        "2 Nephi 31:13",
+        "Mosiah 18:8\u201310, 13",
+        "Alma 7:15\u201316",
+        "Doctrine and Covenants 20:37",
+        "2 Nephi 9:23",
+        "Mosiah 18:8\u201310",
+        "Alma 7:14\u201315",
+        "3 Nephi 11:23",
+        "Moroni 6:1\u20133",
+        "Doctrine and Covenants 20:37",
+        "Acts 2:37\u201339",
+        "Mosiah 4:11\u201312 Moroni 8:25\u201326",
+        "Doctrine and Covenants 22",
+        "Matthew 28:19\u201320",
+        "Hebrews 5:4",
+        "3 Nephi 18:1\u201318 Luke 22:15\u201320",
+        "Moroni 4 and 5 Doctrine and Covenants 20:75\u201379",
+        "Doctrine and Covenants 27:2 1 Corinthians 11:23\u201329"
+      ]
     },
     {
-      "line": 6755,
+      "box": 31,
       "chapter": 3,
-      "passages": 18
+      "passages": 18,
+      "citations": [
+        "Doctrine and Covenants 8:2\u20133;",
+        "130:22\u201323",
+        "Luke 24:31\u201332",
+        "John 3:5\u20138",
+        "Galatians 5:22\u201323",
+        "2 Nephi 32:1\u20135; 33:1\u20132",
+        "3 Nephi 27:13\u201322 (verse 20)",
+        "Moses 6:61",
+        "John 14:26",
+        "2 Nephi 31:11\u201312, 18, 21",
+        "3 Nephi 18:36\u201337; 19:13; 27:19\u201320",
+        "Doctrine and Covenants 19:31;",
+        "20:38, 41; 33:15",
+        "Acts 19:1\u20136"
+      ]
     },
     {
-      "line": 6861,
+      "box": 32,
       "chapter": 3,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "2 Nephi 31:14\u201320",
+        "3 Nephi 27:13\u201322",
+        "Matthew 10:22",
+        "1 Nephi 13:37; 22:31",
+        "3 Nephi 15:9",
+        "Doctrine and Covenants 14:7"
+      ]
     },
     {
-      "line": 6963,
+      "box": 33,
       "chapter": 3,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "2 Nephi 25:26",
+        "3 Nephi 18:21",
+        "Doctrine and Covenants 68:25",
+        "Moses 2:27\u201328; 5:1",
+        "Abraham 2:11",
+        "Ephesians 3:14\u201315",
+        "Genesis 12:3"
+      ]
     },
     {
-      "line": 7271,
+      "box": 34,
       "chapter": 3,
-      "passages": 14
+      "passages": 14,
+      "citations": [
+        "2 Nephi 32:8\u20139",
+        "Enos 1:1\u201312",
+        "Alma 6:6; 13:28; 34:17\u201328; 37:36\u201337",
+        "3 Nephi 18:20",
+        "Moroni 10:3\u20135",
+        "Doctrine and Covenants 6:22\u201323;",
+        "8:2\u20133; 9:7\u20139; 10:5; 19:28; 42:14"
+      ]
     },
     {
-      "line": 7299,
+      "box": 35,
       "chapter": 3,
-      "passages": 12
+      "passages": 12,
+      "citations": [
+        "1 Nephi 19:22\u201323",
+        "2 Nephi 9:50\u201351; 25:26; 29:1\u201313;",
+        "31:19\u201320; 32:3",
+        "Alma 32:28\u201330",
+        "Doctrine and Covenants 1:37\u201338;",
+        "18:34\u201336",
+        "John 20:31",
+        "2 Timothy 3:14\u201317",
+        "2 Peter 1:20\u201321"
+      ]
     },
     {
-      "line": 7539,
+      "box": 36,
       "chapter": 3,
-      "passages": 16
+      "passages": 16,
+      "citations": [
+        "2 Nephi 31:20",
+        "Mosiah 2\u20135",
+        "Moroni 7:45\u201348; 10:32",
+        "Matthew 22:36\u201340; 25:31\u201346",
+        "Mark 12:28\u201333",
+        "Luke 10:25\u201337",
+        "John 13:34\u201335; 14:15, 21",
+        "1 John 4:7\u20138, 20\u201321; 5:3",
+        "Joshua 22:5"
+      ]
     },
     {
-      "line": 7565,
+      "box": 37,
       "chapter": 3,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Mosiah 15:11\u201312",
+        "3 Nephi 12:1\u20132",
+        "Doctrine and Covenants 1:4, 37\u201338;",
+        "21:1\u20137; 136:37\u201338",
+        "Acts 10:34\u201343",
+        "Ephesians 2:19\u201320; 4:11\u201314",
+        "Amos 3:7"
+      ]
     },
     {
-      "line": 7709,
+      "box": 38,
       "chapter": 3,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "Mosiah 13:11\u201324",
+        "Doctrine and Covenants 35:24; 59:5\u20136",
+        "Exodus 20:1\u201317",
+        "Deuteronomy 5:6\u201321"
+      ]
     },
     {
-      "line": 7816,
+      "box": 39,
       "chapter": 3,
-      "passages": 6
+      "passages": 6,
+      "citations": [
+        "3 Nephi 12:27\u201330",
+        "Doctrine and Covenants 42:22; 59:6;",
+        "63:16",
+        "Matthew 5:27\u201328",
+        "Ephesians 5:3\u20135"
+      ]
     },
     {
-      "line": 7982,
+      "box": 40,
       "chapter": 3,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "Doctrine and Covenants 119; 120",
+        "Matthew 6:33",
+        "Hebrews 7:1\u20132",
+        "Genesis 14:18\u201320",
+        "Leviticus 27:30\u201333",
+        "Malachi 3:7\u201312"
+      ]
     },
     {
-      "line": 8081,
+      "box": 41,
       "chapter": 3,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Doctrine and Covenants 59:15\u201320;",
+        "88:124; 89",
+        "1 Corinthians 6:19\u201320"
+      ]
     },
     {
-      "line": 8184,
+      "box": 42,
       "chapter": 3,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "3 Nephi 18:1\u201312",
+        "Doctrine and Covenants 59:9\u201319",
+        "Moses 3:1\u20133",
+        "Matthew 12:10\u201313",
+        "Exodus 20:8\u201311; 31:12\u201313, 16\u201317",
+        "Isaiah 58:13\u201314"
+      ]
     },
     {
-      "line": 8271,
+      "box": 43,
       "chapter": 3,
-      "passages": 3
+      "passages": 3,
+      "citations": [
+        "Doctrine and Covenants 58:21; 134 Articles of Faith 1:12"
+      ]
     },
     {
-      "line": 8352,
+      "box": 44,
       "chapter": 3,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Mosiah 2:17; 4:15\u201316, 26; 18:8\u201310;",
+        "23:18",
+        "Doctrine and Covenants 42:38",
+        "Matthew 25:31\u201346",
+        "Luke 10:25\u201337",
+        "James 1:27; 2:17"
+      ]
     },
     {
-      "line": 8442,
+      "box": 45,
       "chapter": 3,
-      "passages": 2
+      "passages": 2,
+      "citations": [
+        "Doctrine and Covenants 88:81 Matthew 28:19\u201320"
+      ]
     },
     {
-      "line": 8583,
+      "box": 46,
       "chapter": 3,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "Alma 5:45\u201346; 6:6; 17:2\u20133",
+        "Moroni 6:5",
+        "Doctrine and Covenants 59:12\u201316;",
+        "88:76",
+        "Isaiah 58:6\u201311",
+        "Mosiah 4:16\u201327",
+        "Alma 4:12\u201313",
+        "Matthew 25:31\u201346"
+      ]
     },
     {
-      "line": 8788,
+      "box": 47,
       "chapter": 3,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "Mosiah 18:17",
+        "Alma 13:1\u201319",
+        "Doctrine and Covenants 20:38\u201365;",
+        "84:19\u201320; 107; 121:34\u201346",
+        "Articles of Faith 1:5",
+        "Luke 9:1\u20136",
+        "John 15:16",
+        "James 5:14\u201315"
+      ]
     },
     {
-      "line": 8948,
+      "box": 48,
       "chapter": 3,
-      "passages": 11
+      "passages": 11,
+      "citations": [
+        "Doctrine and Covenants 42:22; 49:15",
+        "Ephesians 5:25",
+        "Genesis 2:18, 24",
+        "Mosiah 4:14\u201315",
+        "Alma 56:47; 57:21",
+        "3 Nephi 18:21",
+        "Doctrine and Covenants 68:25\u201328",
+        "Ephesians 6:4",
+        "Proverbs 22:6"
+      ]
     },
     {
-      "line": 9062,
+      "box": 49,
       "chapter": 3,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "Doctrine and Covenants 128; 138",
+        "1 Corinthians 15:29",
+        "1 Peter 3:18\u201321; 4:6"
+      ]
     },
     {
-      "line": 9214,
+      "box": 50,
+      "chapter": 3,
+      "passages": 5,
+      "citations": [
+        "Doctrine and Covenants 43:16; 95:8\u20139; 97:10\u201316; 109; 131:1\u20134"
+      ]
+    },
+    {
+      "box": 51,
       "chapter": 4,
-      "passages": 5
+      "passages": 10,
+      "citations": [
+        "2 Nephi 33:1\u20132",
+        "Doctrine and Covenants 42:11\u201317;",
+        "50:13\u201322",
+        "Acts 2:37\u201338",
+        "1 Corinthians 2:11\u201314",
+        "Alma 32:27\u201328",
+        "Doctrine and Covenants 42:14",
+        "John 7:17",
+        "Doctrine and Covenants 50:13\u201314, 17\u201322).",
+        "(Doctrine and Covenants 42:14)."
+      ]
     },
     {
-      "line": 9547,
+      "box": 52,
       "chapter": 4,
-      "passages": 10
+      "passages": 23,
+      "citations": [
+        "Helaman 10:17 Doctrine and Covenants 31:11;",
+        "75:26\u201327; 79:1\u20132",
+        "2 Nephi 32:2\u20135 Doctrine and Covenants 28:15; 52:3\u20134",
+        "2 Nephi 33:1",
+        "Alma 5:43\u201346; 11:22",
+        "Helaman 5:18",
+        "Doctrine and Covenants 33:8\u201310;",
+        "75:3\u20135; 100:5\u20138",
+        "Matthew 10:19\u201320",
+        "Mark 13:11",
+        "1 Corinthians 2:4\u20135, 12\u201313",
+        "Exodus 4:10\u201312",
+        "Mosiah 18:19\u201320",
+        "Doctrine and Covenants 18:32\u201336;",
+        "42:12\u201317; 80:4",
+        "Luke 24:13\u201332"
+      ]
     },
     {
-      "line": 9946,
+      "box": 53,
       "chapter": 4,
-      "passages": 23
+      "passages": 6,
+      "citations": [
+        "Jacob 6:8\u20139",
+        "3 Nephi 29:5\u20136",
+        "Mormon 9:7\u20139",
+        "Moroni 10:7\u20138",
+        "Doctrine and Covenants 11:25\u201326",
+        "1 Thessalonians 5:19\u201320"
+      ]
     },
     {
-      "line": 10134,
-      "chapter": 4,
-      "passages": 6
-    },
-    {
-      "line": 10516,
+      "box": 54,
       "chapter": 5,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "Doctrine and Covenants 1:29; 3:19\u201320;",
+        "19:26\u201327; 20:5\u201316; 33:16; 42:12",
+        "Moses 7:62"
+      ]
     },
     {
-      "line": 10598,
+      "box": 55,
       "chapter": 5,
-      "passages": 16
+      "passages": 16,
+      "citations": [
+        "1 Nephi 6:4\u20136; 9:3\u20135",
+        "2 Nephi 4:15\u201316; 25:23\u201329; 26:15\u201316;",
+        "29:11\u201314; 33:13\u201315",
+        "Jacob 1:4\u20138; 4:1\u20136, 12",
+        "Enos 1:13",
+        "Jarom 1:2",
+        "Omni 1:25\u201326",
+        "Words of Mormon 1:3\u20138",
+        "Alma 37:2, 14",
+        "3 Nephi 5:14\u201315",
+        "Mormon 8:35"
+      ]
     },
     {
-      "line": 11330,
+      "box": 56,
       "chapter": 6,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "3 Nephi 27:21, 27",
+        "John 13:1\u201316",
+        "1 Peter 2:21",
+        "2 Nephi 28:30",
+        "Moroni 8:25\u201326",
+        "Doctrine and Covenants 93:12\u201313",
+        "center it in Jesus Christ (see Acts 4:10\u201312;",
+        "Mosiah 3:17; Moroni 7:24\u201326). When you",
+        "3 Nephi 27:16, 20)."
+      ]
     },
     {
-      "line": 11420,
+      "box": 57,
       "chapter": 6,
-      "passages": 14
+      "passages": 14,
+      "citations": [
+        "Alma 32:21",
+        "Ether 12:6",
+        "Hebrews 11:1; see footnote b",
+        "Mosiah 4:6\u201312",
+        "Alma 5:46",
+        "Alma 32",
+        "Helaman 15:7\u20138",
+        "Ether 12:7\u201322",
+        "Moroni 7:33",
+        "Doctrine and Covenants 11:9\u201310",
+        "Romans 10:17",
+        "Hebrews 11",
+        "Mosiah 5 Helaman 5:9\u201312"
+      ]
     },
     {
-      "line": 11572,
+      "box": 58,
       "chapter": 6,
-      "passages": 6
+      "passages": 6,
+      "citations": [
+        "2 Nephi 31:20",
+        "Ether 12:4, 32",
+        "Moroni 7:40\u201342",
+        "Doctrine and Covenants 138:14",
+        "Hebrews 6:10\u201320",
+        "(Matthew 22:36\u201339)."
+      ]
     },
     {
-      "line": 11604,
+      "box": 59,
       "chapter": 6,
-      "passages": 13
+      "passages": 13,
+      "citations": [
+        "Moroni 7:45\u201348",
+        "1 Corinthians 13",
+        "1 Nephi 19:9",
+        "Alma 7:11\u201313",
+        "Ether 12:33\u201334",
+        "Luke 7:12\u201315",
+        "2 Nephi 26:30",
+        "Mosiah 2:17; 28:3",
+        "Alma 7:24",
+        "Ether 12:28",
+        "Doctrine and Covenants 88:125",
+        "1 Timothy 4:12"
+      ]
     },
     {
-      "line": 11700,
+      "box": 60,
       "chapter": 6,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "Doctrine and Covenants 25:2; 46:33;",
+        "121:45\u201346",
+        "2 Peter 1:3\u20138",
+        "Integrity flows from the first great commandment to love God (see Matthew 22:37). Because"
+      ]
     },
     {
-      "line": 11789,
+      "box": 61,
       "chapter": 6,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Matthew 4:1\u201311",
+        "Alma 53:19\u201321",
+        "Daniel 6",
+        "Doctrine and Covenants 124:15"
+      ]
     },
     {
-      "line": 11868,
+      "box": 62,
       "chapter": 6,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Alma 17:2\u20133 Doctrine and Covenants 11:21;",
+        "88:77\u201380",
+        "2 Nephi 32:1\u20135",
+        "Moroni 10:5",
+        "Doctrine and Covenants 42:61;",
+        "76:5\u201310; 88:118"
+      ]
     },
     {
-      "line": 11966,
+      "box": 63,
       "chapter": 6,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Mosiah 24:9\u201316",
+        "Alma 31:31; 32:41\u201343; 34:40\u201341",
+        "Romans 5:3\u20135; 8:24\u201325",
+        "2 Corinthians 6:1\u201310",
+        "James 5:10\u201311",
+        "lyst for spiritual growth (see Ether 12:27)."
+      ]
     },
     {
-      "line": 12052,
+      "box": 64,
       "chapter": 6,
-      "passages": 17
+      "passages": 17,
+      "citations": [
+        "2 Nephi 9:28\u201329",
+        "Mosiah 4:11\u201312",
+        "Alma 5:26\u201329; 26:12",
+        "Matthew 26:39",
+        "Alma 32:1\u201316",
+        "Ether 12:27",
+        "Doctrine and Covenants 12:8; 112:10;",
+        "136:32\u201333",
+        "Matthew 23:12",
+        "1 Nephi 15:7\u201311; 16:1\u20133",
+        "2 Timothy 3:1\u20134",
+        "Proverbs 13:10",
+        "Lord\u2019s work (see Alma 26:16).",
+        "leaders to tell you what to do (see Doctrine and Covenants 58:27\u201329)."
+      ]
     },
     {
-      "line": 12143,
+      "box": 65,
       "chapter": 6,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Moroni 9:6",
+        "Doctrine and Covenants 10:4;",
+        "107:99\u2013100",
+        "Mosiah 4:26\u201327 Doctrine and Covenants 75:2\u20135;",
+        "123:12\u201314; 127:4; 130:20\u201321",
+        "Doctrine and Covenants 58:26\u201329"
+      ]
     },
     {
-      "line": 12179,
+      "box": 66,
       "chapter": 6,
-      "passages": 12
+      "passages": 12,
+      "citations": [
+        "Mosiah 5:8; 15:7",
+        "Alma 56:45\u201348; 57:21\u201327",
+        "Doctrine and Covenants 75:2\u20135;",
+        "82:8\u201310; 123:12\u201314; 127:4; 130:20\u201321",
+        "Matthew 7:24\u201327",
+        "John 7:17; 14:15"
+      ]
     },
     {
-      "line": 12270,
+      "box": 67,
       "chapter": 6,
-      "passages": 7
+      "passages": 7,
+      "citations": [
+        "Mosiah 3:19",
+        "Alma 7:23",
+        "Doctrine and Covenants 4; 121:41\u201345",
+        "Articles of Faith 1:13",
+        "Philippians 4:8",
+        "2 Peter 1:5\u20138"
+      ]
     },
     {
-      "line": 13374,
+      "box": 68,
       "chapter": 8,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "Moses 1:39",
+        "Doctrine and Covenants 88:119",
+        "Abraham 4\u20135",
+        "Luke 14:28\u201332"
+      ]
     },
     {
-      "line": 13408,
+      "box": 69,
       "chapter": 8,
-      "passages": 3
+      "passages": 3,
+      "citations": [
+        "Alma 17:1\u20133 Ether 2:23\u201325; 3:1\u20136"
+      ]
     },
     {
-      "line": 13975,
+      "box": 70,
       "chapter": 8,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Doctrine and Covenants 58:26\u201333; 101:78",
+        "2 Nephi 2:26\u201329 Helaman 14:30\u201331",
+        "Doctrine and Covenants 38:23\u201325 Hebrews 13:17\u201318",
+        "Doctrine and Covenants 51:19; 78:22"
+      ]
     },
     {
-      "line": 14600,
+      "box": 71,
       "chapter": 9,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Alma 16:16\u201317 Doctrine and Covenants 33:6;",
+        "84:45\u201347, 88; 136:32\u201333"
+      ]
     },
     {
-      "line": 15053,
+      "box": 72,
       "chapter": 9,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Doctrine and Covenants 24:12; 28:16; 33:7\u201315; 60:2\u20133, 7"
+      ]
     },
     {
-      "line": 15753,
+      "box": 73,
       "chapter": 9,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Doctrine and Covenants 2; 110:14\u201316;",
+        "128:16\u201318; 138:32\u201334",
+        "Malachi 4:5\u20136",
+        "1 Corinthians 15:29 1 Peter 3:19; 4:6"
+      ]
     },
     {
-      "line": 16671,
+      "box": 74,
       "chapter": 10,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "1 Nephi 19:23",
+        "2 Nephi 4:15\u201316; 32:3",
+        "Doctrine and Covenants 20:7\u201312",
+        "2 Timothy 3:15\u201317"
+      ]
     },
     {
-      "line": 16763,
+      "box": 75,
       "chapter": 10,
-      "passages": 5
+      "passages": 5,
+      "citations": [
+        "2 Nephi 33:1",
+        "Doctrine and Covenants 62:3; 84:61;",
+        "100:5\u20138",
+        "John 15:26"
+      ]
     },
     {
-      "line": 16956,
+      "box": 76,
       "chapter": 10,
-      "passages": 4
+      "passages": 4,
+      "citations": [
+        "Read Doctrine and Covenants 84:85. What does it mean to be given \u201cthat portion that",
+        "Doctrine and Covenants 68:2\u20133;",
+        "100:5\u20138",
+        "Matthew 10:19\u201320"
+      ]
     },
     {
-      "line": 17144,
+      "box": 77,
       "chapter": 10,
-      "passages": 12
+      "passages": 12,
+      "citations": [
+        "Mosiah 8:3; 27:35",
+        "Alma 12:1",
+        "3 Nephi 26:1",
+        "2 Nephi 28:30",
+        "Jacob 4:13",
+        "Doctrine and Covenants 98:11\u201312",
+        "2 Nephi 25:4, 7, 28; 32:7 Alma 13:23",
+        "2 Nephi 31:3 Doctrine and Covenants 1:24"
+      ]
     },
     {
-      "line": 18411,
+      "box": 78,
       "chapter": 11,
-      "passages": 9
+      "passages": 9,
+      "citations": [
+        "Alma 5:62",
+        "Moroni 7:13",
+        "2 Nephi 31",
+        "Mosiah 2:41",
+        "Alma 7:14\u201316; 32:27",
+        "Doctrine and Covenants 14:7; 20:37",
+        "John 7:17"
+      ]
     },
     {
-      "line": 18586,
+      "box": 79,
       "chapter": 11,
-      "passages": 3
+      "passages": 3,
+      "citations": [
+        "Alma 37:17 Doctrine and Covenants 1:37; 76:5\u201310"
+      ]
     },
     {
-      "line": 19040,
+      "box": 80,
       "chapter": 12,
-      "passages": 10
+      "passages": 10,
+      "citations": [
+        "Acts 2:37\u201339",
+        "2 Nephi 9:23; 31:4\u201313",
+        "Mosiah 18:8\u201310, 13",
+        "Alma 7:14\u201315",
+        "3 Nephi 27:13\u201322",
+        "Moroni 6:1\u20134; 8:25\u201326",
+        "Doctrine and Covenants 20:37; 22"
+      ]
     },
     {
-      "line": 20211,
+      "box": 81,
       "chapter": 13,
-      "passages": 13
+      "passages": 13,
+      "citations": [
+        "2 Nephi 26:24\u201328, 33",
+        "Alma 26:37",
+        "Moroni 7:48",
+        "Matthew 22:36\u201339; 25:40",
+        "John 13:34\u201335",
+        "Acts 10:34",
+        "3 Nephi 18:24\u201325 Doctrine and Covenants 60:2",
+        "Alma 5:33\u201334 Moroni 10:32",
+        "2:19; see also 1 Corinthians 12:12\u201327). Work",
+        "upon the merits of Christ\u201d (Moroni 6:4)."
+      ]
     },
     {
-      "line": 20402,
+      "box": 82,
       "chapter": 13,
-      "passages": 8
+      "passages": 8,
+      "citations": [
+        "Doctrine and Covenants 18:10\u201316 Luke 15:4\u201310",
+        "Alma 31:5, 34\u201338",
+        "Alma 32\u201334",
+        "Alma 4:19",
+        "Alma 5"
+      ]
     }
   ],
   "unique_passage_count": 602,
@@ -5581,13 +6275,7 @@
             20,
             21
           ]
-        }
-      ]
-    },
-    {
-      "id": "preach-my-gospel-chapter-4",
-      "name": "PMG 4: Seek and Rely on the Spirit",
-      "passages": [
+        },
         {
           "canon": "DoctrineAndCovenants",
           "book": "D&C",
@@ -5716,7 +6404,13 @@
             3,
             4
           ]
-        },
+        }
+      ]
+    },
+    {
+      "id": "preach-my-gospel-chapter-4",
+      "name": "PMG 4: Seek and Rely on the Spirit",
+      "passages": [
         {
           "canon": "BookOfMormon",
           "book": "2 Nephi",
