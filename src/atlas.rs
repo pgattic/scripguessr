@@ -404,6 +404,156 @@ const FOURTH_NEPHI_PEACE: &[AtlasSpan] = &[AtlasSpan {
     note: "Christ's disciples establish generations of unity and peace before pride and division return (4 Nephi 1).",
 }];
 
+const ENOS: &[AtlasSpan] = &[AtlasSpan {
+    book: "Enos",
+    start: 1,
+    end: 1,
+    note: "Enos prays for forgiveness, then for the Nephites and Lamanites, and receives covenant assurances (Enos 1).",
+}];
+
+const ALMA_ELDER: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Mosiah",
+        start: 17,
+        end: 18,
+        note: "Alma believes Abinadi, records his words, and organizes the church at the Waters of Mormon (Mosiah 17-18).",
+    },
+    AtlasSpan {
+        book: "Mosiah",
+        start: 23,
+        end: 26,
+        note: "Alma's people are delivered from bondage, join Mosiah's people, and establish churches throughout Zarahemla (Mosiah 23-26).",
+    },
+];
+
+const AMULEK: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Alma",
+        start: 8,
+        end: 16,
+        note: "Amulek joins Alma in Ammonihah, testifies of his conversion, and teaches through persecution and deliverance (Alma 8-16).",
+    },
+    AtlasSpan {
+        book: "Alma",
+        start: 31,
+        end: 35,
+        note: "Amulek accompanies the mission to the Zoramites and teaches them about prayer and Christ's Atonement (Alma 31-35).",
+    },
+];
+
+const HELAMAN: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Alma",
+        start: 36,
+        end: 37,
+        note: "Alma recounts his conversion to Helaman and entrusts him with the sacred records (Alma 36-37).",
+    },
+    AtlasSpan {
+        book: "Alma",
+        start: 45,
+        end: 45,
+        note: "Helaman succeeds Alma in the ministry and preserves his father's prophecy (Alma 45).",
+    },
+    AtlasSpan {
+        book: "Alma",
+        start: 53,
+        end: 58,
+        note: "Helaman leads the sons of the people of Ammon and reports their campaigns to Moroni (Alma 53-58).",
+    },
+];
+
+const MORMON_MINISTRY: &[AtlasSpan] = &[AtlasSpan {
+    book: "Mormon",
+    start: 1,
+    end: 7,
+    note: "Mormon becomes the record keeper and military leader, preaches repentance, and witnesses the destruction at Cumorah (Mormon 1-7).",
+}];
+
+const MORONI_WITNESS: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Mormon",
+        start: 8,
+        end: 9,
+        note: "Moroni completes his father's record and addresses future readers who will receive it (Mormon 8-9).",
+    },
+    AtlasSpan {
+        book: "Ether",
+        start: 12,
+        end: 12,
+        note: "Moroni pauses the Jaredite account to teach about faith, hope, weakness, and grace (Ether 12).",
+    },
+    AtlasSpan {
+        book: "Moroni",
+        start: 1,
+        end: 10,
+        note: "Moroni preserves ordinances, teachings, letters, and his final invitation to seek a witness from God (Moroni 1-10).",
+    },
+];
+
+const BRASS_PLATES: &[AtlasSpan] = &[AtlasSpan {
+    book: "1 Nephi",
+    start: 3,
+    end: 5,
+    note: "Lehi's sons return to Jerusalem, obtain the brass plates from Laban, and bring them into the wilderness (1 Nephi 3-5).",
+}];
+
+const WATERS_OF_MORMON: &[AtlasSpan] = &[AtlasSpan {
+    book: "Mosiah",
+    start: 18,
+    end: 18,
+    note: "Alma teaches the baptismal covenant and organizes the church at the Waters of Mormon (Mosiah 18).",
+}];
+
+const AMMON_AND_LAMONI: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 17,
+    end: 20,
+    note: "Ammon serves and teaches King Lamoni, whose household receives a witness of Christ (Alma 17-20).",
+}];
+
+const ZORAMITE_MISSION: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 31,
+    end: 35,
+    note: "Alma and his companions encounter worship on the Rameumptom and teach the poor Zoramites faith in Christ (Alma 31-35).",
+}];
+
+const NEPHITE_WARS: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 43,
+    end: 63,
+    note: "A long sequence of wars includes the title of liberty, fortified cities, internal rebellion, and campaigns on two fronts (Alma 43-63).",
+}];
+
+const OLIVE_TREE: &[AtlasSpan] = &[AtlasSpan {
+    book: "Jacob",
+    start: 5,
+    end: 6,
+    note: "Jacob records Zenos's allegory of the olive trees and invites Israel to labor with the Lord of the vineyard (Jacob 5-6).",
+}];
+
+const SERMON_AT_TEMPLE: &[AtlasSpan] = &[AtlasSpan {
+    book: "3 Nephi",
+    start: 12,
+    end: 14,
+    note: "Christ teaches the people at Bountiful the higher law and the pattern of covenant discipleship (3 Nephi 12-14).",
+}];
+
+const GATHERING_ISRAEL: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "3 Nephi",
+        start: 15,
+        end: 16,
+        note: "Christ identifies the people as other sheep and explains the gathering of covenant Israel (3 Nephi 15-16).",
+    },
+    AtlasSpan {
+        book: "3 Nephi",
+        start: 20,
+        end: 22,
+        note: "Christ teaches the covenant, gathering, and latter-day work using Isaiah and Micah (3 Nephi 20-22).",
+    },
+];
+
 pub const LAYERS: &[AtlasLayer] = &[
     AtlasLayer {
         id: "lehi-journey",
@@ -580,6 +730,118 @@ pub const LAYERS: &[AtlasLayer] = &[
         tone: "green",
         summary: "A Zion society followed by renewed division.",
         spans: FOURTH_NEPHI_PEACE,
+    },
+    AtlasLayer {
+        id: "enos",
+        name: "Enos",
+        category: AtlasCategory::Person,
+        tone: "gold",
+        summary: "A prayer of repentance, intercession, and covenant assurance.",
+        spans: ENOS,
+    },
+    AtlasLayer {
+        id: "alma-elder",
+        name: "Alma the Elder",
+        category: AtlasCategory::Person,
+        tone: "green",
+        summary: "From Abinadi's court to leadership of the church.",
+        spans: ALMA_ELDER,
+    },
+    AtlasLayer {
+        id: "amulek",
+        name: "Amulek",
+        category: AtlasCategory::Person,
+        tone: "orange",
+        summary: "Conversion and ministry beside Alma in two major missions.",
+        spans: AMULEK,
+    },
+    AtlasLayer {
+        id: "helaman",
+        name: "Helaman",
+        category: AtlasCategory::Person,
+        tone: "blue",
+        summary: "Record keeper, high priest, and leader of the young warriors.",
+        spans: HELAMAN,
+    },
+    AtlasLayer {
+        id: "mormon-ministry",
+        name: "Mormon",
+        category: AtlasCategory::Person,
+        tone: "teal",
+        summary: "Prophet, historian, and witness of his people's fall.",
+        spans: MORMON_MINISTRY,
+    },
+    AtlasLayer {
+        id: "moroni-witness",
+        name: "Moroni",
+        category: AtlasCategory::Person,
+        tone: "violet",
+        summary: "The final record keeper's witness to future readers.",
+        spans: MORONI_WITNESS,
+    },
+    AtlasLayer {
+        id: "brass-plates",
+        name: "Obtaining the brass plates",
+        category: AtlasCategory::Narrative,
+        tone: "cyan",
+        summary: "The return to Jerusalem and preservation of scripture.",
+        spans: BRASS_PLATES,
+    },
+    AtlasLayer {
+        id: "waters-mormon",
+        name: "Waters of Mormon",
+        category: AtlasCategory::Event,
+        tone: "green",
+        summary: "A baptismal covenant and the beginning of a church community.",
+        spans: WATERS_OF_MORMON,
+    },
+    AtlasLayer {
+        id: "ammon-lamoni",
+        name: "Ammon and Lamoni",
+        category: AtlasCategory::Narrative,
+        tone: "yellow",
+        summary: "Service, conversion, and revelation in the land of Ishmael.",
+        spans: AMMON_AND_LAMONI,
+    },
+    AtlasLayer {
+        id: "zoramite-mission",
+        name: "Zoramite mission",
+        category: AtlasCategory::Narrative,
+        tone: "rose",
+        summary: "The Rameumptom and teaching faith among the poor.",
+        spans: ZORAMITE_MISSION,
+    },
+    AtlasLayer {
+        id: "nephite-wars",
+        name: "Nephite wars",
+        category: AtlasCategory::Event,
+        tone: "red",
+        summary: "The extended military struggle late in the book of Alma.",
+        spans: NEPHITE_WARS,
+    },
+    AtlasLayer {
+        id: "olive-tree",
+        name: "Allegory of the olive tree",
+        category: AtlasCategory::Teaching,
+        tone: "green",
+        summary: "Zenos's panorama of scattering, gathering, and covenant labor.",
+        spans: OLIVE_TREE,
+    },
+    AtlasLayer {
+        id: "sermon-temple",
+        name: "Sermon at the temple",
+        category: AtlasCategory::Teaching,
+        tone: "gold",
+        summary: "Christ's higher law and pattern of discipleship.",
+        spans: SERMON_AT_TEMPLE,
+    },
+    AtlasLayer {
+        id: "gathering-israel",
+        name: "Gathering of Israel",
+        category: AtlasCategory::Teaching,
+        tone: "cyan",
+        summary: "Christ explains covenant Israel and the latter-day gathering.",
+        spans: GATHERING_ISRAEL,
     },
 ];
 
