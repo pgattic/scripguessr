@@ -770,20 +770,6 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                         }
                     }
                 } else {
-                    nav { class: "atlas-book-index", aria_label: "Jump to book",
-                        for book in books.iter() {
-                            {
-                                let target = atlas_book_id(&book.name);
-                                rsx! {
-                                    button {
-                                        class: "text-button",
-                                        onclick: move |_| scroll_to_atlas_book(&target),
-                                        "{book.name}"
-                                    }
-                                }
-                            }
-                        }
-                    }
                     div { class: "atlas-scroll",
                         div { class: "atlas-books",
                             for book in books.iter() {
@@ -801,7 +787,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                         }
                                     });
                                     rsx! {
-                                    div { class: "atlas-book-row", id: atlas_book_id(&book.name),
+                                    div { class: "atlas-book-row",
                                     div { class: "atlas-book-heading",
                                         strong { class: "atlas-book-name", "{book.name}" }
                                         if let Some(chronology) = chronology {
@@ -1022,36 +1008,6 @@ fn clear_deprecated_atlas_storage() {
 
 #[cfg(not(target_arch = "wasm32"))]
 fn clear_deprecated_atlas_storage() {}
-
-fn atlas_book_id(book: &str) -> String {
-    format!(
-        "atlas-book-{}",
-        book.chars()
-            .map(|character| if character.is_ascii_alphanumeric() {
-                character.to_ascii_lowercase()
-            } else {
-                '-'
-            })
-            .collect::<String>()
-    )
-}
-
-#[cfg(target_arch = "wasm32")]
-fn scroll_to_atlas_book(target: &str) {
-    let Some(element) = web_sys::window()
-        .and_then(|window| window.document())
-        .and_then(|document| document.get_element_by_id(target))
-    else {
-        return;
-    };
-    let options = web_sys::ScrollIntoViewOptions::new();
-    options.set_behavior(web_sys::ScrollBehavior::Smooth);
-    options.set_block(web_sys::ScrollLogicalPosition::Start);
-    element.scroll_into_view_with_scroll_into_view_options(&options);
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn scroll_to_atlas_book(_target: &str) {}
 
 fn atlas_hits(selected: &[String], book: &str, chapter: u16) -> Vec<AtlasLayer> {
     selected

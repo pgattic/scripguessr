@@ -720,26 +720,6 @@ button {
   padding: 4px 2px 10px;
 }
 
-.atlas-book-index {
-  position: sticky;
-  top: 0;
-  z-index: 3;
-  display: flex;
-  gap: 2px 8px;
-  flex-wrap: wrap;
-  margin: 0 -4px 10px;
-  padding: 8px 4px;
-  border-block: 1px solid var(--border-soft);
-  background: color-mix(in srgb, var(--surface) 94%, transparent);
-  backdrop-filter: blur(8px);
-}
-
-.atlas-book-index .text-button {
-  padding: 2px;
-  font-size: 0.76rem;
-  text-decoration: none;
-}
-
 .atlas-books {
   columns: 181px;
   column-gap: 24px;
