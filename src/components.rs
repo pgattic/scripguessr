@@ -6,7 +6,9 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 
 use crate::api::{ChapterRequest, ChapterVerse};
-use crate::atlas::{AtlasCategory, AtlasLayer, LAYERS, layer as atlas_layer};
+use crate::atlas::{
+    AtlasCategory, AtlasChapter, AtlasLayer, AtlasState, LAYERS, layer as atlas_layer,
+};
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_chapter, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
@@ -714,14 +716,14 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .find(|metadata| metadata.canon == Canon::BookOfMormon)
         .map(|metadata| metadata.books.clone())
         .unwrap_or_default();
-    let mut selected_layers = use_signal(|| vec!["lehi-journey".to_string()]);
-    let mut selected_chapter = use_signal(|| None::<(String, u16)>);
+    let mut atlas_state = use_signal(AtlasState::load);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
     let reader_loading = use_signal(|| false);
     let reader_error = use_signal(|| None::<String>);
-    let active_ids = selected_layers();
+    let state = atlas_state();
+    let active_ids = state.selected_layers.clone();
     let practice_set = atlas_practice_set(&active_ids, &books);
-    let selected = selected_chapter();
+    let selected = state.selected_chapter.clone();
 
     rsx! {
         div { class: "atlas-layout",
@@ -765,17 +767,42 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                         }
                     }
                 } else {
+                    nav { class: "atlas-book-index", aria_label: "Jump to book",
+                        for book in books.iter() {
+                            {
+                                let target = atlas_book_id(&book.name);
+                                rsx! {
+                                    button {
+                                        class: "text-button",
+                                        onclick: move |_| scroll_to_atlas_book(&target),
+                                        "{book.name}"
+                                    }
+                                }
+                            }
+                        }
+                    }
                     div { class: "atlas-scroll",
                         div { class: "atlas-books",
                             for book in books.iter() {
-                                div { class: "atlas-book-row",
+                                {
+                                    let book_has_hit = book.chapters.iter().any(|chapter| {
+                                        !atlas_hits(&active_ids, &book.name, *chapter).is_empty()
+                                    });
+                                    let book_class = if state.focus && !book_has_hit {
+                                        "atlas-book-row context-dimmed"
+                                    } else {
+                                        "atlas-book-row"
+                                    };
+                                    rsx! { div { class: book_class, id: atlas_book_id(&book.name),
                                     strong { class: "atlas-book-name", "{book.name}" }
                                     div { class: "atlas-chapters chapter-matrix",
                                         for chapter in book.chapters.iter().copied() {
                                             {
                                                 let book_name = book.name.clone();
                                                 let hits = atlas_hits(&active_ids, &book.name, chapter);
-                                                let selected_now = selected.as_ref() == Some(&(book.name.clone(), chapter));
+                                                let selected_now = selected.as_ref().is_some_and(|selected| {
+                                                    selected.book == book.name && selected.chapter == chapter
+                                                });
                                                 let mut class = "atlas-chapter".to_string();
                                                 if let Some(first) = hits.first() {
                                                     class.push_str(" highlighted tone-");
@@ -786,6 +813,9 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 }
                                                 if selected_now {
                                                     class.push_str(" selected");
+                                                }
+                                                if state.focus && hits.is_empty() {
+                                                    class.push_str(" context-dimmed");
                                                 }
                                                 let title = if hits.is_empty() {
                                                     format!("{} {}", book.name, chapter)
@@ -802,7 +832,15 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                         class,
                                                         title,
                                                         aria_label: "{book.name} chapter {chapter}",
-                                                        onclick: move |_| selected_chapter.set(Some((book_name.clone(), chapter))),
+                                                        onclick: move |_| {
+                                                            let mut next = atlas_state();
+                                                            next.selected_chapter = Some(AtlasChapter {
+                                                                book: book_name.clone(),
+                                                                chapter,
+                                                            });
+                                                            next.save();
+                                                            atlas_state.set(next);
+                                                        },
                                                         span { "{chapter}" }
                                                         if !hits.is_empty() {
                                                             i { class: "atlas-hit-markers",
@@ -816,6 +854,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                             }
                                         }
                                     }
+                                    } }
                                 }
                             }
                         }
@@ -827,11 +866,33 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 section { class: "panel atlas-layers-panel",
                     div { class: "picker-header",
                         h2 { "Layers" }
-                        if !active_ids.is_empty() {
-                            button {
-                                class: "text-button",
-                                onclick: move |_| selected_layers.set(Vec::new()),
-                                "Clear"
+                        div { class: "atlas-layer-actions",
+                            label { class: "atlas-focus-toggle",
+                                input {
+                                    r#type: "checkbox",
+                                    checked: state.focus,
+                                    disabled: active_ids.is_empty(),
+                                    onchange: move |_| {
+                                        let mut next = atlas_state();
+                                        next.focus = !next.focus;
+                                        next.save();
+                                        atlas_state.set(next);
+                                    }
+                                }
+                                span { "Focus" }
+                            }
+                            if !active_ids.is_empty() {
+                                button {
+                                    class: "text-button",
+                                    onclick: move |_| {
+                                        let mut next = atlas_state();
+                                        next.selected_layers.clear();
+                                        next.focus = false;
+                                        next.save();
+                                        atlas_state.set(next);
+                                    },
+                                    "Clear"
+                                }
                             }
                         }
                     }
@@ -848,13 +909,17 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 r#type: "checkbox",
                                                 checked: active,
                                                 onchange: move |_| {
-                                                    let mut next = selected_layers();
+                                                    let mut next = atlas_state();
                                                     if active {
-                                                        next.retain(|candidate| candidate != &id);
+                                                        next.selected_layers.retain(|candidate| candidate != &id);
                                                     } else {
-                                                        next.push(id.clone());
+                                                        next.selected_layers.push(id.clone());
                                                     }
-                                                    selected_layers.set(next);
+                                                    if next.selected_layers.is_empty() {
+                                                        next.focus = false;
+                                                    }
+                                                    next.save();
+                                                    atlas_state.set(next);
                                                 }
                                             }
                                             i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
@@ -871,7 +936,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 }
 
                 section { class: "panel atlas-detail-panel",
-                    if let Some((book, chapter)) = selected.clone() {
+                    if let Some(AtlasChapter { book, chapter }) = selected.clone() {
                         div { class: "picker-header",
                             h2 { "{book} {chapter}" }
                             button {
@@ -917,9 +982,25 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                             }
                         }
                     } else {
-                        div { class: "ready atlas-overview",
-                            span { class: "muted", "Atlas overview" }
-                            strong { "{LAYERS.len()} layers · 239 chapters" }
+                        if active_ids.len() == 1 {
+                            if let Some(active_layer) = atlas_layer(&active_ids[0]) {
+                                div { class: "atlas-layer-summary tone-{active_layer.tone}",
+                                    i { class: "atlas-layer-swatch" }
+                                    div {
+                                        span { class: "muted", "Focused layer" }
+                                        strong { "{active_layer.name}" }
+                                        p { "{active_layer.summary}" }
+                                        for span in active_layer.spans {
+                                            small { "{span.book} {span.start}-{span.end}" }
+                                        }
+                                    }
+                                }
+                            }
+                        } else {
+                            div { class: "ready atlas-overview",
+                                span { class: "muted", "Atlas overview" }
+                                strong { "{active_ids.len()} active layers · 239 chapters" }
+                            }
                         }
                     }
                 }
@@ -936,6 +1017,36 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         }
     }
 }
+
+fn atlas_book_id(book: &str) -> String {
+    format!(
+        "atlas-book-{}",
+        book.chars()
+            .map(|character| if character.is_ascii_alphanumeric() {
+                character.to_ascii_lowercase()
+            } else {
+                '-'
+            })
+            .collect::<String>()
+    )
+}
+
+#[cfg(target_arch = "wasm32")]
+fn scroll_to_atlas_book(target: &str) {
+    let Some(element) = web_sys::window()
+        .and_then(|window| window.document())
+        .and_then(|document| document.get_element_by_id(target))
+    else {
+        return;
+    };
+    let options = web_sys::ScrollIntoViewOptions::new();
+    options.set_behavior(web_sys::ScrollBehavior::Smooth);
+    options.set_block(web_sys::ScrollLogicalPosition::Start);
+    element.scroll_into_view_with_scroll_into_view_options(&options);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn scroll_to_atlas_book(_target: &str) {}
 
 fn atlas_hits(selected: &[String], book: &str, chapter: u16) -> Vec<AtlasLayer> {
     selected

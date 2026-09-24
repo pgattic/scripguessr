@@ -1,3 +1,83 @@
+use serde::{Deserialize, Serialize};
+
+#[cfg(target_arch = "wasm32")]
+const ATLAS_STORAGE_KEY: &str = "scripguessr.atlas.v1";
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AtlasChapter {
+    pub book: String,
+    pub chapter: u16,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub struct AtlasState {
+    pub selected_layers: Vec<String>,
+    pub focus: bool,
+    pub selected_chapter: Option<AtlasChapter>,
+}
+
+impl Default for AtlasState {
+    fn default() -> Self {
+        Self {
+            selected_layers: vec!["lehi-journey".to_string()],
+            focus: false,
+            selected_chapter: None,
+        }
+    }
+}
+
+impl AtlasState {
+    fn normalize(mut self) -> Self {
+        self.selected_layers
+            .retain(|id| LAYERS.iter().any(|layer| layer.id == id));
+        self.selected_layers.sort();
+        self.selected_layers.dedup();
+        if self.selected_layers.is_empty() {
+            self.focus = false;
+        }
+        if self
+            .selected_chapter
+            .as_ref()
+            .is_some_and(|chapter| chapter.book.is_empty() || chapter.chapter == 0)
+        {
+            self.selected_chapter = None;
+        }
+        self
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn load() -> Self {
+        web_sys::window()
+            .and_then(|window| window.local_storage().ok().flatten())
+            .and_then(|storage| storage.get_item(ATLAS_STORAGE_KEY).ok().flatten())
+            .and_then(|stored| serde_json::from_str::<Self>(&stored).ok())
+            .unwrap_or_default()
+            .normalize()
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[allow(dead_code)]
+    pub fn load() -> Self {
+        Self::default()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn save(&self) {
+        let Some(storage) =
+            web_sys::window().and_then(|window| window.local_storage().ok().flatten())
+        else {
+            return;
+        };
+        if let Ok(serialized) = serde_json::to_string(self) {
+            let _ = storage.set_item(ATLAS_STORAGE_KEY, &serialized);
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[allow(dead_code)]
+    pub fn save(&self) {}
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AtlasCategory {
     Person,
@@ -259,5 +339,26 @@ mod tests {
                 .flat_map(|layer| layer.spans)
                 .all(|span| { !span.book.is_empty() && span.start > 0 && span.start <= span.end })
         );
+    }
+
+    #[test]
+    fn persisted_state_discards_unknown_layers_and_invalid_chapters() {
+        let state = AtlasState {
+            selected_layers: vec![
+                "alma-younger".to_string(),
+                "missing".to_string(),
+                "alma-younger".to_string(),
+            ],
+            focus: true,
+            selected_chapter: Some(AtlasChapter {
+                book: "Alma".to_string(),
+                chapter: 0,
+            }),
+        }
+        .normalize();
+
+        assert_eq!(state.selected_layers, ["alma-younger"]);
+        assert_eq!(state.selected_chapter, None);
+        assert!(state.focus);
     }
 }
