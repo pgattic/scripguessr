@@ -817,17 +817,6 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                             {
                                                 let book_name = book.name.clone();
                                                 let hits = atlas_hits(&active_ids, &book.name, chapter);
-                                                let selected_now = selected.as_ref() == Some(&(book.name.clone(), chapter));
-                                                let mut class = "atlas-chapter".to_string();
-                                                if !hits.is_empty() {
-                                                    class.push_str(" highlighted");
-                                                }
-                                                if hits.len() > 1 {
-                                                    class.push_str(" overlap");
-                                                }
-                                                if selected_now {
-                                                    class.push_str(" selected");
-                                                }
                                                 let title = if hits.is_empty() {
                                                     format!("{} {}", book.name, chapter)
                                                 } else {
@@ -840,7 +829,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 };
                                                 rsx! {
                                                     button {
-                                                        class,
+                                                        class: "atlas-chapter",
                                                         title,
                                                         aria_label: "{book.name} chapter {chapter}",
                                                         onclick: move |_| {

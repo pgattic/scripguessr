@@ -787,6 +787,7 @@ button {
 }
 
 .atlas-chapter {
+  appearance: none;
   position: relative;
   display: grid;
   place-items: center;
@@ -802,14 +803,9 @@ button {
   line-height: 1;
 }
 
-.atlas-chapter:hover,
-.atlas-chapter.selected {
+.atlas-chapter:hover {
   border-color: var(--control-border);
   color: var(--text);
-}
-
-.atlas-chapter.selected {
-  box-shadow: inset 0 0 0 1px var(--accent);
 }
 
 .atlas-hit-bands {
