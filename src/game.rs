@@ -217,21 +217,6 @@ impl Game {
         self.clear_guess();
     }
 
-    pub fn open_review(&mut self) {
-        self.screen = Screen::Review;
-        self.error = None;
-    }
-
-    pub fn open_study_sets(&mut self) {
-        self.screen = Screen::StudySets;
-        self.error = None;
-    }
-
-    pub fn open_atlas(&mut self) {
-        self.screen = Screen::Atlas;
-        self.error = None;
-    }
-
     pub fn create_study_set(&mut self) -> String {
         self.save_custom_study_set(StudySet {
             id: String::new(),
@@ -243,9 +228,8 @@ impl Game {
     }
 
     pub fn save_custom_study_set(&mut self, mut set: StudySet) -> String {
-        let mut number = self.custom_study_sets.sets.len() + 1;
         let id = loop {
-            let candidate = format!("custom-{number}");
+            let candidate = format!("custom-{:016x}", rand::random::<u64>());
             if self
                 .custom_study_sets
                 .sets
@@ -254,7 +238,6 @@ impl Game {
             {
                 break candidate;
             }
-            number += 1;
         };
         set.id = id.clone();
         self.custom_study_sets.sets.push(set);
@@ -280,11 +263,10 @@ impl Game {
             .sets
             .iter_mut()
             .find(|set| set.id == id)
+            && !set.passages.contains(&passage)
         {
-            if !set.passages.contains(&passage) {
-                set.passages.push(passage);
-                self.custom_study_sets.save();
-            }
+            set.passages.push(passage);
+            self.custom_study_sets.save();
         }
     }
 
@@ -772,9 +754,6 @@ fn scope_label(scope: &CanonScope) -> String {
 pub enum Screen {
     Setup,
     Playing,
-    Review,
-    StudySets,
-    Atlas,
 }
 
 #[derive(Clone, Copy, PartialEq)]

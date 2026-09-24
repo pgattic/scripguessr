@@ -2,10 +2,12 @@ use dioxus::prelude::*;
 
 use super::request_review_game;
 use crate::game::Game;
+use crate::routes::Route;
 use crate::stats::{ReviewItem, Stats};
 
 #[component]
 pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
+    let navigator = use_navigator();
     let review_count = stats.review_items.len();
 
     rsx! {
@@ -54,7 +56,9 @@ pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
                 div { class: "actions stats-actions",
                     button {
                         class: "button secondary",
-                        onclick: move |_| game.write().open_review(),
+                        onclick: move |_| {
+                            navigator.push(Route::Review {});
+                        },
                         "Review marked"
                     }
                 }
@@ -65,6 +69,7 @@ pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
 
 #[component]
 pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
+    let navigator = use_navigator();
     let mut selected_index = use_signal(|| 0_usize);
     let snapshot = game.read().clone();
     let items = snapshot.stats.review_items.clone();
@@ -102,7 +107,10 @@ pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
                 div { class: "actions",
                     button {
                         class: "button secondary",
-                        onclick: move |_| game.write().change_settings(),
+                        onclick: move |_| {
+                            game.write().change_settings();
+                            navigator.push(Route::Setup {});
+                        },
                         "Home"
                     }
                     if !items.is_empty() {

@@ -7,6 +7,7 @@ use crate::atlas::{
 };
 use crate::game::Game;
 use crate::loader::load_chapter;
+use crate::routes::Route;
 use crate::scriptures::{BookInfo, Canon};
 use crate::study_sets::{PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
 
@@ -19,6 +20,7 @@ struct AtlasReaderData {
 
 #[component]
 pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
+    let navigator = use_navigator();
     use_effect(clear_deprecated_atlas_storage);
     let snapshot = game.read().clone();
     let books = snapshot
@@ -51,7 +53,10 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                     div { class: "actions atlas-top-actions",
                         button {
                             class: "button secondary",
-                            onclick: move |_| game.write().change_settings(),
+                            onclick: move |_| {
+                                game.write().change_settings();
+                                navigator.push(Route::Setup {});
+                            },
                             "Home"
                         }
                         if let Some(set) = practice_set.clone() {

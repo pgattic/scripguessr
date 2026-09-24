@@ -4,30 +4,34 @@ use dioxus::prelude::*;
 
 use super::request_study_game;
 use crate::game::Game;
+use crate::routes::Route;
 use crate::scriptures::{BookScope, Canon};
 use crate::study_sets::{
     PromptPolicy, StudyGuessScope, StudyPassage, StudySet, built_in_study_sets,
 };
 
 #[component]
-pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
-    let mut selected_id = use_signal(|| "doctrinal-mastery-all".to_string());
+pub(super) fn StudySetsPanel(
+    game: Signal<Game>,
+    selected_id: String,
+    load_error: Option<String>,
+) -> Element {
+    let navigator = use_navigator();
     let snapshot = game.read().clone();
     let built_ins = built_in_study_sets();
     let custom_sets = snapshot.custom_study_sets.sets.clone();
     let selected = built_ins
         .iter()
-        .find(|set| set.id == selected_id())
+        .find(|set| set.id == selected_id)
         .cloned()
         .map(|set| (set, false))
         .or_else(|| {
             custom_sets
                 .iter()
-                .find(|set| set.id == selected_id())
+                .find(|set| set.id == selected_id)
                 .cloned()
                 .map(|set| (Arc::new(set), true))
-        })
-        .or_else(|| built_ins.first().cloned().map(|set| (set, false)));
+        });
 
     rsx! {
         div { class: "study-layout",
@@ -38,7 +42,7 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
                         class: "button secondary compact-button",
                         onclick: move |_| {
                             let id = game.write().create_study_set();
-                            selected_id.set(id);
+                            navigator.push(Route::StudySet { set_id: id });
                         },
                         "New set"
                     }
@@ -51,8 +55,10 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
                             let id = set.id.clone();
                             rsx! {
                                 button {
-                                    class: if selected_id() == set.id { "study-set-row active" } else { "study-set-row" },
-                                    onclick: move |_| selected_id.set(id.clone()),
+                                    class: if selected_id == set.id { "study-set-row active" } else { "study-set-row" },
+                                    onclick: move |_| {
+                                        navigator.push(Route::StudySet { set_id: id.clone() });
+                                    },
                                     strong { "{set.name}" }
                                     span { class: "muted", "{set.passages.len()} passages" }
                                 }
@@ -69,8 +75,10 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
                                 let id = set.id.clone();
                                 rsx! {
                                     button {
-                                        class: if selected_id() == set.id { "study-set-row active" } else { "study-set-row" },
-                                        onclick: move |_| selected_id.set(id.clone()),
+                                        class: if selected_id == set.id { "study-set-row active" } else { "study-set-row" },
+                                        onclick: move |_| {
+                                            navigator.push(Route::StudySet { set_id: id.clone() });
+                                        },
                                         strong { "{set.name}" }
                                         span { class: "muted", "{set.passages.len()} passages" }
                                     }
@@ -83,14 +91,22 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
                 div { class: "actions",
                     button {
                         class: "button secondary",
-                        onclick: move |_| game.write().change_settings(),
+                        onclick: move |_| {
+                            game.write().change_settings();
+                            navigator.push(Route::Setup {});
+                        },
                         "Home"
                     }
                 }
             }
 
             aside { class: "panel study-detail-panel",
-                if snapshot.study_metadata.is_empty() {
+                if let Some(error) = load_error {
+                    div { class: "callout warning",
+                        strong { "Study sets unavailable" }
+                        span { "{error}" }
+                    }
+                } else if snapshot.study_metadata.is_empty() {
                     div { class: "ready",
                         span { class: "muted", "Scripture catalog" }
                         strong { "Loading" }
@@ -100,7 +116,18 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
                         game,
                         set,
                         custom,
-                        selected_id,
+                    }
+                } else {
+                    div { class: "ready",
+                        span { class: "muted", "Study set" }
+                        strong { "Not found" }
+                        button {
+                            class: "button secondary",
+                            onclick: move |_| {
+                                navigator.replace(Route::StudyIndex {});
+                            },
+                            "Browse study sets"
+                        }
                     }
                 }
             }
@@ -109,12 +136,8 @@ pub(super) fn StudySetsPanel(game: Signal<Game>) -> Element {
 }
 
 #[component]
-fn StudySetDetail(
-    game: Signal<Game>,
-    set: Arc<StudySet>,
-    custom: bool,
-    selected_id: Signal<String>,
-) -> Element {
+fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Element {
+    let navigator = use_navigator();
     let mut round_count = use_signal(|| 10_usize);
     let mut visible_passages = use_signal(|| 50_usize);
     let snapshot = game.read().clone();
@@ -302,7 +325,7 @@ fn StudySetDetail(
                                 class: "button secondary",
                                 onclick: move |_| {
                                     game.write().delete_study_set(&delete_id);
-                                    selected_id.set("doctrinal-mastery-all".to_string());
+                                    navigator.replace(Route::StudyIndex {});
                                 },
                                 "Delete set"
                             }

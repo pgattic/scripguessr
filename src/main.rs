@@ -7,6 +7,8 @@ mod components;
 mod game;
 #[cfg(target_arch = "wasm32")]
 mod loader;
+#[cfg(target_arch = "wasm32")]
+mod routes;
 mod scoring;
 mod scriptures;
 #[cfg(any(test, target_arch = "wasm32"))]

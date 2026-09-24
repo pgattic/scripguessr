@@ -13,7 +13,7 @@ use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use serde::Serialize;
 use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
@@ -62,6 +62,12 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
+    let static_dir = static_dir.into();
+    let index_file = format!("{static_dir}/index.html");
+    let static_files = ServeDir::new(static_dir)
+        .append_index_html_on_directories(true)
+        .not_found_service(ServeFile::new(index_file));
+
     Router::new()
         .route("/healthz", get(healthz))
         .route("/api/metadata", post(metadata))
@@ -71,7 +77,7 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(MAX_GAME_REQUEST_BYTES))
         .layer(CorsLayer::permissive())
-        .fallback_service(ServeDir::new(static_dir.into()).append_index_html_on_directories(true))
+        .fallback_service(static_files)
         .with_state(state)
 }
 

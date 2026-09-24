@@ -6,6 +6,7 @@ use wasm_bindgen::closure::Closure;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_metadata, submit_guess};
+use crate::routes::Route;
 use crate::scoring::MAX_SCORE;
 use crate::scriptures::Canon;
 use crate::study_sets::{StudyPassage, StudySet};
@@ -22,23 +23,108 @@ use study_sets::StudySetsPanel;
 
 #[component]
 pub fn App() -> Element {
-    let mut game = use_signal(Game::new);
+    let game = use_signal(Game::new);
+
+    use_context_provider(|| game);
+
+    rsx! {
+        document::Stylesheet {
+            href: asset!("/assets/main.css")
+        }
+        document::Meta {
+            name: "viewport",
+            content: "width=device-width, initial-scale=1"
+        }
+        Router::<Route> {}
+    }
+}
+
+#[component]
+pub fn AppShell() -> Element {
+    let game = use_context::<Signal<Game>>();
+    let snapshot = game.read().clone();
+    let route = use_route::<Route>();
+    let playing = snapshot.screen == Screen::Playing;
+    let subtitle = if playing {
+        snapshot
+            .active_game
+            .as_ref()
+            .and_then(|active| active.label.clone())
+            .unwrap_or_else(|| snapshot.settings.selection_label())
+    } else {
+        match route {
+            Route::Atlas {} => "Book of Mormon Atlas · people, narratives, and events".to_string(),
+            Route::Review {} => "Marked passages".to_string(),
+            Route::StudyIndex {} | Route::StudySet { .. } => {
+                "Curated and custom study sets".to_string()
+            }
+            Route::Setup {} | Route::NotFound { .. } => setup_subtitle(&snapshot),
+        }
+    };
+
+    rsx! {
+        main { class: "app",
+            div { class: "shell",
+                header { class: "topbar",
+                    div { class: "brand",
+                        h1 { "ScripGuessr" }
+                        span { "{subtitle}" }
+                    }
+                    if playing {
+                        div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
+                    } else {
+                        match route {
+                            Route::Review {} => rsx! {
+                                div { class: "pill", "{snapshot.stats.review_items.len()} marked" }
+                            },
+                            Route::StudyIndex {} | Route::StudySet { .. } => rsx! {
+                                div { class: "pill", "{snapshot.custom_study_sets.sets.len()} custom" }
+                            },
+                            Route::Atlas {} => rsx! {
+                                div { class: "pill", "239 chapters" }
+                            },
+                            Route::Setup {} | Route::NotFound { .. } => rsx! {},
+                        }
+                    }
+                }
+
+                if playing {
+                    div { class: "layout",
+                        VersePanel { game }
+                        GuessPanel { game }
+                    }
+                } else {
+                    Outlet::<Route> {}
+                }
+            }
+        }
+    }
+}
+
+fn setup_subtitle(game: &Game) -> String {
+    let label = game.settings.selection_label();
+    if game.settings.scope.canons.is_empty() {
+        format!("{label} · choose a scope to start")
+    } else if game.metadata_ready() {
+        format!(
+            "{label} · {} rounds · {} · {} of {} verses in play",
+            game.settings.round_count,
+            game.settings.difficulty.label(),
+            game.verse_count_for_difficulty(),
+            game.total_verse_count(),
+        )
+    } else {
+        format!("{label} · loading game data")
+    }
+}
+
+#[component]
+pub fn SetupRoutePage() -> Element {
+    let mut game = use_context::<Signal<Game>>();
     let mut metadata_resource = use_resource(move || async move {
         let snapshot = game.read().clone();
-        if snapshot.screen == Screen::Setup && !snapshot.metadata_current() {
+        if !snapshot.metadata_current() {
             load_metadata(snapshot.metadata_request()).await.map(Some)
-        } else {
-            Ok(None)
-        }
-    });
-    let mut study_metadata_resource = use_resource(move || async move {
-        let snapshot = game.read().clone();
-        if matches!(snapshot.screen, Screen::StudySets | Screen::Atlas)
-            && snapshot.study_metadata.is_empty()
-        {
-            load_metadata(snapshot.study_metadata_request())
-                .await
-                .map(Some)
         } else {
             Ok(None)
         }
@@ -53,95 +139,94 @@ pub fn App() -> Element {
         metadata_resource.clear();
     });
 
-    use_effect(move || {
-        let Some(Ok(Some(metadata))) = study_metadata_resource.value().read().as_ref().cloned()
-        else {
-            return;
-        };
-
-        game.write().apply_study_metadata(metadata);
-        study_metadata_resource.clear();
-    });
-
-    let snapshot = game.read().clone();
     let load_error = metadata_resource
         .value()
         .read()
         .as_ref()
         .and_then(|result| result.as_ref().err().cloned());
-    let study_load_error = study_metadata_resource
+    rsx! { SetupPanel { game, load_error } }
+}
+
+#[component]
+pub fn ReviewRoutePage() -> Element {
+    let game = use_context::<Signal<Game>>();
+    rsx! { ReviewPanel { game } }
+}
+
+#[component]
+pub fn StudyIndexRoutePage() -> Element {
+    let navigator = use_navigator();
+    use_effect(move || {
+        navigator.replace(Route::StudySet {
+            set_id: "doctrinal-mastery-all".to_string(),
+        });
+    });
+    rsx! {}
+}
+
+#[component]
+pub fn StudySetRoutePage(set_id: String) -> Element {
+    rsx! { StudyRouteContent { selected_id: set_id } }
+}
+
+#[component]
+fn StudyRouteContent(selected_id: String) -> Element {
+    let game = use_context::<Signal<Game>>();
+    let metadata_resource = use_study_metadata(game);
+    let load_error = metadata_resource
         .value()
         .read()
         .as_ref()
         .and_then(|result| result.as_ref().err().cloned());
 
-    rsx! {
-        document::Stylesheet {
-            href: asset!("/assets/main.css")
-        }
-        document::Meta {
-            name: "viewport",
-            content: "width=device-width, initial-scale=1"
-        }
-        main { class: "app",
-            div { class: "shell",
-                header { class: "topbar",
-                    div { class: "brand",
-                        h1 { "ScripGuessr" }
-                        match snapshot.screen {
-                            Screen::Atlas => rsx! { span { "Book of Mormon Atlas · people, narratives, and events" } },
-                            Screen::Review => rsx! { span { "Marked passages" } },
-                            Screen::StudySets => rsx! { span { "Curated and custom study sets" } },
-                            Screen::Playing => rsx! { span { "{snapshot.active_game.as_ref().and_then(|active| active.label.clone()).unwrap_or_else(|| snapshot.settings.selection_label())}" } },
-                            Screen::Setup => if snapshot.settings.scope.canons.is_empty() {
-                                rsx! { span { "{snapshot.settings.selection_label()} · choose a scope to start" } }
-                            } else if snapshot.metadata_ready() {
-                                rsx! { span { "{snapshot.settings.selection_label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" } }
-                            } else {
-                                rsx! { span { "{snapshot.settings.selection_label()} · loading game data" } }
-                            },
-                        }
-                    }
-                    match snapshot.screen {
-                        Screen::Playing => rsx! {
-                            div { class: "pill", "Total {snapshot.total_score()} / {snapshot.max_total_score()}" }
-                        },
-                        Screen::Review => rsx! {
-                            div { class: "pill", "{snapshot.stats.review_items.len()} marked" }
-                        },
-                        Screen::StudySets => rsx! {
-                            div { class: "pill", "{snapshot.custom_study_sets.sets.len()} custom" }
-                        },
-                        Screen::Atlas => rsx! {
-                            div { class: "pill", "239 chapters" }
-                        },
-                        Screen::Setup => rsx! {},
-                    }
-                }
+    rsx! { StudySetsPanel { game, selected_id, load_error } }
+}
 
-                match snapshot.screen {
-                    Screen::Setup => rsx! {
-                        SetupPanel { game: game, load_error }
-                    },
-                    Screen::Playing => rsx! {
-                        div { class: "layout",
-                            VersePanel { game: game }
-                            GuessPanel { game: game }
-                        }
-                    },
-                    Screen::Review => rsx! {
-                        ReviewPanel { game: game }
-                    },
-                    Screen::StudySets => rsx! {
-                        StudySetsPanel { game: game }
-                    },
-                    Screen::Atlas => rsx! {
-                        AtlasPanel { game: game, load_error: study_load_error }
-                    },
-                }
-            }
+#[component]
+pub fn AtlasRoutePage() -> Element {
+    let game = use_context::<Signal<Game>>();
+    let metadata_resource = use_study_metadata(game);
+    let load_error = metadata_resource
+        .value()
+        .read()
+        .as_ref()
+        .and_then(|result| result.as_ref().err().cloned());
+
+    rsx! { AtlasPanel { game, load_error } }
+}
+
+fn use_study_metadata(
+    mut game: Signal<Game>,
+) -> Resource<Result<Option<crate::api::MetadataResponse>, String>> {
+    let mut resource = use_resource(move || async move {
+        let snapshot = game.read().clone();
+        if snapshot.study_metadata.is_empty() {
+            load_metadata(snapshot.study_metadata_request())
+                .await
+                .map(Some)
+        } else {
+            Ok(None)
         }
-    }
+    });
+
+    use_effect(move || {
+        let Some(Ok(Some(metadata))) = resource.value().read().as_ref().cloned() else {
+            return;
+        };
+        game.write().apply_study_metadata(metadata);
+        resource.clear();
+    });
+
+    resource
+}
+
+#[component]
+pub fn NotFoundRoutePage(segments: Vec<String>) -> Element {
+    let navigator = use_navigator();
+    use_effect(move || {
+        navigator.replace(Route::Setup {});
+    });
+    rsx! {}
 }
 
 fn request_new_game(mut game: Signal<Game>) {
@@ -343,6 +428,7 @@ fn GuessPanel(game: Signal<Game>) -> Element {
 
 #[component]
 fn GameCompletePanel(game: Signal<Game>, snapshot: Game) -> Element {
+    let navigator = use_navigator();
     rsx! {
         div { class: "picker-header",
             h2 { "Game complete" }
@@ -367,7 +453,10 @@ fn GameCompletePanel(game: Signal<Game>, snapshot: Game) -> Element {
             }
             button {
                 class: "button secondary",
-                onclick: move |_| game.write().change_settings(),
+                onclick: move |_| {
+                    game.write().change_settings();
+                    navigator.push(Route::Setup {});
+                },
                 "Home"
             }
         }

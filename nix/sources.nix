@@ -72,6 +72,7 @@ let
       "src/components/study_sets.rs"
       "src/game.rs"
       "src/loader.rs"
+      "src/routes.rs"
       "src/stats.rs"
     ];
 in

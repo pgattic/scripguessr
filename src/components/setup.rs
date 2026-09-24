@@ -2,10 +2,12 @@ use dioxus::prelude::*;
 
 use super::{StatsPanel, request_new_game};
 use crate::game::Game;
+use crate::routes::Route;
 use crate::scriptures::{BookScope, Canon, Difficulty, GameMode};
 
 #[component]
 pub(super) fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
+    let navigator = use_navigator();
     let mut scope_editor_open = use_signal(|| false);
     let snapshot = game.read().clone();
     let metadata_current = snapshot.metadata_current();
@@ -50,12 +52,16 @@ pub(super) fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                     }
                     button {
                         class: "button secondary",
-                        onclick: move |_| game.write().open_study_sets(),
+                        onclick: move |_| {
+                            navigator.push(Route::StudyIndex {});
+                        },
                         "Study sets"
                     }
                     button {
                         class: "button secondary",
-                        onclick: move |_| game.write().open_atlas(),
+                        onclick: move |_| {
+                            navigator.push(Route::Atlas {});
+                        },
                         "Atlas"
                     }
                 }

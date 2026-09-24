@@ -5,7 +5,7 @@
 - Keep the scoring model explicit and tested, including exact guesses, close guesses, far guesses, and cross-book adjacency.
 - Add lightweight server-side game cleanup so abandoned in-memory games do not live forever.
 - Consider persistent/shared stats once friends are using the hosted version.
-- Add real URL navigation: stable routes for setup, play, review, study sets, and the Atlas; browser back/forward support; and shareable deep links for study sets, Atlas layers, and selected chapters. Keep serialized URL state versioned so saved links can survive later model changes.
+- Extend URL navigation into gameplay and the Atlas. Setup, review, study sets, and the Atlas now have stable routes with browser history and direct study-set links. The next chunk should add versioned, resumable game URLs, followed by shareable Atlas layer and chapter state.
 
 ## Done
 
