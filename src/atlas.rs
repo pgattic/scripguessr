@@ -1,83 +1,3 @@
-use serde::{Deserialize, Serialize};
-
-#[cfg(target_arch = "wasm32")]
-const ATLAS_STORAGE_KEY: &str = "scripguessr.atlas.v1";
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AtlasChapter {
-    pub book: String,
-    pub chapter: u16,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AtlasState {
-    pub selected_layers: Vec<String>,
-    pub focus: bool,
-    pub selected_chapter: Option<AtlasChapter>,
-}
-
-impl Default for AtlasState {
-    fn default() -> Self {
-        Self {
-            selected_layers: vec!["lehi-journey".to_string()],
-            focus: false,
-            selected_chapter: None,
-        }
-    }
-}
-
-impl AtlasState {
-    fn normalize(mut self) -> Self {
-        self.selected_layers
-            .retain(|id| LAYERS.iter().any(|layer| layer.id == id));
-        self.selected_layers.sort();
-        self.selected_layers.dedup();
-        if self.selected_layers.is_empty() {
-            self.focus = false;
-        }
-        if self
-            .selected_chapter
-            .as_ref()
-            .is_some_and(|chapter| chapter.book.is_empty() || chapter.chapter == 0)
-        {
-            self.selected_chapter = None;
-        }
-        self
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn load() -> Self {
-        web_sys::window()
-            .and_then(|window| window.local_storage().ok().flatten())
-            .and_then(|storage| storage.get_item(ATLAS_STORAGE_KEY).ok().flatten())
-            .and_then(|stored| serde_json::from_str::<Self>(&stored).ok())
-            .unwrap_or_default()
-            .normalize()
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    #[allow(dead_code)]
-    pub fn load() -> Self {
-        Self::default()
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    pub fn save(&self) {
-        let Some(storage) =
-            web_sys::window().and_then(|window| window.local_storage().ok().flatten())
-        else {
-            return;
-        };
-        if let Ok(serialized) = serde_json::to_string(self) {
-            let _ = storage.set_item(ATLAS_STORAGE_KEY, &serialized);
-        }
-    }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    #[allow(dead_code)]
-    pub fn save(&self) {}
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum AtlasCategory {
     Person,
@@ -132,7 +52,6 @@ pub struct BookChronology {
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub struct AtlasEra {
     pub starts_at: &'static str,
-    pub dates: &'static str,
     pub name: &'static str,
 }
 
@@ -140,37 +59,30 @@ pub struct AtlasEra {
 pub const ERAS: &[AtlasEra] = &[
     AtlasEra {
         starts_at: "1 Nephi",
-        dates: "about 600 BC",
         name: "Lehi's departure and the small plates",
     },
     AtlasEra {
         starts_at: "Mosiah",
-        dates: "about 130 BC",
         name: "The peoples gather in Zarahemla",
     },
     AtlasEra {
         starts_at: "Alma",
-        dates: "91 BC",
         name: "The reign of the judges",
     },
     AtlasEra {
         starts_at: "3 Nephi",
-        dates: "AD 1",
         name: "The coming and ministry of Christ",
     },
     AtlasEra {
         starts_at: "4 Nephi",
-        dates: "about AD 36",
         name: "Generations of peace",
     },
     AtlasEra {
         starts_at: "Mormon",
-        dates: "about AD 322",
         name: "The final Nephite generations",
     },
     AtlasEra {
         starts_at: "Ether",
-        dates: "recorded earlier",
         name: "The Jaredite record",
     },
 ];
@@ -735,26 +647,5 @@ mod tests {
                 .into_iter()
                 .all(|book| book_chronology(book).is_some())
         );
-    }
-
-    #[test]
-    fn persisted_state_discards_unknown_layers_and_invalid_chapters() {
-        let state = AtlasState {
-            selected_layers: vec![
-                "alma-younger".to_string(),
-                "missing".to_string(),
-                "alma-younger".to_string(),
-            ],
-            focus: true,
-            selected_chapter: Some(AtlasChapter {
-                book: "Alma".to_string(),
-                chapter: 0,
-            }),
-        }
-        .normalize();
-
-        assert_eq!(state.selected_layers, ["alma-younger"]);
-        assert_eq!(state.selected_chapter, None);
-        assert!(state.focus);
     }
 }

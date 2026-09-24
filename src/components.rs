@@ -7,8 +7,7 @@ use wasm_bindgen::closure::Closure;
 
 use crate::api::{ChapterRequest, ChapterVerse};
 use crate::atlas::{
-    AtlasCategory, AtlasChapter, AtlasLayer, AtlasState, LAYERS, book_chronology, era_starting_at,
-    layer as atlas_layer,
+    AtlasCategory, AtlasLayer, LAYERS, book_chronology, era_starting_at, layer as atlas_layer,
 };
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_chapter, load_metadata, submit_guess};
@@ -710,6 +709,7 @@ struct AtlasReaderData {
 
 #[component]
 fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
+    use_effect(clear_deprecated_atlas_storage);
     let snapshot = game.read().clone();
     let books = snapshot
         .study_metadata
@@ -717,16 +717,16 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .find(|metadata| metadata.canon == Canon::BookOfMormon)
         .map(|metadata| metadata.books.clone())
         .unwrap_or_default();
-    let mut atlas_state = use_signal(AtlasState::load);
+    let mut selected_layers = use_signal(Vec::<String>::new);
+    let mut selected_chapter = use_signal(|| None::<(String, u16)>);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
     let mut saved_atlas_selection = use_signal(|| None::<Vec<String>>);
     let reader_loading = use_signal(|| false);
     let reader_error = use_signal(|| None::<String>);
-    let state = atlas_state();
-    let active_ids = state.selected_layers.clone();
+    let active_ids = selected_layers();
     let selection_saved = saved_atlas_selection().as_ref() == Some(&active_ids);
     let practice_set = atlas_practice_set(&active_ids, &books);
-    let selected = state.selected_chapter.clone();
+    let selected = selected_chapter();
 
     rsx! {
         div { class: "atlas-layout",
@@ -788,24 +788,10 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                         div { class: "atlas-books",
                             for book in books.iter() {
                                 {
-                                    let book_has_hit = book.chapters.iter().any(|chapter| {
-                                        !atlas_hits(&active_ids, &book.name, *chapter).is_empty()
-                                    });
-                                    let book_class = if state.focus && !book_has_hit {
-                                        "atlas-book-row context-dimmed"
-                                    } else {
-                                        "atlas-book-row"
-                                    };
                                     let chronology = book_chronology(&book.name);
                                     let era = era_starting_at(&book.name);
                                     rsx! {
-                                    if let Some(era) = era {
-                                        div { class: "atlas-era-divider",
-                                            span { "{era.dates}" }
-                                            strong { "{era.name}" }
-                                        }
-                                    }
-                                    div { class: book_class, id: atlas_book_id(&book.name),
+                                    div { class: "atlas-book-row", id: atlas_book_id(&book.name),
                                     div { class: "atlas-book-heading",
                                         strong { class: "atlas-book-name", "{book.name}" }
                                         if let Some(chronology) = chronology {
@@ -815,15 +801,16 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 "{chronology.dates}"
                                             }
                                         }
+                                        if let Some(era) = era {
+                                            span { class: "atlas-era-inline", "• {era.name}" }
+                                        }
                                     }
                                     div { class: "atlas-chapters chapter-matrix",
                                         for chapter in book.chapters.iter().copied() {
                                             {
                                                 let book_name = book.name.clone();
                                                 let hits = atlas_hits(&active_ids, &book.name, chapter);
-                                                let selected_now = selected.as_ref().is_some_and(|selected| {
-                                                    selected.book == book.name && selected.chapter == chapter
-                                                });
+                                                let selected_now = selected.as_ref() == Some(&(book.name.clone(), chapter));
                                                 let mut class = "atlas-chapter".to_string();
                                                 if !hits.is_empty() {
                                                     class.push_str(" highlighted");
@@ -833,9 +820,6 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 }
                                                 if selected_now {
                                                     class.push_str(" selected");
-                                                }
-                                                if state.focus && hits.is_empty() {
-                                                    class.push_str(" context-dimmed");
                                                 }
                                                 let title = if hits.is_empty() {
                                                     format!("{} {}", book.name, chapter)
@@ -853,13 +837,12 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                         title,
                                                         aria_label: "{book.name} chapter {chapter}",
                                                         onclick: move |_| {
-                                                            let mut next = atlas_state();
-                                                            next.selected_chapter = Some(AtlasChapter {
-                                                                book: book_name.clone(),
-                                                                chapter,
-                                                            });
-                                                            next.save();
-                                                            atlas_state.set(next);
+                                                            let next = (book_name.clone(), chapter);
+                                                            if selected_chapter().as_ref() == Some(&next) {
+                                                                selected_chapter.set(None);
+                                                            } else {
+                                                                selected_chapter.set(Some(next));
+                                                            }
                                                         },
                                                         span { "{chapter}" }
                                                         if !hits.is_empty() {
@@ -896,33 +879,11 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 section { class: "panel atlas-layers-panel",
                     div { class: "picker-header",
                         h2 { "Layers" }
-                        div { class: "atlas-layer-actions",
-                            label { class: "atlas-focus-toggle",
-                                input {
-                                    r#type: "checkbox",
-                                    checked: state.focus,
-                                    disabled: active_ids.is_empty(),
-                                    onchange: move |_| {
-                                        let mut next = atlas_state();
-                                        next.focus = !next.focus;
-                                        next.save();
-                                        atlas_state.set(next);
-                                    }
-                                }
-                                span { "Focus" }
-                            }
-                            if !active_ids.is_empty() {
-                                button {
-                                    class: "text-button",
-                                    onclick: move |_| {
-                                        let mut next = atlas_state();
-                                        next.selected_layers.clear();
-                                        next.focus = false;
-                                        next.save();
-                                        atlas_state.set(next);
-                                    },
-                                    "Clear"
-                                }
+                        if !active_ids.is_empty() {
+                            button {
+                                class: "text-button",
+                                onclick: move |_| selected_layers.set(Vec::new()),
+                                "Clear"
                             }
                         }
                     }
@@ -960,17 +921,13 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                 r#type: "checkbox",
                                                 checked: active,
                                                 onchange: move |_| {
-                                                    let mut next = atlas_state();
+                                                    let mut next = selected_layers();
                                                     if active {
-                                                        next.selected_layers.retain(|candidate| candidate != &id);
+                                                        next.retain(|candidate| candidate != &id);
                                                     } else {
-                                                        next.selected_layers.push(id.clone());
+                                                        next.push(id.clone());
                                                     }
-                                                    if next.selected_layers.is_empty() {
-                                                        next.focus = false;
-                                                    }
-                                                    next.save();
-                                                    atlas_state.set(next);
+                                                    selected_layers.set(next);
                                                 }
                                             }
                                             i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
@@ -986,57 +943,39 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                     }
                 }
 
-                section { class: "panel atlas-detail-panel",
-                    if let Some(AtlasChapter { book, chapter }) = selected.clone() {
-                        div { class: "picker-header",
-                            h2 { "{book} {chapter}" }
-                            button {
-                                class: "button secondary compact-button",
-                                disabled: reader_loading(),
-                                onclick: move |_| request_atlas_chapter(
-                                    reader,
-                                    reader_loading,
-                                    reader_error,
-                                    book.clone(),
-                                    chapter,
-                                ),
-                                if reader_loading() { "Loading" } else { "Read chapter" }
-                            }
+            }
+        }
+
+        if let Some((book, chapter)) = selected.clone() {
+            div {
+                class: "dialog-backdrop",
+                onclick: move |_| selected_chapter.set(None),
+                div {
+                    class: "atlas-chapter-overlay",
+                    role: "dialog",
+                    aria_modal: "true",
+                    onclick: move |event| event.stop_propagation(),
+                    div { class: "dialog-header",
+                        h2 { "{book} {chapter}" }
+                        button {
+                            class: "button secondary compact-button",
+                            onclick: move |_| selected_chapter.set(None),
+                            "Close"
                         }
+                    }
+                    div { class: "atlas-overlay-content",
                         div { class: "atlas-chapter-layers",
-                            {
-                                let chapter_layers = LAYERS.iter().copied()
-                                    .filter(|item| item.span_for(&book, chapter).is_some())
-                                    .collect::<Vec<_>>();
-                                rsx! {
-                                    if chapter_layers.len() > 1 {
-                                        div { class: "atlas-overlap-note",
-                                            strong { "{chapter_layers.len()} storylines meet here" }
-                                            span { "This chapter belongs to each layer below." }
-                                        }
-                                    }
-                                }
-                            }
                             for atlas_item in LAYERS.iter().copied().filter(|item| item.span_for(&book, chapter).is_some()) {
-                                {
-                                    let span = atlas_item.span_for(&book, chapter).unwrap();
-                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
-                                    rsx! {
-                                        div { class: if active { "atlas-detail-layer active" } else { "atlas-detail-layer" },
-                                            i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
-                                            div {
-                                                strong { "{atlas_item.name}" }
-                                                p { "{span.note}" }
-                                            }
-                                        }
+                                div { class: "atlas-overlay-layer",
+                                    i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
+                                    div {
+                                        strong { "{atlas_item.name}" }
+                                        span { "{atlas_item.summary}" }
                                     }
                                 }
                             }
                             if !LAYERS.iter().any(|item| item.span_for(&book, chapter).is_some()) {
-                                div { class: "ready compact-ready",
-                                    span { class: "muted", "Chapter" }
-                                    strong { "No curated layers yet" }
-                                }
+                                span { class: "muted", "No curated layers include this chapter." }
                             }
                         }
                         if let Some(error) = reader_error() {
@@ -1045,25 +984,19 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 span { "{error}" }
                             }
                         }
-                    } else {
-                        if active_ids.len() == 1 {
-                            if let Some(active_layer) = atlas_layer(&active_ids[0]) {
-                                div { class: "atlas-layer-summary tone-{active_layer.tone}",
-                                    i { class: "atlas-layer-swatch" }
-                                    div {
-                                        span { class: "muted", "Focused layer" }
-                                        strong { "{active_layer.name}" }
-                                        p { "{active_layer.summary}" }
-                                        for span in active_layer.spans {
-                                            small { "{span.book} {span.start}-{span.end}" }
-                                        }
-                                    }
-                                }
-                            }
-                        } else {
-                            div { class: "ready atlas-overview",
-                                span { class: "muted", "Atlas overview" }
-                                strong { "{active_ids.len()} active layers · 239 chapters" }
+                        div { class: "actions atlas-overlay-actions",
+                            button {
+                                class: "button",
+                                disabled: reader_loading(),
+                                onclick: move |_| request_atlas_chapter(
+                                    reader,
+                                    reader_loading,
+                                    reader_error,
+                                    selected_chapter,
+                                    book.clone(),
+                                    chapter,
+                                ),
+                                if reader_loading() { "Loading" } else { "Read chapter" }
                             }
                         }
                     }
@@ -1081,6 +1014,18 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         }
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+fn clear_deprecated_atlas_storage() {
+    if let Some(storage) =
+        web_sys::window().and_then(|window| window.local_storage().ok().flatten())
+    {
+        let _ = storage.remove_item("scripguessr.atlas.v1");
+    }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn clear_deprecated_atlas_storage() {}
 
 fn atlas_book_id(book: &str) -> String {
     format!(
@@ -1170,6 +1115,7 @@ fn request_atlas_chapter(
     mut reader: Signal<Option<AtlasReaderData>>,
     mut loading: Signal<bool>,
     mut error: Signal<Option<String>>,
+    mut selected_chapter: Signal<Option<(String, u16)>>,
     book: String,
     chapter: u16,
 ) {
@@ -1184,6 +1130,7 @@ fn request_atlas_chapter(
         .await
         {
             Ok(response) => {
+                selected_chapter.set(None);
                 reader.set(Some(AtlasReaderData {
                     title: format!("{book} {chapter}"),
                     answer: StudyPassage {
