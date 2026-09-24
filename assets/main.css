@@ -59,7 +59,7 @@ button {
 .shell {
   width: min(1120px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 28px 0 40px;
+  padding: 28px 0 16px;
 }
 
 .topbar {
@@ -692,6 +692,9 @@ button {
   gap: 18px;
   position: sticky;
   top: 18px;
+}
+
+.atlas-layers-panel {
   max-height: calc(100vh - 36px);
   overflow-y: auto;
 }
@@ -709,6 +712,12 @@ button {
 .atlas-top-actions {
   flex-wrap: nowrap;
   margin-top: 0;
+}
+
+.atlas-mobile-layer-bar,
+.atlas-mobile-layer-close,
+.atlas-mobile-layer-backdrop {
+  display: none;
 }
 
 .atlas-loading {
@@ -1217,9 +1226,47 @@ button {
   }
 
   .atlas-sidebar {
-    position: static;
-    max-height: none;
-    overflow: visible;
+    display: none;
+  }
+
+  .atlas-sidebar.mobile-open {
+    position: fixed;
+    inset: 12px;
+    z-index: 31;
+    display: block;
+  }
+
+  .atlas-mobile-layer-bar {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0 -4px 14px;
+    padding: 8px 4px;
+    border-block: 1px solid var(--border-soft);
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  .atlas-mobile-layer-close {
+    display: inline-flex;
+  }
+
+  .atlas-mobile-layer-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 30;
+    display: block;
+    background: var(--backdrop);
+  }
+
+  .atlas-layers-panel {
+    max-height: calc(100dvh - 24px);
+    border-radius: 8px;
+    overflow-y: auto;
   }
 
   .layout {

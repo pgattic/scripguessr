@@ -719,6 +719,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .unwrap_or_default();
     let mut selected_layers = use_signal(Vec::<String>::new);
     let mut collapsed_categories = use_signal(Vec::<AtlasCategory>::new);
+    let mut mobile_layers_open = use_signal(|| false);
     let mut selected_chapter = use_signal(|| None::<(String, u16)>);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
     let mut saved_atlas_selection = use_signal(|| None::<Vec<String>>);
@@ -754,6 +755,21 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 ),
                                 if snapshot.loading_game { "Starting" } else { "Practice highlighted" }
                             }
+                        }
+                    }
+                }
+
+                div { class: "atlas-mobile-layer-bar",
+                    button {
+                        class: "button secondary compact-button",
+                        onclick: move |_| mobile_layers_open.set(true),
+                        "Layers"
+                    }
+                    span { class: "muted",
+                        if active_ids.len() == 1 {
+                            "1 selected"
+                        } else {
+                            "{active_ids.len()} selected"
                         }
                     }
                 }
@@ -858,7 +874,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 }
             }
 
-            aside { class: "atlas-sidebar",
+            aside { class: if mobile_layers_open() { "atlas-sidebar mobile-open" } else { "atlas-sidebar" },
                 section { class: "panel atlas-layers-panel",
                     div { class: "picker-header",
                         h2 { "Layers" }
@@ -876,6 +892,11 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 disabled: active_ids.is_empty(),
                                 onclick: move |_| selected_layers.set(Vec::new()),
                                 "Clear"
+                            }
+                            button {
+                                class: "button secondary compact-button atlas-mobile-layer-close",
+                                onclick: move |_| mobile_layers_open.set(false),
+                                "Done"
                             }
                         }
                     }
@@ -957,6 +978,13 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                     }
                 }
 
+            }
+        }
+
+        if mobile_layers_open() {
+            div {
+                class: "atlas-mobile-layer-backdrop",
+                onclick: move |_| mobile_layers_open.set(false),
             }
         }
 
