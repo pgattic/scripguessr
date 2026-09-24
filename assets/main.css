@@ -673,6 +673,221 @@ button {
   justify-content: flex-end;
 }
 
+.atlas-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 18px;
+  align-items: start;
+}
+
+.atlas-map-panel,
+.atlas-layers-panel,
+.atlas-detail-panel {
+  padding: 18px;
+}
+
+.atlas-sidebar {
+  display: grid;
+  gap: 18px;
+}
+
+.atlas-heading {
+  align-items: flex-start;
+  margin-bottom: 16px;
+}
+
+.atlas-heading h2,
+.atlas-heading span {
+  display: block;
+}
+
+.atlas-top-actions {
+  flex-wrap: nowrap;
+  margin-top: 0;
+}
+
+.atlas-loading {
+  min-height: 240px;
+}
+
+.atlas-scroll {
+  width: 100%;
+  overflow-x: auto;
+  padding: 4px 2px 10px;
+}
+
+.atlas-books {
+  display: grid;
+  gap: 8px;
+  min-width: 760px;
+}
+
+.atlas-book-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 30px;
+}
+
+.atlas-book-name {
+  flex: 0 0 94px;
+  overflow: hidden;
+  color: var(--muted-strong);
+  font-size: 0.75rem;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.atlas-chapters {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 25px;
+  gap: 3px;
+}
+
+.atlas-chapter {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  border: 1px solid var(--border-soft);
+  border-radius: 3px;
+  padding: 0;
+  background: var(--raised);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.64rem;
+  line-height: 1;
+}
+
+.atlas-chapter:hover,
+.atlas-chapter.selected {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+.atlas-chapter.selected {
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+
+.atlas-chapter.highlighted {
+  border-color: var(--layer-color);
+  background: color-mix(in srgb, var(--layer-color) 30%, var(--raised));
+  color: var(--text);
+  font-weight: 800;
+}
+
+.atlas-chapter.overlap {
+  background: repeating-linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--layer-color) 38%, var(--raised)) 0 4px,
+    var(--raised) 4px 8px
+  );
+}
+
+.atlas-hit-markers {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  display: flex;
+  gap: 1px;
+}
+
+.atlas-hit-markers b {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--layer-color);
+}
+
+.atlas-layer-group,
+.atlas-chapter-layers {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.atlas-layer-toggle {
+  display: grid;
+  grid-template-columns: auto auto minmax(0, 1fr);
+  gap: 9px;
+  align-items: center;
+  min-height: 48px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  padding: 8px;
+  background: var(--raised);
+  cursor: pointer;
+}
+
+.atlas-layer-toggle.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.atlas-layer-toggle input {
+  margin: 0;
+}
+
+.atlas-layer-toggle span,
+.atlas-layer-toggle small {
+  display: block;
+}
+
+.atlas-layer-toggle small {
+  margin-top: 2px;
+  color: var(--muted);
+  line-height: 1.25;
+}
+
+.atlas-layer-swatch {
+  width: 10px;
+  height: 28px;
+  border-radius: 3px;
+  background: var(--layer-color);
+}
+
+.atlas-detail-layer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 6px;
+  opacity: 0.68;
+}
+
+.atlas-detail-layer.active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  opacity: 1;
+}
+
+.atlas-detail-layer p {
+  margin: 4px 0 0;
+  color: var(--muted-strong);
+  font-size: 0.86rem;
+  line-height: 1.4;
+}
+
+.atlas-overview {
+  min-height: 150px;
+}
+
+.tone-green { --layer-color: light-dark(#39845f, #70d49e); }
+.tone-gold { --layer-color: light-dark(#a16d16, #e3b958); }
+.tone-red { --layer-color: light-dark(#a94838, #ee8875); }
+.tone-teal { --layer-color: light-dark(#167d82, #56ced0); }
+.tone-blue { --layer-color: light-dark(#386daa, #79ace7); }
+.tone-orange { --layer-color: light-dark(#b65e22, #ef9b5f); }
+.tone-violet { --layer-color: light-dark(#7650a5, #b896e1); }
+.tone-yellow { --layer-color: light-dark(#9b851b, #dfce61); }
+.tone-cyan { --layer-color: light-dark(#258092, #68c9dc); }
+.tone-rose { --layer-color: light-dark(#a44368, #e783a8); }
+
 .study-answer-scope {
   margin-top: 8px;
 }
@@ -914,6 +1129,7 @@ button {
   .layout,
   .review-layout,
   .study-layout,
+  .atlas-layout,
   .setup-layout,
   .topbar {
     grid-template-columns: 1fr;
@@ -934,6 +1150,10 @@ button {
 
   .answer-scope-options {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .atlas-top-actions {
+    flex-wrap: wrap;
   }
 }
 

@@ -2,7 +2,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::api::{
-    GuessRequest, GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest, NewGameResponse,
+    ChapterRequest, ChapterResponse, GuessRequest, GuessResponse, MetadataRequest,
+    MetadataResponse, NewGameRequest, NewGameResponse,
 };
 
 pub async fn load_metadata(request: MetadataRequest) -> Result<MetadataResponse, String> {
@@ -11,6 +12,10 @@ pub async fn load_metadata(request: MetadataRequest) -> Result<MetadataResponse,
 
 pub async fn create_game(request: NewGameRequest) -> Result<NewGameResponse, String> {
     post_json(&api_path("/api/games"), &request).await
+}
+
+pub async fn load_chapter(request: ChapterRequest) -> Result<ChapterResponse, String> {
+    post_json(&api_path("/api/chapter"), &request).await
 }
 
 pub async fn submit_guess(game_id: &str, request: GuessRequest) -> Result<GuessResponse, String> {

@@ -5,10 +5,12 @@ use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::closure::Closure;
 
+use crate::api::{ChapterRequest, ChapterVerse};
+use crate::atlas::{AtlasCategory, AtlasLayer, LAYERS, layer as atlas_layer};
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::loader::{create_game, load_metadata, submit_guess};
+use crate::loader::{create_game, load_chapter, load_metadata, submit_guess};
 use crate::scoring::MAX_SCORE;
-use crate::scriptures::{BookScope, Canon, Difficulty, GameMode};
+use crate::scriptures::{BookInfo, BookScope, Canon, Difficulty, GameMode};
 use crate::stats::{ReviewItem, Stats};
 use crate::study_sets::{
     PromptPolicy, StudyGuessScope, StudyPassage, StudySet, built_in_study_sets,
@@ -27,7 +29,9 @@ pub fn App() -> Element {
     });
     let mut study_metadata_resource = use_resource(move || async move {
         let snapshot = game.read().clone();
-        if snapshot.screen == Screen::StudySets && snapshot.study_metadata.is_empty() {
+        if matches!(snapshot.screen, Screen::StudySets | Screen::Atlas)
+            && snapshot.study_metadata.is_empty()
+        {
             load_metadata(snapshot.study_metadata_request())
                 .await
                 .map(Some)
@@ -75,12 +79,18 @@ pub fn App() -> Element {
                 header { class: "topbar",
                     div { class: "brand",
                         h1 { "ScripGuessr" }
-                        if snapshot.settings.scope.canons.is_empty() {
-                            span { "{snapshot.settings.selection_label()} · choose a scope to start" }
-                        } else if snapshot.metadata_ready() {
-                            span { "{snapshot.settings.selection_label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" }
-                        } else {
-                            span { "{snapshot.settings.selection_label()} · loading game data" }
+                        match snapshot.screen {
+                            Screen::Atlas => rsx! { span { "Book of Mormon Atlas · people, narratives, and events" } },
+                            Screen::Review => rsx! { span { "Marked passages" } },
+                            Screen::StudySets => rsx! { span { "Curated and custom study sets" } },
+                            Screen::Playing => rsx! { span { "{snapshot.active_game.as_ref().and_then(|active| active.label.clone()).unwrap_or_else(|| snapshot.settings.selection_label())}" } },
+                            Screen::Setup => if snapshot.settings.scope.canons.is_empty() {
+                                rsx! { span { "{snapshot.settings.selection_label()} · choose a scope to start" } }
+                            } else if snapshot.metadata_ready() {
+                                rsx! { span { "{snapshot.settings.selection_label()} · {snapshot.settings.round_count} rounds · {snapshot.settings.difficulty.label()} · {snapshot.verse_count_for_difficulty()} of {snapshot.total_verse_count()} verses in play" } }
+                            } else {
+                                rsx! { span { "{snapshot.settings.selection_label()} · loading game data" } }
+                            },
                         }
                     }
                     match snapshot.screen {
@@ -92,6 +102,9 @@ pub fn App() -> Element {
                         },
                         Screen::StudySets => rsx! {
                             div { class: "pill", "{snapshot.custom_study_sets.sets.len()} custom" }
+                        },
+                        Screen::Atlas => rsx! {
+                            div { class: "pill", "239 chapters" }
                         },
                         Screen::Setup => rsx! {},
                     }
@@ -112,6 +125,9 @@ pub fn App() -> Element {
                     },
                     Screen::StudySets => rsx! {
                         StudySetsPanel { game: game }
+                    },
+                    Screen::Atlas => rsx! {
+                        AtlasPanel { game: game }
                     },
                 }
             }
@@ -592,6 +608,11 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                         onclick: move |_| game.write().open_study_sets(),
                         "Study sets"
                     }
+                    button {
+                        class: "button secondary",
+                        onclick: move |_| game.write().open_atlas(),
+                        "Atlas"
+                    }
                 }
 
                 if scope_editor_open() {
@@ -670,6 +691,330 @@ fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
             }
         }
     }
+}
+
+#[derive(Clone, PartialEq)]
+struct AtlasReaderData {
+    title: String,
+    answer: StudyPassage,
+    verses: Vec<ChapterVerse>,
+}
+
+#[component]
+fn AtlasPanel(game: Signal<Game>) -> Element {
+    let snapshot = game.read().clone();
+    let books = snapshot
+        .study_metadata
+        .iter()
+        .find(|metadata| metadata.canon == Canon::BookOfMormon)
+        .map(|metadata| metadata.books.clone())
+        .unwrap_or_default();
+    let mut selected_layers = use_signal(|| vec!["lehi-journey".to_string()]);
+    let mut selected_chapter = use_signal(|| None::<(String, u16)>);
+    let mut reader = use_signal(|| None::<AtlasReaderData>);
+    let reader_loading = use_signal(|| false);
+    let reader_error = use_signal(|| None::<String>);
+    let active_ids = selected_layers();
+    let practice_set = atlas_practice_set(&active_ids, &books);
+    let selected = selected_chapter();
+
+    rsx! {
+        div { class: "atlas-layout",
+            section { class: "panel atlas-map-panel",
+                div { class: "picker-header atlas-heading",
+                    div {
+                        h2 { "Book of Mormon Atlas" }
+                        span { class: "muted", "The record at chapter scale" }
+                    }
+                    div { class: "actions atlas-top-actions",
+                        button {
+                            class: "button secondary",
+                            onclick: move |_| game.write().change_settings(),
+                            "Home"
+                        }
+                        if let Some(set) = practice_set.clone() {
+                            button {
+                                class: "button",
+                                disabled: snapshot.loading_game,
+                                onclick: move |_| request_study_game(
+                                    game,
+                                    set.clone(),
+                                    10.min(set.passages.len()),
+                                ),
+                                if snapshot.loading_game { "Starting" } else { "Practice highlighted" }
+                            }
+                        }
+                    }
+                }
+
+                if books.is_empty() {
+                    div { class: "ready atlas-loading",
+                        span { class: "muted", "Scripture catalog" }
+                        strong { "Loading" }
+                    }
+                } else {
+                    div { class: "atlas-scroll",
+                        div { class: "atlas-books",
+                            for book in books.iter() {
+                                div { class: "atlas-book-row",
+                                    strong { class: "atlas-book-name", "{book.name}" }
+                                    div { class: "atlas-chapters",
+                                        for chapter in book.chapters.iter().copied() {
+                                            {
+                                                let book_name = book.name.clone();
+                                                let hits = atlas_hits(&active_ids, &book.name, chapter);
+                                                let selected_now = selected.as_ref() == Some(&(book.name.clone(), chapter));
+                                                let mut class = "atlas-chapter".to_string();
+                                                if let Some(first) = hits.first() {
+                                                    class.push_str(" highlighted tone-");
+                                                    class.push_str(first.tone);
+                                                }
+                                                if hits.len() > 1 {
+                                                    class.push_str(" overlap");
+                                                }
+                                                if selected_now {
+                                                    class.push_str(" selected");
+                                                }
+                                                let title = if hits.is_empty() {
+                                                    format!("{} {}", book.name, chapter)
+                                                } else {
+                                                    format!(
+                                                        "{} {} · {}",
+                                                        book.name,
+                                                        chapter,
+                                                        hits.iter().map(|layer| layer.name).collect::<Vec<_>>().join(" + ")
+                                                    )
+                                                };
+                                                rsx! {
+                                                    button {
+                                                        class,
+                                                        title,
+                                                        aria_label: "{book.name} chapter {chapter}",
+                                                        onclick: move |_| selected_chapter.set(Some((book_name.clone(), chapter))),
+                                                        span { "{chapter}" }
+                                                        if !hits.is_empty() {
+                                                            i { class: "atlas-hit-markers",
+                                                                for hit in hits.iter().take(3) {
+                                                                    b { class: "tone-{hit.tone}" }
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            aside { class: "atlas-sidebar",
+                section { class: "panel atlas-layers-panel",
+                    div { class: "picker-header",
+                        h2 { "Layers" }
+                        if !active_ids.is_empty() {
+                            button {
+                                class: "text-button",
+                                onclick: move |_| selected_layers.set(Vec::new()),
+                                "Clear"
+                            }
+                        }
+                    }
+                    for category in [AtlasCategory::Person, AtlasCategory::Narrative, AtlasCategory::Event] {
+                        div { class: "atlas-layer-group",
+                            span { class: "setup-label", "{category.label()}" }
+                            for atlas_item in LAYERS.iter().copied().filter(|item| item.category == category) {
+                                {
+                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
+                                    let id = atlas_item.id.to_string();
+                                    rsx! {
+                                        label { class: if active { "atlas-layer-toggle active" } else { "atlas-layer-toggle" },
+                                            input {
+                                                r#type: "checkbox",
+                                                checked: active,
+                                                onchange: move |_| {
+                                                    let mut next = selected_layers();
+                                                    if active {
+                                                        next.retain(|candidate| candidate != &id);
+                                                    } else {
+                                                        next.push(id.clone());
+                                                    }
+                                                    selected_layers.set(next);
+                                                }
+                                            }
+                                            i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
+                                            span {
+                                                strong { "{atlas_item.name}" }
+                                                small { "{atlas_item.summary}" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                section { class: "panel atlas-detail-panel",
+                    if let Some((book, chapter)) = selected.clone() {
+                        div { class: "picker-header",
+                            h2 { "{book} {chapter}" }
+                            button {
+                                class: "button secondary compact-button",
+                                disabled: reader_loading(),
+                                onclick: move |_| request_atlas_chapter(
+                                    reader,
+                                    reader_loading,
+                                    reader_error,
+                                    book.clone(),
+                                    chapter,
+                                ),
+                                if reader_loading() { "Loading" } else { "Read chapter" }
+                            }
+                        }
+                        div { class: "atlas-chapter-layers",
+                            for atlas_item in LAYERS.iter().copied().filter(|item| item.span_for(&book, chapter).is_some()) {
+                                {
+                                    let span = atlas_item.span_for(&book, chapter).unwrap();
+                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
+                                    rsx! {
+                                        div { class: if active { "atlas-detail-layer active" } else { "atlas-detail-layer" },
+                                            i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
+                                            div {
+                                                strong { "{atlas_item.name}" }
+                                                p { "{span.note}" }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if !LAYERS.iter().any(|item| item.span_for(&book, chapter).is_some()) {
+                                div { class: "ready compact-ready",
+                                    span { class: "muted", "Chapter" }
+                                    strong { "No curated layers yet" }
+                                }
+                            }
+                        }
+                        if let Some(error) = reader_error() {
+                            div { class: "callout warning",
+                                strong { "Chapter unavailable" }
+                                span { "{error}" }
+                            }
+                        }
+                    } else {
+                        div { class: "ready atlas-overview",
+                            span { class: "muted", "Atlas overview" }
+                            strong { "{LAYERS.len()} layers · 239 chapters" }
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(data) = reader() {
+            ChapterReader {
+                title: data.title,
+                answer: data.answer,
+                verses: data.verses,
+                on_close: move |_| reader.set(None),
+            }
+        }
+    }
+}
+
+fn atlas_hits(selected: &[String], book: &str, chapter: u16) -> Vec<AtlasLayer> {
+    selected
+        .iter()
+        .filter_map(|id| atlas_layer(id))
+        .filter(|layer| layer.span_for(book, chapter).is_some())
+        .collect()
+}
+
+fn atlas_practice_set(selected: &[String], books: &[BookInfo]) -> Option<StudySet> {
+    let layers = selected
+        .iter()
+        .filter_map(|id| atlas_layer(id))
+        .collect::<Vec<_>>();
+    if layers.is_empty() {
+        return None;
+    }
+    let passages = books
+        .iter()
+        .flat_map(|book| {
+            let layers = &layers;
+            book.chapters.iter().filter_map(move |chapter| {
+                if !layers
+                    .iter()
+                    .any(|layer| layer.span_for(&book.name, *chapter).is_some())
+                {
+                    return None;
+                }
+                let verse_count = book.verse_count(*chapter)?;
+                Some(StudyPassage {
+                    canon: Canon::BookOfMormon,
+                    book: book.name.clone(),
+                    chapter: *chapter,
+                    verses: (1..=verse_count).collect(),
+                })
+            })
+        })
+        .collect::<Vec<_>>();
+    if passages.is_empty() {
+        return None;
+    }
+    let name = if layers.len() == 1 {
+        layers[0].name.to_string()
+    } else {
+        "Atlas selection".to_string()
+    };
+    Some(StudySet {
+        id: "atlas-selection".to_string(),
+        name,
+        passages,
+        guess_scope: StudyGuessScope::FullCanons,
+        prompt_policy: PromptPolicy::SingleVerse,
+    })
+}
+
+fn request_atlas_chapter(
+    mut reader: Signal<Option<AtlasReaderData>>,
+    mut loading: Signal<bool>,
+    mut error: Signal<Option<String>>,
+    book: String,
+    chapter: u16,
+) {
+    loading.set(true);
+    error.set(None);
+    spawn(async move {
+        match load_chapter(ChapterRequest {
+            canon: Canon::BookOfMormon,
+            book: book.clone(),
+            chapter,
+        })
+        .await
+        {
+            Ok(response) => {
+                reader.set(Some(AtlasReaderData {
+                    title: format!("{book} {chapter}"),
+                    answer: StudyPassage {
+                        canon: Canon::BookOfMormon,
+                        book,
+                        chapter,
+                        verses: Vec::new(),
+                    },
+                    verses: response.verses,
+                }));
+                loading.set(false);
+            }
+            Err(message) => {
+                error.set(Some(message));
+                loading.set(false);
+            }
+        }
+    });
 }
 
 #[component]

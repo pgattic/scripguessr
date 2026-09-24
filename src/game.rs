@@ -227,6 +227,11 @@ impl Game {
         self.error = None;
     }
 
+    pub fn open_atlas(&mut self) {
+        self.screen = Screen::Atlas;
+        self.error = None;
+    }
+
     pub fn create_study_set(&mut self) -> String {
         let mut number = self.custom_study_sets.sets.len() + 1;
         let id = loop {
@@ -764,6 +769,7 @@ pub enum Screen {
     Playing,
     Review,
     StudySets,
+    Atlas,
 }
 
 #[derive(Clone, Copy, PartialEq)]

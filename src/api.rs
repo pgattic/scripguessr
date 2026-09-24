@@ -90,3 +90,15 @@ pub struct ChapterVerse {
     pub verse: u16,
     pub text: String,
 }
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ChapterRequest {
+    pub canon: Canon,
+    pub book: String,
+    pub chapter: u16,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ChapterResponse {
+    pub verses: Vec<ChapterVerse>,
+}

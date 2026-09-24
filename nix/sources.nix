@@ -61,6 +61,7 @@ let
       "Dioxus.toml"
       "assets/main.css"
       generatedStudySets
+      "src/atlas.rs"
       "src/components.rs"
       "src/game.rs"
       "src/loader.rs"

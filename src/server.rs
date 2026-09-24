@@ -18,8 +18,8 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use crate::api::{
-    CanonMetadata, ChapterVerse, GuessReference, GuessRequest, GuessResponse, MetadataRequest,
-    MetadataResponse, NewGameRequest, NewGameResponse, RoundPrompt,
+    CanonMetadata, ChapterRequest, ChapterResponse, ChapterVerse, GuessReference, GuessRequest,
+    GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest, NewGameResponse, RoundPrompt,
 };
 use crate::scriptures::{Canon, ScriptureLibrary, Scriptures, Verse};
 
@@ -65,6 +65,7 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
     Router::new()
         .route("/healthz", get(healthz))
         .route("/api/metadata", post(metadata))
+        .route("/api/chapter", post(chapter))
         .route("/api/games", post(create_game))
         .route("/api/games/{game_id}/guesses", post(submit_guess))
         .layer(TraceLayer::new_for_http())
@@ -167,6 +168,35 @@ async fn metadata(
             &request.scope,
         ),
         total_verse_count: total_verse_count(&state.library, &request.scope),
+    }))
+}
+
+async fn chapter(
+    State(state): State<AppState>,
+    Json(request): Json<ChapterRequest>,
+) -> Result<Json<ChapterResponse>, ApiError> {
+    let reference = crate::scriptures::Reference {
+        canon: request.canon,
+        book: request.book,
+        chapter: request.chapter,
+        verse: 1,
+    };
+    let verses = state
+        .library
+        .scriptures(reference.canon)
+        .ok_or_else(|| ApiError::not_found("Canon not found"))?
+        .verses_for_chapter(&reference);
+    if verses.is_empty() {
+        return Err(ApiError::not_found("Chapter not found"));
+    }
+    Ok(Json(ChapterResponse {
+        verses: verses
+            .into_iter()
+            .map(|verse| ChapterVerse {
+                verse: verse.reference.verse,
+                text: verse.text,
+            })
+            .collect(),
     }))
 }
 
@@ -617,6 +647,29 @@ mod tests {
         }
     }
 
+    #[test]
+    fn every_atlas_span_resolves_from_scripture_data() {
+        let state = AppState::new(Duration::from_secs(60)).unwrap();
+        let scriptures = state.library.scriptures(Canon::BookOfMormon).unwrap();
+
+        for layer in crate::atlas::LAYERS {
+            for span in layer.spans {
+                let book = scriptures
+                    .books
+                    .iter()
+                    .find(|book| book.name == span.book)
+                    .unwrap_or_else(|| panic!("atlas book not found: {}", span.book));
+                assert!(
+                    (span.start..=span.end).all(|chapter| book.chapters.contains(&chapter)),
+                    "atlas span not found: {} {}-{}",
+                    span.book,
+                    span.start,
+                    span.end
+                );
+            }
+        }
+    }
+
     fn app() -> (Router, AppState) {
         let state = AppState::new(Duration::from_secs(60)).unwrap();
         (router_for(state.clone(), "/tmp"), state)
@@ -689,6 +742,26 @@ mod tests {
         assert_eq!(body.metadata[0].books[0].name, "1 Nephi");
         assert!(body.playable_verse_count > 0);
         assert!(body.total_verse_count >= body.playable_verse_count);
+    }
+
+    #[tokio::test]
+    async fn chapter_endpoint_returns_the_requested_chapter() {
+        let (app, _state) = app();
+        let response = post_json(
+            app,
+            "/api/chapter",
+            ChapterRequest {
+                canon: Canon::BookOfMormon,
+                book: "Mosiah".to_string(),
+                chapter: 2,
+            },
+        )
+        .await;
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body: ChapterResponse = read_json(response).await;
+        assert_eq!(body.verses.first().unwrap().verse, 1);
+        assert!(body.verses.len() > 20);
     }
 
     #[tokio::test]

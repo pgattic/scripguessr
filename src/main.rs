@@ -1,4 +1,6 @@
 mod api;
+#[cfg(any(test, target_arch = "wasm32"))]
+mod atlas;
 #[cfg(target_arch = "wasm32")]
 mod components;
 #[cfg(target_arch = "wasm32")]

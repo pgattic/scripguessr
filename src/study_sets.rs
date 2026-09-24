@@ -32,6 +32,7 @@ impl StudyPassage {
         format!("{} {}:{}", self.book, self.chapter, verses)
     }
 
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub fn first_reference(&self) -> Option<Reference> {
         Some(Reference {
             canon: self.canon,
