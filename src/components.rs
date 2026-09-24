@@ -7,7 +7,8 @@ use wasm_bindgen::closure::Closure;
 
 use crate::api::{ChapterRequest, ChapterVerse};
 use crate::atlas::{
-    AtlasCategory, AtlasChapter, AtlasLayer, AtlasState, LAYERS, layer as atlas_layer,
+    AtlasCategory, AtlasChapter, AtlasLayer, AtlasState, LAYERS, book_chronology, era_starting_at,
+    layer as atlas_layer,
 };
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
 use crate::loader::{create_game, load_chapter, load_metadata, submit_guess};
@@ -718,10 +719,12 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .unwrap_or_default();
     let mut atlas_state = use_signal(AtlasState::load);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
+    let mut saved_atlas_selection = use_signal(|| None::<Vec<String>>);
     let reader_loading = use_signal(|| false);
     let reader_error = use_signal(|| None::<String>);
     let state = atlas_state();
     let active_ids = state.selected_layers.clone();
+    let selection_saved = saved_atlas_selection().as_ref() == Some(&active_ids);
     let practice_set = atlas_practice_set(&active_ids, &books);
     let selected = state.selected_chapter.clone();
 
@@ -793,8 +796,26 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                     } else {
                                         "atlas-book-row"
                                     };
-                                    rsx! { div { class: book_class, id: atlas_book_id(&book.name),
-                                    strong { class: "atlas-book-name", "{book.name}" }
+                                    let chronology = book_chronology(&book.name);
+                                    let era = era_starting_at(&book.name);
+                                    rsx! {
+                                    if let Some(era) = era {
+                                        div { class: "atlas-era-divider",
+                                            span { "{era.dates}" }
+                                            strong { "{era.name}" }
+                                        }
+                                    }
+                                    div { class: book_class, id: atlas_book_id(&book.name),
+                                    div { class: "atlas-book-heading",
+                                        strong { class: "atlas-book-name", "{book.name}" }
+                                        if let Some(chronology) = chronology {
+                                            span {
+                                                class: "atlas-book-dates",
+                                                title: "{chronology.note}. Dates are approximate.",
+                                                "{chronology.dates}"
+                                            }
+                                        }
+                                    }
                                     div { class: "atlas-chapters chapter-matrix",
                                         for chapter in book.chapters.iter().copied() {
                                             {
@@ -804,9 +825,8 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                     selected.book == book.name && selected.chapter == chapter
                                                 });
                                                 let mut class = "atlas-chapter".to_string();
-                                                if let Some(first) = hits.first() {
-                                                    class.push_str(" highlighted tone-");
-                                                    class.push_str(first.tone);
+                                                if !hits.is_empty() {
+                                                    class.push_str(" highlighted");
                                                 }
                                                 if hits.len() > 1 {
                                                     class.push_str(" overlap");
@@ -843,10 +863,17 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                                         },
                                                         span { "{chapter}" }
                                                         if !hits.is_empty() {
-                                                            i { class: "atlas-hit-markers",
-                                                                for hit in hits.iter().take(3) {
+                                                            i { class: "atlas-hit-bands", aria_hidden: "true",
+                                                                for hit in hits.iter() {
                                                                     b { class: "tone-{hit.tone}" }
                                                                 }
+                                                            }
+                                                        }
+                                                        if hits.len() > 1 {
+                                                            small {
+                                                                class: "atlas-overlap-count",
+                                                                aria_label: "{hits.len()} active layers overlap",
+                                                                "{hits.len()}"
                                                             }
                                                         }
                                                     }
@@ -858,6 +885,9 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                                 }
                             }
                         }
+                    }
+                    p { class: "atlas-date-note muted",
+                        "Dates are approximate and follow the chronology presented in the Book of Mormon. Ether appears in record order, although its history is earlier."
                     }
                 }
             }
@@ -896,7 +926,28 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                             }
                         }
                     }
-                    for category in [AtlasCategory::Person, AtlasCategory::Narrative, AtlasCategory::Event] {
+                    if let Some(set) = practice_set.clone() {
+                        {
+                            let saved_selection = active_ids.clone();
+                            rsx! {
+                                div { class: "atlas-save-row",
+                                    button {
+                                        class: "button secondary compact-button",
+                                        disabled: selection_saved,
+                                        onclick: move |_| {
+                                            game.write().save_custom_study_set(set.clone());
+                                            saved_atlas_selection.set(Some(saved_selection.clone()));
+                                        },
+                                        if selection_saved { "Saved" } else { "Save as study set" }
+                                    }
+                                    if selection_saved {
+                                        span { class: "muted", "Available in Study sets" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    for category in [AtlasCategory::Person, AtlasCategory::Narrative, AtlasCategory::Event, AtlasCategory::Teaching] {
                         div { class: "atlas-layer-group",
                             span { class: "setup-label", "{category.label()}" }
                             for atlas_item in LAYERS.iter().copied().filter(|item| item.category == category) {
@@ -953,6 +1004,19 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                             }
                         }
                         div { class: "atlas-chapter-layers",
+                            {
+                                let chapter_layers = LAYERS.iter().copied()
+                                    .filter(|item| item.span_for(&book, chapter).is_some())
+                                    .collect::<Vec<_>>();
+                                rsx! {
+                                    if chapter_layers.len() > 1 {
+                                        div { class: "atlas-overlap-note",
+                                            strong { "{chapter_layers.len()} storylines meet here" }
+                                            span { "This chapter belongs to each layer below." }
+                                        }
+                                    }
+                                }
+                            }
                             for atlas_item in LAYERS.iter().copied().filter(|item| item.span_for(&book, chapter).is_some()) {
                                 {
                                     let span = atlas_item.span_for(&book, chapter).unwrap();

@@ -233,6 +233,16 @@ impl Game {
     }
 
     pub fn create_study_set(&mut self) -> String {
+        self.save_custom_study_set(StudySet {
+            id: String::new(),
+            name: "Untitled set".to_string(),
+            passages: Vec::new(),
+            guess_scope: StudyGuessScope::FullCanons,
+            prompt_policy: PromptPolicy::Automatic,
+        })
+    }
+
+    pub fn save_custom_study_set(&mut self, mut set: StudySet) -> String {
         let mut number = self.custom_study_sets.sets.len() + 1;
         let id = loop {
             let candidate = format!("custom-{number}");
@@ -246,13 +256,8 @@ impl Game {
             }
             number += 1;
         };
-        self.custom_study_sets.sets.push(StudySet {
-            id: id.clone(),
-            name: "Untitled set".to_string(),
-            passages: Vec::new(),
-            guess_scope: StudyGuessScope::FullCanons,
-            prompt_policy: PromptPolicy::Automatic,
-        });
+        set.id = id.clone();
+        self.custom_study_sets.sets.push(set);
         self.custom_study_sets.save();
         id
     }
