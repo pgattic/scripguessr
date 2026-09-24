@@ -9,6 +9,8 @@ let
         "assets"
         "assets/data"
         "src"
+        "src/atlas"
+        "src/components"
       ],
     }:
     lib.cleanSourceWith {
@@ -62,7 +64,12 @@ let
       "assets/main.css"
       generatedStudySets
       "src/atlas.rs"
+      "src/atlas/layers.rs"
       "src/components.rs"
+      "src/components/atlas.rs"
+      "src/components/review.rs"
+      "src/components/setup.rs"
+      "src/components/study_sets.rs"
       "src/game.rs"
       "src/loader.rs"
       "src/stats.rs"
