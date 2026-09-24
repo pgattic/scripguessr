@@ -741,7 +741,7 @@ button {
 }
 
 .atlas-books {
-  columns: 166px;
+  columns: 181px;
   column-gap: 24px;
   column-rule: 1px solid var(--border-soft);
 }
@@ -750,7 +750,8 @@ button {
   display: grid;
   gap: 7px;
   justify-items: start;
-  width: 166px;
+  width: 181px;
+  margin-inline: auto;
   margin-bottom: 18px;
   padding-bottom: 15px;
   border-bottom: 1px solid var(--border-soft);
@@ -781,7 +782,7 @@ button {
 }
 
 .atlas-chapters {
-  --chapter-column: 30px;
+  --chapter-column: 33px;
   --chapter-gap: 4px;
 }
 
@@ -789,8 +790,8 @@ button {
   position: relative;
   display: grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 33px;
+  height: 33px;
   border: 1px solid var(--border-soft);
   border-radius: 3px;
   padding: 0;
