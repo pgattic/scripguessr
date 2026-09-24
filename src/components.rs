@@ -718,6 +718,7 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
         .map(|metadata| metadata.books.clone())
         .unwrap_or_default();
     let mut selected_layers = use_signal(Vec::<String>::new);
+    let mut collapsed_categories = use_signal(Vec::<AtlasCategory>::new);
     let mut selected_chapter = use_signal(|| None::<(String, u16)>);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
     let mut saved_atlas_selection = use_signal(|| None::<Vec<String>>);
@@ -861,9 +862,18 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                 section { class: "panel atlas-layers-panel",
                     div { class: "picker-header",
                         h2 { "Layers" }
-                        if !active_ids.is_empty() {
+                        div { class: "atlas-layer-actions",
                             button {
                                 class: "text-button",
+                                disabled: active_ids.len() == LAYERS.len(),
+                                onclick: move |_| selected_layers.set(
+                                    LAYERS.iter().map(|layer| layer.id.to_string()).collect()
+                                ),
+                                "Select all"
+                            }
+                            button {
+                                class: "text-button",
+                                disabled: active_ids.is_empty(),
                                 onclick: move |_| selected_layers.set(Vec::new()),
                                 "Clear"
                             }
@@ -892,30 +902,52 @@ fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
                     }
                     for category in [AtlasCategory::Person, AtlasCategory::Narrative, AtlasCategory::Event, AtlasCategory::Teaching] {
                         div { class: "atlas-layer-group",
-                            span { class: "setup-label", "{category.label()}" }
-                            for atlas_item in LAYERS.iter().copied().filter(|item| item.category == category) {
-                                {
-                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
-                                    let id = atlas_item.id.to_string();
-                                    rsx! {
-                                        label { class: if active { "atlas-layer-toggle active" } else { "atlas-layer-toggle" },
-                                            input {
-                                                r#type: "checkbox",
-                                                checked: active,
-                                                onchange: move |_| {
-                                                    let mut next = selected_layers();
-                                                    if active {
-                                                        next.retain(|candidate| candidate != &id);
-                                                    } else {
-                                                        next.push(id.clone());
-                                                    }
-                                                    selected_layers.set(next);
-                                                }
+                            {
+                                let collapsed = collapsed_categories().contains(&category);
+                                rsx! {
+                                    button {
+                                        class: "atlas-category-toggle",
+                                        aria_expanded: !collapsed,
+                                        onclick: move |_| {
+                                            let mut next = collapsed_categories();
+                                            if collapsed {
+                                                next.retain(|candidate| candidate != &category);
+                                            } else {
+                                                next.push(category);
                                             }
-                                            i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
-                                            span {
-                                                strong { "{atlas_item.name}" }
-                                                small { "{atlas_item.summary}" }
+                                            collapsed_categories.set(next);
+                                        },
+                                        span { class: "setup-label", "{category.label()}" }
+                                        span { class: "atlas-category-symbol", aria_hidden: "true",
+                                            if collapsed { "+" } else { "-" }
+                                        }
+                                    }
+                                    if !collapsed {
+                                        div { class: "atlas-category-layers",
+                                            for atlas_item in LAYERS.iter().copied().filter(|item| item.category == category) {
+                                                {
+                                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
+                                                    let id = atlas_item.id.to_string();
+                                                    rsx! {
+                                                        label { class: if active { "atlas-layer-toggle active" } else { "atlas-layer-toggle" },
+                                                            input {
+                                                                r#type: "checkbox",
+                                                                checked: active,
+                                                                onchange: move |_| {
+                                                                    let mut next = selected_layers();
+                                                                    if active {
+                                                                        next.retain(|candidate| candidate != &id);
+                                                                    } else {
+                                                                        next.push(id.clone());
+                                                                    }
+                                                                    selected_layers.set(next);
+                                                                }
+                                                            }
+                                                            i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
+                                                            strong { "{atlas_item.name}" }
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }

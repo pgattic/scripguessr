@@ -826,6 +826,45 @@ button {
   margin-top: 14px;
 }
 
+.atlas-layer-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.atlas-layer-actions .text-button:disabled {
+  cursor: default;
+  opacity: 0.42;
+}
+
+.atlas-category-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  border: 0;
+  padding: 3px 1px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.atlas-category-symbol {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.atlas-category-layers {
+  display: grid;
+  gap: 8px;
+}
+
 .atlas-save-row {
   display: flex;
   align-items: center;
