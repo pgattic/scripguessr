@@ -1,7 +1,7 @@
 use dioxus::prelude::*;
 
 use crate::components::{
-    AppShell, AtlasRoutePage, NotFoundRoutePage, ReviewRoutePage, SetupRoutePage,
+    AppShell, AtlasRoutePage, GameRoutePage, NotFoundRoutePage, ReviewRoutePage, SetupRoutePage,
     StudyIndexRoutePage, StudySetRoutePage,
 };
 
@@ -19,6 +19,8 @@ pub enum Route {
         StudySet { set_id: String },
         #[route("/atlas", AtlasRoutePage)]
         Atlas {},
+        #[route("/game/v1/:game_id", GameRoutePage)]
+        Game { game_id: String },
         #[route("/:..segments", NotFoundRoutePage)]
         NotFound { segments: Vec<String> },
 }

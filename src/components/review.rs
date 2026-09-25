@@ -117,7 +117,7 @@ pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
                         button {
                             class: "button",
                             disabled: snapshot.loading_game,
-                            onclick: move |_| request_review_game(game),
+                            onclick: move |_| request_review_game(game, navigator),
                             if snapshot.loading_game {
                                 "Starting..."
                             } else {

@@ -34,6 +34,32 @@ pub struct NewGameResponse {
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct GameSnapshotResponse {
+    pub game_id: String,
+    pub rounds: Vec<SnapshotRound>,
+    pub current_round_index: usize,
+    pub finished: bool,
+    pub difficulty: Difficulty,
+    pub scope: GameScope,
+    pub metadata: Vec<CanonMetadata>,
+    pub playable_verse_count: usize,
+    pub total_verse_count: usize,
+    pub max_total_score: u32,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct SnapshotRound {
+    pub text: String,
+    pub guess: Option<GuessResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AdvanceGameResponse {
+    pub current_round_index: usize,
+    pub finished: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct MetadataRequest {
     pub difficulty: Difficulty,
     pub scope: GameScope,

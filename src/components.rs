@@ -1,11 +1,12 @@
 use dioxus::prelude::*;
+use dioxus::router::Navigator;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::JsCast;
 #[cfg(target_arch = "wasm32")]
 use wasm_bindgen::closure::Closure;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::loader::{create_game, load_metadata, submit_guess};
+use crate::loader::{advance_game, create_game, load_game, load_metadata, submit_guess};
 use crate::routes::Route;
 use crate::scoring::MAX_SCORE;
 use crate::scriptures::Canon;
@@ -44,8 +45,8 @@ pub fn AppShell() -> Element {
     let game = use_context::<Signal<Game>>();
     let snapshot = game.read().clone();
     let route = use_route::<Route>();
-    let playing = snapshot.screen == Screen::Playing;
-    let subtitle = if playing {
+    let playing = matches!(&route, Route::Game { .. });
+    let subtitle = if playing && snapshot.screen == Screen::Playing {
         snapshot
             .active_game
             .as_ref()
@@ -58,6 +59,7 @@ pub fn AppShell() -> Element {
             Route::StudyIndex {} | Route::StudySet { .. } => {
                 "Curated and custom study sets".to_string()
             }
+            Route::Game { .. } => "Loading game".to_string(),
             Route::Setup {} | Route::NotFound { .. } => setup_subtitle(&snapshot),
         }
     };
@@ -83,19 +85,13 @@ pub fn AppShell() -> Element {
                             Route::Atlas {} => rsx! {
                                 div { class: "pill", "239 chapters" }
                             },
+                            Route::Game { .. } => rsx! {},
                             Route::Setup {} | Route::NotFound { .. } => rsx! {},
                         }
                     }
                 }
 
-                if playing {
-                    div { class: "layout",
-                        VersePanel { game }
-                        GuessPanel { game }
-                    }
-                } else {
-                    Outlet::<Route> {}
-                }
+                Outlet::<Route> {}
             }
         }
     }
@@ -121,6 +117,11 @@ fn setup_subtitle(game: &Game) -> String {
 #[component]
 pub fn SetupRoutePage() -> Element {
     let mut game = use_context::<Signal<Game>>();
+    use_effect(move || {
+        if game.read().screen == Screen::Playing {
+            game.write().change_settings();
+        }
+    });
     let mut metadata_resource = use_resource(move || async move {
         let snapshot = game.read().clone();
         if !snapshot.metadata_current() {
@@ -195,6 +196,87 @@ pub fn AtlasRoutePage() -> Element {
     rsx! { AtlasPanel { game, load_error } }
 }
 
+#[component]
+pub fn GameRoutePage(game_id: String) -> Element {
+    rsx! { GameRouteContent { key: "{game_id}", game_id } }
+}
+
+#[component]
+fn GameRouteContent(game_id: String) -> Element {
+    let mut game = use_context::<Signal<Game>>();
+    let loaded = game.read().game_id.as_deref() == Some(game_id.as_str())
+        && game.read().screen == Screen::Playing;
+    let game_id_for_load = game_id.clone();
+    let resource = use_resource(move || {
+        let game_id = game_id_for_load.clone();
+        async move {
+            if loaded {
+                Ok(None)
+            } else {
+                load_game(&game_id).await.map(Some)
+            }
+        }
+    });
+
+    use_effect(move || {
+        let Some(Ok(Some(snapshot))) = resource.value().read().as_ref().cloned() else {
+            return;
+        };
+        game.write().restore_game(snapshot);
+    });
+
+    let snapshot = game.read().clone();
+    let load_error = resource
+        .value()
+        .read()
+        .as_ref()
+        .and_then(|result| result.as_ref().err().cloned());
+
+    if let Some(error) = load_error {
+        rsx! { GameUnavailable { message: error } }
+    } else if snapshot.game_id.as_deref() == Some(game_id.as_str())
+        && snapshot.screen == Screen::Playing
+    {
+        rsx! {
+            div { class: "layout",
+                VersePanel { game }
+                GuessPanel { game }
+            }
+        }
+    } else {
+        rsx! {
+            section { class: "panel setup-panel",
+                div { class: "ready",
+                    span { class: "muted", "Game session" }
+                    strong { "Loading" }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn GameUnavailable(message: String) -> Element {
+    let navigator = use_navigator();
+    rsx! {
+        section { class: "panel setup-panel",
+            div { class: "callout warning",
+                strong { "Game unavailable" }
+                span { "{message}" }
+            }
+            div { class: "actions",
+                button {
+                    class: "button",
+                    onclick: move |_| {
+                        navigator.replace(Route::Setup {});
+                    },
+                    "Start a new game"
+                }
+            }
+        }
+    }
+}
+
 fn use_study_metadata(
     mut game: Signal<Game>,
 ) -> Resource<Result<Option<crate::api::MetadataResponse>, String>> {
@@ -229,14 +311,16 @@ pub fn NotFoundRoutePage(segments: Vec<String>) -> Element {
     rsx! {}
 }
 
-fn request_new_game(mut game: Signal<Game>) {
+fn request_new_game(mut game: Signal<Game>, navigator: Navigator) {
     let request = game.read().new_game_request();
     game.write().begin_starting_game();
 
     spawn(async move {
         match create_game(request).await {
             Ok(response) => {
+                let game_id = response.game_id.clone();
                 game.write().start_game(response);
+                navigator.push(Route::Game { game_id });
                 scroll_round_into_view_on_mobile();
             }
             Err(error) => game.write().fail_request(error),
@@ -244,7 +328,7 @@ fn request_new_game(mut game: Signal<Game>) {
     });
 }
 
-fn request_review_game(mut game: Signal<Game>) {
+fn request_review_game(mut game: Signal<Game>, navigator: Navigator) {
     let Some(request) = game.read().review_game_request() else {
         return;
     };
@@ -253,8 +337,10 @@ fn request_review_game(mut game: Signal<Game>) {
     spawn(async move {
         match create_game(request).await {
             Ok(response) => {
+                let game_id = response.game_id.clone();
                 game.write()
                     .start_game_named(response, Some("Marked verses".to_string()));
+                navigator.push(Route::Game { game_id });
                 scroll_round_into_view_on_mobile();
             }
             Err(error) => game.write().fail_request(error),
@@ -262,7 +348,12 @@ fn request_review_game(mut game: Signal<Game>) {
     });
 }
 
-fn request_study_game(mut game: Signal<Game>, set: StudySet, round_count: usize) {
+fn request_study_game(
+    mut game: Signal<Game>,
+    navigator: Navigator,
+    set: StudySet,
+    round_count: usize,
+) {
     let Some(request) = game.read().study_set_game_request(&set, round_count) else {
         return;
     };
@@ -272,7 +363,9 @@ fn request_study_game(mut game: Signal<Game>, set: StudySet, round_count: usize)
     spawn(async move {
         match create_game(request).await {
             Ok(response) => {
+                let game_id = response.game_id.clone();
                 game.write().start_game_named(response, Some(label));
+                navigator.push(Route::Game { game_id });
                 scroll_round_into_view_on_mobile();
             }
             Err(error) => game.write().fail_request(error),
@@ -293,6 +386,24 @@ fn request_guess_submission(mut game: Signal<Game>) {
             Ok(response) => {
                 game.write().apply_guess(response);
                 scroll_result_into_view_on_mobile();
+            }
+            Err(error) => game.write().fail_request(error),
+        }
+    });
+}
+
+fn request_round_advance(mut game: Signal<Game>) {
+    let Some(game_id) = game.read().game_id.clone() else {
+        return;
+    };
+    spawn(async move {
+        match advance_game(&game_id).await {
+            Ok(response) => {
+                let finished = response.finished;
+                game.write().apply_advance(response);
+                if !finished {
+                    scroll_round_into_view_on_mobile();
+                }
             }
             Err(error) => game.write().fail_request(error),
         }
@@ -448,7 +559,7 @@ fn GameCompletePanel(game: Signal<Game>, snapshot: Game) -> Element {
             button {
                 class: "button",
                 disabled: snapshot.loading_game,
-                onclick: move |_| request_new_game(game),
+                onclick: move |_| request_new_game(game, navigator),
                 "Play again"
             }
             button {
@@ -580,15 +691,14 @@ fn GuessChooser(game: Signal<Game>, snapshot: Game) -> Element {
                 if snapshot.is_last_round() {
                     button {
                         class: "button",
-                        onclick: move |_| game.write().next_round(),
+                        onclick: move |_| request_round_advance(game),
                         "Finish game"
                     }
                 } else {
                     button {
                         class: "button",
                         onclick: move |_| {
-                            game.write().next_round();
-                            scroll_round_into_view_on_mobile();
+                            request_round_advance(game);
                         },
                         "Next round"
                     }

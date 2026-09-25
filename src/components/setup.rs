@@ -100,7 +100,7 @@ pub(super) fn SetupPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                     button {
                         class: "button",
                         disabled: !metadata_ready || snapshot.loading_game,
-                        onclick: move |_| request_new_game(game),
+                        onclick: move |_| request_new_game(game, navigator),
                         if snapshot.loading_game { "Starting" } else { "Start" }
                     }
                 }

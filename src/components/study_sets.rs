@@ -337,6 +337,7 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                     disabled: set.passages.is_empty() || !guess_scope_covers_passages || snapshot.loading_game,
                     onclick: move |_| request_study_game(
                         game,
+                        navigator,
                         practice_set.clone(),
                         round_count().min(practice_set.passages.len()),
                     ),

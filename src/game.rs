@@ -1,6 +1,7 @@
 use crate::api::{
-    CanonMetadata, ChapterVerse, GuessReference, GuessRequest, GuessResponse, MetadataRequest,
-    MetadataResponse, NewGameRequest, NewGameResponse,
+    AdvanceGameResponse, CanonMetadata, ChapterVerse, GameSnapshotResponse, GuessReference,
+    GuessRequest, GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest,
+    NewGameResponse,
 };
 use crate::scoring::{MAX_SCORE, Score};
 use crate::scriptures::{BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope};
@@ -204,6 +205,39 @@ impl Game {
         self.submitting_guess = false;
         self.error = None;
         self.screen = Screen::Playing;
+    }
+
+    pub fn restore_game(&mut self, response: GameSnapshotResponse) {
+        self.active_game = Some(ActiveGame {
+            round_count: response.rounds.len(),
+            difficulty: response.difficulty,
+            scope: response.scope.clone(),
+            max_total_score: response.max_total_score,
+            label: None,
+        });
+        self.game_id = Some(response.game_id);
+        self.metadata_difficulty = response.difficulty;
+        self.metadata_scope = response.scope;
+        self.metadata = response.metadata;
+        self.playable_verse_count = response.playable_verse_count;
+        self.total_verse_count = response.total_verse_count;
+        self.rounds = response
+            .rounds
+            .into_iter()
+            .map(|round| Round {
+                text: round.text,
+                guess: round.guess.map(GuessResult::from),
+            })
+            .collect();
+        self.current_round_index = response
+            .current_round_index
+            .min(self.rounds.len().saturating_sub(1));
+        self.finished = response.finished;
+        self.loading_game = false;
+        self.submitting_guess = false;
+        self.error = None;
+        self.screen = Screen::Playing;
+        self.reset_guess_path();
     }
 
     pub fn change_settings(&mut self) {
@@ -550,16 +584,14 @@ impl Game {
         self.stats.remove_review_item(passage)
     }
 
-    pub fn next_round(&mut self) {
-        if self.finished {
-            return;
-        }
-
-        if self.is_last_round() {
+    pub fn apply_advance(&mut self, response: AdvanceGameResponse) {
+        if response.finished && !self.finished {
             self.finished = true;
             self.record_finished_game();
-        } else {
-            self.current_round_index += 1;
+        } else if !response.finished {
+            self.current_round_index = response
+                .current_round_index
+                .min(self.rounds.len().saturating_sub(1));
             self.reset_guess_path();
         }
     }
@@ -788,6 +820,18 @@ pub struct GuessResult {
     pub guess: GuessReference,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,
+}
+
+impl From<GuessResponse> for GuessResult {
+    fn from(response: GuessResponse) -> Self {
+        Self {
+            answer: response.answer,
+            source_passage: response.source_passage,
+            guess: response.guess,
+            score: response.score,
+            chapter_verses: response.chapter_verses,
+        }
+    }
 }
 
 #[cfg(test)]

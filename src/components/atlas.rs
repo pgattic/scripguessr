@@ -70,6 +70,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                         disabled: snapshot.loading_game,
                                         onclick: move |_| request_study_game(
                                             game,
+                                            navigator,
                                             practice_set.clone(),
                                             10.min(practice_set.passages.len()),
                                         ),

@@ -2,8 +2,8 @@ use serde::Serialize;
 use serde::de::DeserializeOwned;
 
 use crate::api::{
-    ChapterRequest, ChapterResponse, GuessRequest, GuessResponse, MetadataRequest,
-    MetadataResponse, NewGameRequest, NewGameResponse,
+    AdvanceGameResponse, ChapterRequest, ChapterResponse, GameSnapshotResponse, GuessRequest,
+    GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest, NewGameResponse,
 };
 
 pub async fn load_metadata(request: MetadataRequest) -> Result<MetadataResponse, String> {
@@ -12,6 +12,14 @@ pub async fn load_metadata(request: MetadataRequest) -> Result<MetadataResponse,
 
 pub async fn create_game(request: NewGameRequest) -> Result<NewGameResponse, String> {
     post_json(&api_path("/api/games"), &request).await
+}
+
+pub async fn load_game(game_id: &str) -> Result<GameSnapshotResponse, String> {
+    get_json(&api_path(&format!("/api/games/{game_id}"))).await
+}
+
+pub async fn advance_game(game_id: &str) -> Result<AdvanceGameResponse, String> {
+    post_json(&api_path(&format!("/api/games/{game_id}/advance")), &()).await
 }
 
 pub async fn load_chapter(request: ChapterRequest) -> Result<ChapterResponse, String> {
@@ -33,6 +41,32 @@ fn api_path(path: &str) -> String {
     } else {
         format!("{}{}", base.trim_end_matches('/'), path)
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn get_json<Response>(path: &str) -> Result<Response, String>
+where
+    Response: DeserializeOwned,
+{
+    use wasm_bindgen::JsCast;
+    use wasm_bindgen_futures::JsFuture;
+
+    let window = web_sys::window().ok_or_else(|| "Browser window is not available".to_string())?;
+    let response_value = JsFuture::from(window.fetch_with_str(path))
+        .await
+        .map_err(|error| format!("Could not reach the game server at {path}: {error:?}"))?;
+    let response = response_value
+        .dyn_into::<web_sys::Response>()
+        .map_err(|error| format!("Invalid response for {path}: {error:?}"))?;
+    parse_response(path, response).await
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+async fn get_json<Response>(_path: &str) -> Result<Response, String>
+where
+    Response: DeserializeOwned,
+{
+    Err("Browser API client is only available in the web build".to_string())
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -68,6 +102,19 @@ where
     let response = response_value
         .dyn_into::<web_sys::Response>()
         .map_err(|error| format!("Invalid response for {path}: {error:?}"))?;
+
+    parse_response(path, response).await
+}
+
+#[cfg(target_arch = "wasm32")]
+async fn parse_response<Response>(
+    path: &str,
+    response: web_sys::Response,
+) -> Result<Response, String>
+where
+    Response: DeserializeOwned,
+{
+    use wasm_bindgen_futures::JsFuture;
 
     let text = JsFuture::from(
         response

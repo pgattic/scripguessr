@@ -18,8 +18,9 @@ use tower_http::trace::TraceLayer;
 use tracing_subscriber::EnvFilter;
 
 use crate::api::{
-    CanonMetadata, ChapterRequest, ChapterResponse, ChapterVerse, GuessReference, GuessRequest,
-    GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest, NewGameResponse, RoundPrompt,
+    AdvanceGameResponse, CanonMetadata, ChapterRequest, ChapterResponse, ChapterVerse,
+    GameSnapshotResponse, GuessReference, GuessRequest, GuessResponse, MetadataRequest,
+    MetadataResponse, NewGameRequest, NewGameResponse, RoundPrompt, SnapshotRound,
 };
 use crate::scriptures::{Canon, ScriptureLibrary, Scriptures, Verse};
 
@@ -73,7 +74,9 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .route("/api/metadata", post(metadata))
         .route("/api/chapter", post(chapter))
         .route("/api/games", post(create_game))
+        .route("/api/games/{game_id}", get(game_snapshot))
         .route("/api/games/{game_id}/guesses", post(submit_guess))
+        .route("/api/games/{game_id}/advance", post(advance_game))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(MAX_GAME_REQUEST_BYTES))
         .layer(CorsLayer::permissive())
@@ -129,6 +132,11 @@ impl AppState {
 struct ServerGame {
     scope: crate::scriptures::GameScope,
     rounds: Vec<RoundAnswer>,
+    guesses: Vec<Option<GuessResponse>>,
+    current_round_index: usize,
+    finished: bool,
+    difficulty: crate::scriptures::Difficulty,
+    playable_verse_count: usize,
     last_seen_at: SystemTime,
 }
 
@@ -261,6 +269,11 @@ async fn create_game(
         ServerGame {
             scope: scope.clone(),
             rounds: rounds.clone(),
+            guesses: vec![None; round_count],
+            current_round_index: 0,
+            finished: false,
+            difficulty,
+            playable_verse_count: playable_count,
             last_seen_at: SystemTime::now(),
         },
     );
@@ -282,6 +295,40 @@ async fn create_game(
     }))
 }
 
+async fn game_snapshot(
+    State(state): State<AppState>,
+    Path(game_id): Path<String>,
+) -> Result<Json<GameSnapshotResponse>, ApiError> {
+    state.prune_games();
+
+    let mut games = state.games.lock().expect("game store poisoned");
+    let game = games
+        .get_mut(&game_id)
+        .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
+    game.last_seen_at = SystemTime::now();
+
+    Ok(Json(GameSnapshotResponse {
+        game_id,
+        rounds: game
+            .rounds
+            .iter()
+            .zip(&game.guesses)
+            .map(|(round, guess)| SnapshotRound {
+                text: round.text.clone(),
+                guess: guess.clone(),
+            })
+            .collect(),
+        current_round_index: game.current_round_index,
+        finished: game.finished,
+        difficulty: game.difficulty,
+        scope: game.scope.clone(),
+        metadata: metadata_for(&state.library, game.difficulty, &game.scope),
+        playable_verse_count: game.playable_verse_count,
+        total_verse_count: total_verse_count(&state.library, &game.scope),
+        max_total_score: game.rounds.len() as u32 * crate::scoring::MAX_SCORE,
+    }))
+}
+
 async fn submit_guess(
     State(state): State<AppState>,
     Path(game_id): Path<String>,
@@ -289,19 +336,26 @@ async fn submit_guess(
 ) -> Result<Json<GuessResponse>, ApiError> {
     state.prune_games();
 
-    let (scope, round) = {
+    let (scope, round, existing_guess) = {
         let mut games = state.games.lock().expect("game store poisoned");
         let game = games
             .get_mut(&game_id)
             .ok_or_else(|| ApiError::not_found("Game not found"))?;
         game.last_seen_at = SystemTime::now();
+        if game.finished || request.round_index != game.current_round_index {
+            return Err(ApiError::bad_request("Round is not active"));
+        }
         let round = game
             .rounds
             .get(request.round_index)
             .cloned()
             .ok_or_else(|| ApiError::bad_request("Round not found"))?;
-        (game.scope.clone(), round)
+        let existing_guess = game.guesses[request.round_index].clone();
+        (game.scope.clone(), round, existing_guess)
     };
+    if let Some(guess) = existing_guess {
+        return Ok(Json(guess));
+    }
     let answer = round.passage.clone();
     let answer_reference = answer
         .first_reference()
@@ -325,7 +379,7 @@ async fn submit_guess(
         })
         .collect();
 
-    Ok(Json(GuessResponse {
+    let response = GuessResponse {
         answer,
         source_passage: round.source_passage,
         guess: GuessReference {
@@ -335,6 +389,46 @@ async fn submit_guess(
         },
         score,
         chapter_verses,
+    };
+    let mut games = state.games.lock().expect("game store poisoned");
+    let game = games
+        .get_mut(&game_id)
+        .ok_or_else(|| ApiError::not_found("Game not found"))?;
+    game.guesses[request.round_index] = Some(response.clone());
+    game.last_seen_at = SystemTime::now();
+    Ok(Json(response))
+}
+
+async fn advance_game(
+    State(state): State<AppState>,
+    Path(game_id): Path<String>,
+) -> Result<Json<AdvanceGameResponse>, ApiError> {
+    state.prune_games();
+
+    let mut games = state.games.lock().expect("game store poisoned");
+    let game = games
+        .get_mut(&game_id)
+        .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
+    if game.finished {
+        return Ok(Json(AdvanceGameResponse {
+            current_round_index: game.current_round_index,
+            finished: true,
+        }));
+    }
+    if game.guesses[game.current_round_index].is_none() {
+        return Err(ApiError::bad_request("Submit a guess before advancing"));
+    }
+
+    if game.current_round_index + 1 == game.rounds.len() {
+        game.finished = true;
+    } else {
+        game.current_round_index += 1;
+    }
+    game.last_seen_at = SystemTime::now();
+
+    Ok(Json(AdvanceGameResponse {
+        current_round_index: game.current_round_index,
+        finished: game.finished,
     }))
 }
 
@@ -603,25 +697,31 @@ mod tests {
         }
     }
 
+    fn empty_server_game(last_seen_at: SystemTime) -> ServerGame {
+        ServerGame {
+            scope: GameMode::BookOfMormon.scope(),
+            rounds: Vec::new(),
+            guesses: Vec::new(),
+            current_round_index: 0,
+            finished: false,
+            difficulty: Difficulty::Normal,
+            playable_verse_count: 0,
+            last_seen_at,
+        }
+    }
+
     #[test]
     fn pruning_removes_only_expired_games() {
         let state = AppState::new(Duration::from_secs(60)).unwrap();
         state.games.lock().unwrap().insert(
             "expired".to_string(),
-            ServerGame {
-                scope: GameMode::BookOfMormon.scope(),
-                rounds: Vec::new(),
-                last_seen_at: SystemTime::UNIX_EPOCH,
-            },
+            empty_server_game(SystemTime::UNIX_EPOCH),
         );
-        state.games.lock().unwrap().insert(
-            "active".to_string(),
-            ServerGame {
-                scope: GameMode::BookOfMormon.scope(),
-                rounds: Vec::new(),
-                last_seen_at: SystemTime::now(),
-            },
-        );
+        state
+            .games
+            .lock()
+            .unwrap()
+            .insert("active".to_string(), empty_server_game(SystemTime::now()));
 
         state.prune_games();
 
@@ -811,6 +911,68 @@ mod tests {
         assert_eq!(body.rounds.len(), 1);
         assert!(!body.game_id.is_empty());
         assert!(!body.rounds[0].text.is_empty());
+    }
+
+    #[tokio::test]
+    async fn game_snapshot_restores_guess_and_round_progress() {
+        let (app, state) = app();
+        let response = post_json(
+            app.clone(),
+            "/api/games",
+            NewGameRequest::Random {
+                round_count: 2,
+                difficulty: Difficulty::Normal,
+                scope: GameMode::BookOfMormon.scope(),
+            },
+        )
+        .await;
+        let created: NewGameResponse = read_json(response).await;
+
+        let initial: GameSnapshotResponse =
+            read_json(get(app.clone(), &format!("/api/games/{}", created.game_id)).await).await;
+        assert_eq!(initial.current_round_index, 0);
+        assert!(!initial.finished);
+        assert!(initial.rounds.iter().all(|round| round.guess.is_none()));
+
+        let answer = state.games.lock().unwrap()[&created.game_id].rounds[0]
+            .passage
+            .first_reference()
+            .unwrap();
+        let response = post_json(
+            app.clone(),
+            &format!("/api/games/{}/guesses", created.game_id),
+            GuessRequest {
+                round_index: 0,
+                canon: answer.canon,
+                book: answer.book,
+                chapter: answer.chapter,
+            },
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::OK);
+
+        let answered: GameSnapshotResponse =
+            read_json(get(app.clone(), &format!("/api/games/{}", created.game_id)).await).await;
+        assert!(answered.rounds[0].guess.is_some());
+        assert_eq!(answered.current_round_index, 0);
+
+        let advanced: AdvanceGameResponse = read_json(
+            post_json(
+                app.clone(),
+                &format!("/api/games/{}/advance", created.game_id),
+                (),
+            )
+            .await,
+        )
+        .await;
+        assert_eq!(advanced.current_round_index, 1);
+        assert!(!advanced.finished);
+
+        let restored: GameSnapshotResponse =
+            read_json(get(app, &format!("/api/games/{}", created.game_id)).await).await;
+        assert_eq!(restored.current_round_index, 1);
+        assert!(restored.rounds[0].guess.is_some());
+        assert!(restored.rounds[1].guess.is_none());
     }
 
     #[tokio::test]
@@ -1057,11 +1219,7 @@ mod tests {
         let (app, state) = app();
         state.games.lock().unwrap().insert(
             "expired".to_string(),
-            ServerGame {
-                scope: GameMode::BookOfMormon.scope(),
-                rounds: Vec::new(),
-                last_seen_at: SystemTime::UNIX_EPOCH,
-            },
+            empty_server_game(SystemTime::UNIX_EPOCH),
         );
 
         let response = post_json(
