@@ -60,8 +60,15 @@ in
 
     systemd.services.scripguessr = {
       description = "ScripGuessr web service";
-      after = [ "network.target" "postgresql.service" ];
-      requires = [ "postgresql.service" ];
+      after = [
+        "network.target"
+        "postgresql.service"
+        "postgresql-setup.service"
+      ];
+      requires = [
+        "postgresql.service"
+        "postgresql-setup.service"
+      ];
       wantedBy = [ "multi-user.target" ];
       environment = {
         PORT = toString cfg.port;
