@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use super::request_review_game;
+use super::{delete_review, request_review_game};
 use crate::game::Game;
 use crate::routes::Route;
 use crate::stats::{ReviewItem, Stats};
@@ -173,6 +173,7 @@ fn ReviewDetail(
                     class: "button secondary",
                     onclick: move |_| {
                         game.write().remove_review_item(&remove_passage);
+                        delete_review(game, remove_passage.clone());
                         set_selected_index.set(selected_index.saturating_sub(1));
                     },
                     "Unmark"

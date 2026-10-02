@@ -2,8 +2,9 @@ use std::sync::Arc;
 
 use dioxus::prelude::*;
 
-use super::request_study_game;
+use super::{persist_study_set, request_study_game};
 use crate::game::Game;
+use crate::loader::{remove_study_set as delete_remote_study_set, save_study_set};
 use crate::routes::Route;
 use crate::scriptures::{BookScope, Canon};
 use crate::study_sets::{
@@ -40,11 +41,27 @@ pub(super) fn StudySetsPanel(
                     h2 { "Study sets" }
                     button {
                         class: "button secondary compact-button",
+                        disabled: snapshot.user.is_none(),
                         onclick: move |_| {
-                            let id = game.write().create_study_set();
-                            navigator.push(Route::StudySet { set_id: id });
+                            spawn(async move {
+                                let set = StudySet {
+                                    id: String::new(),
+                                    name: "Untitled set".to_string(),
+                                    passages: Vec::new(),
+                                    guess_scope: StudyGuessScope::FullCanons,
+                                    prompt_policy: PromptPolicy::Automatic,
+                                };
+                                match save_study_set(set).await {
+                                    Ok(set) => {
+                                        let id = set.id.clone();
+                                        game.write().upsert_custom_study_set(set);
+                                        navigator.push(Route::StudySet { set_id: id });
+                                    }
+                                    Err(error) => game.write().fail_request(error),
+                                }
+                            });
                         },
-                        "New set"
+                        if snapshot.user.is_some() { "New set" } else { "Sign in to create" }
                     }
                 }
 
@@ -162,7 +179,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                         class: "study-name-input",
                         aria_label: "Study set name",
                         value: "{set.name}",
-                        oninput: move |event| game.write().rename_study_set(&set_id, event.value()),
+                        onchange: move |event| {
+                            game.write().rename_study_set(&set_id, event.value());
+                            persist_study_set(game, set_id.clone());
+                        },
                     }
                 } else {
                     h2 { "{set.name}" }
@@ -183,7 +203,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                                 class: if set.prompt_policy == policy { "segment active" } else { "segment" },
                                 onclick: {
                                     let id = set.id.clone();
-                                    move |_| game.write().set_study_prompt_policy(&id, policy)
+                                    move |_| {
+                                        game.write().set_study_prompt_policy(&id, policy);
+                                        persist_study_set(game, id.clone());
+                                    }
                                 },
                                 "{policy.label()}"
                             }
@@ -206,7 +229,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                             class: if matches!(set.guess_scope, StudyGuessScope::BooksInSet) { "segment active" } else { "segment" },
                             onclick: {
                                 let id = set.id.clone();
-                                move |_| game.write().set_study_guess_scope(&id, StudyGuessScope::BooksInSet)
+                                move |_| {
+                                    game.write().set_study_guess_scope(&id, StudyGuessScope::BooksInSet);
+                                    persist_study_set(game, id.clone());
+                                }
                             },
                             "Books in set"
                         }
@@ -214,7 +240,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                             class: if matches!(set.guess_scope, StudyGuessScope::FullCanons) { "segment active" } else { "segment" },
                             onclick: {
                                 let id = set.id.clone();
-                                move |_| game.write().set_study_guess_scope(&id, StudyGuessScope::FullCanons)
+                                move |_| {
+                                    game.write().set_study_guess_scope(&id, StudyGuessScope::FullCanons);
+                                    persist_study_set(game, id.clone());
+                                }
                             },
                             "Full canons"
                         }
@@ -222,7 +251,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                             class: if matches!(set.guess_scope, StudyGuessScope::AllStandardWorks) { "segment active" } else { "segment" },
                             onclick: {
                                 let id = set.id.clone();
-                                move |_| game.write().set_study_guess_scope(&id, StudyGuessScope::AllStandardWorks)
+                                move |_| {
+                                    game.write().set_study_guess_scope(&id, StudyGuessScope::AllStandardWorks);
+                                    persist_study_set(game, id.clone());
+                                }
                             },
                             "All works"
                         }
@@ -230,10 +262,13 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                             class: if matches!(set.guess_scope, StudyGuessScope::Custom(_)) { "segment active" } else { "segment" },
                             onclick: {
                                 let id = set.id.clone();
-                                move |_| game.write().set_study_guess_scope(
-                                    &id,
-                                    StudyGuessScope::Custom(custom_scope_start.clone()),
-                                )
+                                move |_| {
+                                    game.write().set_study_guess_scope(
+                                        &id,
+                                        StudyGuessScope::Custom(custom_scope_start.clone()),
+                                    );
+                                    persist_study_set(game, id.clone());
+                                }
                             },
                             "Custom"
                         }
@@ -271,7 +306,10 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                                     rsx! {
                                         button {
                                             class: "text-button",
-                                            onclick: move |_| game.write().remove_study_passage(&remove_id, index),
+                                            onclick: move |_| {
+                                                game.write().remove_study_passage(&remove_id, index);
+                                                persist_study_set(game, remove_id.clone());
+                                            },
                                             "Remove"
                                         }
                                     }
@@ -325,6 +363,14 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                                 class: "button secondary",
                                 onclick: move |_| {
                                     game.write().delete_study_set(&delete_id);
+                                    spawn({
+                                        let delete_id = delete_id.clone();
+                                        async move {
+                                            if let Err(error) = delete_remote_study_set(delete_id).await {
+                                                game.write().fail_request(error);
+                                            }
+                                        }
+                                    });
                                     navigator.replace(Route::StudyIndex {});
                                 },
                                 "Delete set"
@@ -386,6 +432,7 @@ fn StudyGuessScopeEditor(
                                                 next.canons.sort_by_key(|item| Canon::ALL.iter().position(|candidate| *candidate == item.canon));
                                             }
                                             game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
+                                            persist_study_set(game, id.clone());
                                         }
                                     },
                                     "{canon.label()}"
@@ -403,6 +450,7 @@ fn StudyGuessScopeEditor(
                                                     item.books = BookScope::All;
                                                 }
                                                 game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
+                                                persist_study_set(game, id.clone());
                                             }
                                         },
                                         "All books"
@@ -417,6 +465,7 @@ fn StudyGuessScopeEditor(
                                                     item.books = BookScope::Selected(Vec::new());
                                                 }
                                                 game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
+                                                persist_study_set(game, id.clone());
                                             }
                                         },
                                         "Choose books"
@@ -446,6 +495,7 @@ fn StudyGuessScopeEditor(
                                                                     item.books = BookScope::Selected(names.clone());
                                                                 }
                                                                 game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
+                                                                persist_study_set(game, id.clone());
                                                             }
                                                         },
                                                         "{book.name}"
@@ -598,6 +648,7 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                                 verses: (start_verse()..=end_verse()).collect(),
                             },
                         );
+                        persist_study_set(game, set_id.clone());
                     },
                     "Add"
                 }

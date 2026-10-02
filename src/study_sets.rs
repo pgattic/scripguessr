@@ -3,12 +3,6 @@ use std::sync::{Arc, OnceLock};
 
 use crate::scriptures::{BookScope, Canon, CanonScope, GameMode, GameScope, Reference};
 
-#[cfg(target_arch = "wasm32")]
-const STORAGE_KEY: &str = "scripguessr.study-sets.v2";
-#[cfg(target_arch = "wasm32")]
-const LEGACY_STORAGE_KEY: &str = "scripguessr.study-sets.v1";
-const STORAGE_VERSION: u8 = 2;
-
 #[derive(Clone, Debug, Deserialize, Hash, PartialEq, Eq, Serialize)]
 pub struct StudyPassage {
     pub canon: Canon,
@@ -18,6 +12,7 @@ pub struct StudyPassage {
 }
 
 impl StudyPassage {
+    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
     pub fn single(reference: &Reference) -> Self {
         Self {
             canon: reference.canon,
@@ -141,76 +136,6 @@ impl StudyGuessScope {
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
 pub struct CustomStudySets {
     pub sets: Vec<StudySet>,
-}
-
-#[derive(Deserialize, Serialize)]
-struct StoredCustomStudySets {
-    version: u8,
-    data: CustomStudySets,
-}
-
-#[derive(Deserialize)]
-struct LegacyCustomStudySets {
-    sets: Vec<LegacyStudySet>,
-}
-
-#[derive(Deserialize)]
-struct LegacyStudySet {
-    id: String,
-    name: String,
-    passages: Vec<StudyPassage>,
-    #[serde(default)]
-    guess_scope: StudyGuessScope,
-    #[serde(default)]
-    prompt_policy: PromptPolicy,
-}
-
-impl From<LegacyCustomStudySets> for CustomStudySets {
-    fn from(legacy: LegacyCustomStudySets) -> Self {
-        Self {
-            sets: legacy
-                .sets
-                .into_iter()
-                .map(|set| StudySet {
-                    id: set.id,
-                    name: set.name,
-                    passages: set.passages,
-                    guess_scope: set.guess_scope,
-                    prompt_policy: set.prompt_policy,
-                })
-                .collect(),
-        }
-    }
-}
-
-fn decode_stored_custom_study_sets(json: &str) -> Option<CustomStudySets> {
-    let stored: StoredCustomStudySets = serde_json::from_str(json).ok()?;
-    (stored.version == STORAGE_VERSION).then_some(stored.data)
-}
-
-fn migrate_legacy_custom_study_sets(json: &str) -> Option<CustomStudySets> {
-    serde_json::from_str::<LegacyCustomStudySets>(json)
-        .ok()
-        .map(Into::into)
-}
-
-fn encode_custom_study_sets(sets: &CustomStudySets) -> Option<String> {
-    serde_json::to_string(&StoredCustomStudySets {
-        version: STORAGE_VERSION,
-        data: sets.clone(),
-    })
-    .ok()
-}
-
-impl CustomStudySets {
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn load() -> Self {
-        load_custom_study_sets().unwrap_or_default()
-    }
-
-    pub fn save(&self) {
-        save_custom_study_sets(self);
-    }
 }
 
 pub fn scope_for_passages(passages: &[StudyPassage]) -> GameScope {
@@ -549,45 +474,6 @@ fn compact_verses(verses: &[u16]) -> String {
     parts.join(", ")
 }
 
-#[cfg(target_arch = "wasm32")]
-fn load_custom_study_sets() -> Option<CustomStudySets> {
-    let storage = web_sys::window()?.local_storage().ok()??;
-    if let Some(json) = storage.get_item(STORAGE_KEY).ok().flatten()
-        && let Some(sets) = decode_stored_custom_study_sets(&json)
-    {
-        return Some(sets);
-    }
-
-    let legacy = storage.get_item(LEGACY_STORAGE_KEY).ok()??;
-    let sets = migrate_legacy_custom_study_sets(&legacy)?;
-    if let Some(json) = encode_custom_study_sets(&sets)
-        && storage.set_item(STORAGE_KEY, &json).is_ok()
-    {
-        let _ = storage.remove_item(LEGACY_STORAGE_KEY);
-    }
-    Some(sets)
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn load_custom_study_sets() -> Option<CustomStudySets> {
-    None
-}
-
-#[cfg(target_arch = "wasm32")]
-fn save_custom_study_sets(sets: &CustomStudySets) {
-    let Some(storage) = web_sys::window().and_then(|window| window.local_storage().ok().flatten())
-    else {
-        return;
-    };
-    let Some(json) = encode_custom_study_sets(sets) else {
-        return;
-    };
-    let _ = storage.set_item(STORAGE_KEY, &json);
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn save_custom_study_sets(_sets: &CustomStudySets) {}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -650,28 +536,5 @@ mod tests {
                 .filter(|set| set.id.starts_with("preach-my-gospel-chapter-"))
                 .all(|set| !set.passages.is_empty())
         );
-    }
-
-    #[test]
-    fn migrates_legacy_custom_sets_with_default_policies() {
-        let json = r#"{
-            "sets":[{
-                "id":"alma",
-                "name":"Alma",
-                "passages":[{
-                    "canon":"BookOfMormon",
-                    "book":"Alma",
-                    "chapter":32,
-                    "verses":[21]
-                }]
-            }]
-        }"#;
-
-        let sets = migrate_legacy_custom_study_sets(json).unwrap();
-
-        assert_eq!(sets.sets[0].guess_scope, StudyGuessScope::FullCanons);
-        assert_eq!(sets.sets[0].prompt_policy, PromptPolicy::Automatic);
-        let encoded = encode_custom_study_sets(&sets).unwrap();
-        assert_eq!(decode_stored_custom_study_sets(&encoded), Some(sets));
     }
 }

@@ -1,8 +1,9 @@
 # Deploying ScripGuessr on NixOS
 
 ScripGuessr ships a NixOS module as `nixosModules.default`. The module builds the
-Dioxus web app and backend server, runs the app on localhost, and leaves your
-reverse proxy configuration in your host config.
+Dioxus web app and backend server, provisions a local PostgreSQL database, runs
+the app on localhost, and leaves your reverse proxy configuration in your host
+config.
 
 ## Example
 
@@ -43,11 +44,12 @@ If another reverse proxy already owns TLS, point it at
 
 ## Health Checks
 
-The server exposes a lightweight health endpoint:
+The server exposes liveness and database-readiness endpoints:
 
 ```text
 GET /healthz
+GET /readyz
 ```
 
-It returns `200 OK` with `ok` in the response body. Point uptime checks or reverse
-proxy health checks at `http://127.0.0.1:8087/healthz`.
+Use `/healthz` for process liveness and `/readyz` when the check should also
+verify PostgreSQL connectivity.

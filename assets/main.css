@@ -70,6 +70,60 @@ button {
   margin-bottom: 22px;
 }
 
+.account-nav {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin: -14px 0 18px;
+}
+
+.text-button {
+  border: 0;
+  padding: 4px 0;
+  background: transparent;
+  color: var(--muted-strong);
+  cursor: pointer;
+  font: inherit;
+}
+
+.text-button:hover {
+  color: var(--text);
+}
+
+.account-layout {
+  grid-template-columns: minmax(0, 560px);
+}
+
+.account-panel,
+.leaderboard-panel {
+  padding: 20px;
+}
+
+.leaderboard-panel {
+  max-width: 760px;
+}
+
+.leaderboard-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 12px;
+}
+
+.leaderboard-filters label {
+  display: grid;
+  gap: 6px;
+}
+
+.leaderboard-row {
+  grid-template-columns: 56px minmax(0, 1fr) auto;
+}
+
+.leaderboard-row.current-user {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
 .brand {
   display: flex;
   flex-direction: column;

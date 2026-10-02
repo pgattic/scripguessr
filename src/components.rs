@@ -6,17 +6,22 @@ use wasm_bindgen::JsCast;
 use wasm_bindgen::closure::Closure;
 
 use crate::game::{Game, GuessResult, GuessStep, Round, Screen};
-use crate::loader::{advance_game, create_game, load_game, load_metadata, submit_guess};
+use crate::loader::{
+    advance_game, create_game, current_user, load_account_data, load_game, load_metadata,
+    remove_review_item as delete_review_item, save_review_item, save_study_set, submit_guess,
+};
 use crate::routes::Route;
 use crate::scoring::MAX_SCORE;
 use crate::scriptures::Canon;
 use crate::study_sets::{StudyPassage, StudySet};
 
+mod account;
 mod atlas;
 mod review;
 mod setup;
 mod study_sets;
 
+pub use account::{AccountRoutePage, LeaderboardsRoutePage, LoginRoutePage, RegisterRoutePage};
 use atlas::AtlasPanel;
 use review::{ReviewPanel, StatsPanel};
 use setup::SetupPanel;
@@ -24,9 +29,27 @@ use study_sets::StudySetsPanel;
 
 #[component]
 pub fn App() -> Element {
-    let game = use_signal(Game::new);
+    let mut game = use_signal(Game::new);
 
     use_context_provider(|| game);
+    let account_resource = use_resource(move || async move {
+        let user = current_user().await?;
+        let data = if user.is_some() {
+            Some(load_account_data().await?)
+        } else {
+            None
+        };
+        Ok::<_, String>((user, data))
+    });
+    use_effect(move || {
+        let Some(Ok((user, data))) = account_resource.value().read().as_ref().cloned() else {
+            return;
+        };
+        game.write().apply_user(user);
+        if let Some(data) = data {
+            game.write().apply_account_data(data);
+        }
+    });
 
     rsx! {
         document::Stylesheet {
@@ -43,6 +66,7 @@ pub fn App() -> Element {
 #[component]
 pub fn AppShell() -> Element {
     let game = use_context::<Signal<Game>>();
+    let nav = use_navigator();
     let snapshot = game.read().clone();
     let route = use_route::<Route>();
     let playing = matches!(&route, Route::Game { .. });
@@ -59,6 +83,10 @@ pub fn AppShell() -> Element {
             Route::StudyIndex {} | Route::StudySet { .. } => {
                 "Curated and custom study sets".to_string()
             }
+            Route::Login {} => "Sign in".to_string(),
+            Route::Register {} => "Create an account".to_string(),
+            Route::Account {} => "Account and progress".to_string(),
+            Route::Leaderboards {} => "Standard game leaderboards".to_string(),
             Route::Game { .. } => "Loading game".to_string(),
             Route::Setup {} | Route::NotFound { .. } => setup_subtitle(&snapshot),
         }
@@ -86,7 +114,32 @@ pub fn AppShell() -> Element {
                                 div { class: "pill", "239 chapters" }
                             },
                             Route::Game { .. } => rsx! {},
+                            Route::Login {}
+                            | Route::Register {}
+                            | Route::Account {}
+                            | Route::Leaderboards {} => rsx! {},
                             Route::Setup {} | Route::NotFound { .. } => rsx! {},
+                        }
+                    }
+                }
+
+                nav { class: "account-nav", aria_label: "Account navigation",
+                    button {
+                        class: "text-button",
+                        onclick: move |_| { nav.push(Route::Leaderboards {}); },
+                        "Leaderboards"
+                    }
+                    if let Some(user) = snapshot.user.as_ref() {
+                        button {
+                            class: "text-button",
+                            onclick: move |_| { nav.push(Route::Account {}); },
+                            "{user.username}"
+                        }
+                    } else if snapshot.account_loaded {
+                        button {
+                            class: "text-button",
+                            onclick: move |_| { nav.push(Route::Login {}); },
+                            "Sign in"
                         }
                     }
                 }
@@ -392,6 +445,41 @@ fn request_guess_submission(mut game: Signal<Game>) {
     });
 }
 
+fn persist_study_set(mut game: Signal<Game>, id: String) {
+    let set = game
+        .read()
+        .custom_study_sets
+        .sets
+        .iter()
+        .find(|set| set.id == id)
+        .cloned();
+    let Some(set) = set else {
+        return;
+    };
+    spawn(async move {
+        match save_study_set(set).await {
+            Ok(set) => game.write().upsert_custom_study_set(set),
+            Err(error) => game.write().fail_request(error),
+        }
+    });
+}
+
+fn persist_review_item(mut game: Signal<Game>, item: crate::stats::ReviewItem) {
+    spawn(async move {
+        if let Err(error) = save_review_item(item).await {
+            game.write().fail_request(error);
+        }
+    });
+}
+
+fn delete_review(mut game: Signal<Game>, passage: StudyPassage) {
+    spawn(async move {
+        if let Err(error) = delete_review_item(passage).await {
+            game.write().fail_request(error);
+        }
+    });
+}
+
 fn request_round_advance(mut game: Signal<Game>) {
     let Some(game_id) = game.read().game_id.clone() else {
         return;
@@ -401,7 +489,12 @@ fn request_round_advance(mut game: Signal<Game>) {
             Ok(response) => {
                 let finished = response.finished;
                 game.write().apply_advance(response);
-                if !finished {
+                if finished && game.read().user.is_some() {
+                    match load_account_data().await {
+                        Ok(data) => game.write().apply_account_data(data),
+                        Err(error) => game.write().fail_request(error),
+                    }
+                } else if !finished {
                     scroll_round_into_view_on_mobile();
                 }
             }
@@ -779,6 +872,7 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
     let chapter_title = format!("{} {}", result.answer.book, result.answer.chapter);
     let score_percent = result.score.points.saturating_mul(100) / MAX_SCORE;
     let marked_for_review = game.read().current_result_marked_for_review();
+    let signed_in = game.read().user.is_some();
     let (feedback_title, feedback_detail) = result_feedback(&result);
     let answer_label = result.answer.label();
     let source_label = result.source_passage.label();
@@ -822,10 +916,20 @@ fn ResultPanel(game: Signal<Game>, result: GuessResult) -> Element {
                 }
                 button {
                     class: if marked_for_review { "button secondary review-active" } else { "button secondary" },
+                    disabled: !signed_in,
                     onclick: move |_| {
-                        game.write().toggle_current_result_review();
+                        let item = crate::stats::ReviewItem {
+                            passage: result.answer.clone(),
+                            text: game.read().current_round().text.clone(),
+                            score: result.score.points,
+                        };
+                        if game.write().toggle_current_result_review() {
+                            persist_review_item(game, item);
+                        } else {
+                            delete_review(game, result.answer.clone());
+                        }
                     },
-                    if marked_for_review { "Marked" } else { "Mark for review" }
+                    if !signed_in { "Sign in to mark" } else if marked_for_review { "Marked" } else { "Mark for review" }
                 }
             }
             if reader_open() {

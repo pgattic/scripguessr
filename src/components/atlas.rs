@@ -6,7 +6,7 @@ use crate::atlas::{
     AtlasCategory, AtlasLayer, LAYERS, book_chronology, era_starting_at, layer as atlas_layer,
 };
 use crate::game::Game;
-use crate::loader::load_chapter;
+use crate::loader::{load_chapter, save_study_set};
 use crate::routes::Route;
 use crate::scriptures::{BookInfo, Canon};
 use crate::study_sets::{PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
@@ -21,7 +21,6 @@ struct AtlasReaderData {
 #[component]
 pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
     let navigator = use_navigator();
-    use_effect(clear_deprecated_atlas_storage);
     let snapshot = game.read().clone();
     let books = snapshot
         .study_metadata
@@ -78,12 +77,21 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                     }
                                     button {
                                         class: "button secondary",
-                                        disabled: selection_saved,
+                                        disabled: selection_saved || snapshot.user.is_none(),
                                         onclick: move |_| {
-                                            game.write().save_custom_study_set(saved_set.clone());
-                                            saved_atlas_selection.set(Some(saved_selection.clone()));
+                                            let set = saved_set.clone();
+                                            let selection = saved_selection.clone();
+                                            spawn(async move {
+                                                match save_study_set(set).await {
+                                                    Ok(set) => {
+                                                        game.write().upsert_custom_study_set(set);
+                                                        saved_atlas_selection.set(Some(selection));
+                                                    }
+                                                    Err(error) => game.write().fail_request(error),
+                                                }
+                                            });
                                         },
-                                        if selection_saved { "Saved" } else { "Save as study set" }
+                                        if snapshot.user.is_none() { "Sign in to save" } else if selection_saved { "Saved" } else { "Save as study set" }
                                     }
                                 }
                             }
@@ -367,18 +375,6 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
         }
     }
 }
-
-#[cfg(target_arch = "wasm32")]
-fn clear_deprecated_atlas_storage() {
-    if let Some(storage) =
-        web_sys::window().and_then(|window| window.local_storage().ok().flatten())
-    {
-        let _ = storage.remove_item("scripguessr.atlas.v1");
-    }
-}
-
-#[cfg(not(target_arch = "wasm32"))]
-fn clear_deprecated_atlas_storage() {}
 
 fn atlas_hits(selected: &[String], book: &str, chapter: u16) -> Vec<AtlasLayer> {
     selected

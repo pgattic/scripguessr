@@ -1,11 +1,11 @@
 use crate::api::{
-    AdvanceGameResponse, CanonMetadata, ChapterVerse, GameSnapshotResponse, GuessReference,
-    GuessRequest, GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest,
-    NewGameResponse,
+    AccountDataResponse, AdvanceGameResponse, CanonMetadata, ChapterVerse, GameSnapshotResponse,
+    GuessReference, GuessRequest, GuessResponse, MetadataRequest, MetadataResponse, NewGameRequest,
+    NewGameResponse, UserResponse,
 };
 use crate::scoring::{MAX_SCORE, Score};
 use crate::scriptures::{BookInfo, BookScope, Canon, CanonScope, Difficulty, GameMode, GameScope};
-use crate::stats::{FinishedGame, FinishedRound, ReviewItem, Stats};
+use crate::stats::{ReviewItem, Stats};
 use crate::study_sets::{CustomStudySets, PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
 
 #[derive(Clone, PartialEq)]
@@ -33,6 +33,8 @@ pub struct Game {
     pub submitting_guess: bool,
     pub error: Option<String>,
     pub active_game: Option<ActiveGame>,
+    pub user: Option<UserResponse>,
+    pub account_loaded: bool,
 }
 
 impl Game {
@@ -47,8 +49,8 @@ impl Game {
             playable_verse_count: 0,
             total_verse_count: 0,
             settings,
-            stats: Stats::load(),
-            custom_study_sets: CustomStudySets::load(),
+            stats: Stats::default(),
+            custom_study_sets: CustomStudySets::default(),
             last_game_new_best: false,
             screen: Screen::Setup,
             rounds: Vec::new(),
@@ -62,6 +64,36 @@ impl Game {
             submitting_guess: false,
             error: None,
             active_game: None,
+            user: None,
+            account_loaded: false,
+        }
+    }
+
+    pub fn apply_user(&mut self, user: Option<UserResponse>) {
+        self.user = user;
+        self.account_loaded = true;
+        if self.user.is_none() {
+            self.stats = Stats::default();
+            self.custom_study_sets = CustomStudySets::default();
+        }
+    }
+
+    pub fn apply_account_data(&mut self, data: AccountDataResponse) {
+        self.stats = data.stats;
+        self.stats.review_items = data.review_items;
+        self.custom_study_sets.sets = data.custom_study_sets;
+    }
+
+    pub fn upsert_custom_study_set(&mut self, set: StudySet) {
+        if let Some(existing) = self
+            .custom_study_sets
+            .sets
+            .iter_mut()
+            .find(|existing| existing.id == set.id)
+        {
+            *existing = set;
+        } else {
+            self.custom_study_sets.sets.push(set);
         }
     }
 
@@ -251,34 +283,6 @@ impl Game {
         self.clear_guess();
     }
 
-    pub fn create_study_set(&mut self) -> String {
-        self.save_custom_study_set(StudySet {
-            id: String::new(),
-            name: "Untitled set".to_string(),
-            passages: Vec::new(),
-            guess_scope: StudyGuessScope::FullCanons,
-            prompt_policy: PromptPolicy::Automatic,
-        })
-    }
-
-    pub fn save_custom_study_set(&mut self, mut set: StudySet) -> String {
-        let id = loop {
-            let candidate = format!("custom-{:016x}", rand::random::<u64>());
-            if self
-                .custom_study_sets
-                .sets
-                .iter()
-                .all(|set| set.id != candidate)
-            {
-                break candidate;
-            }
-        };
-        set.id = id.clone();
-        self.custom_study_sets.sets.push(set);
-        self.custom_study_sets.save();
-        id
-    }
-
     pub fn rename_study_set(&mut self, id: &str, name: String) {
         if let Some(set) = self
             .custom_study_sets
@@ -287,7 +291,6 @@ impl Game {
             .find(|set| set.id == id)
         {
             set.name = name;
-            self.custom_study_sets.save();
         }
     }
 
@@ -300,7 +303,6 @@ impl Game {
             && !set.passages.contains(&passage)
         {
             set.passages.push(passage);
-            self.custom_study_sets.save();
         }
     }
 
@@ -312,7 +314,6 @@ impl Game {
             .find(|set| set.id == id)
         {
             set.guess_scope = guess_scope;
-            self.custom_study_sets.save();
         }
     }
 
@@ -324,7 +325,6 @@ impl Game {
             .find(|set| set.id == id)
         {
             set.prompt_policy = prompt_policy;
-            self.custom_study_sets.save();
         }
     }
 
@@ -337,13 +337,11 @@ impl Game {
             && index < set.passages.len()
         {
             set.passages.remove(index);
-            self.custom_study_sets.save();
         }
     }
 
     pub fn delete_study_set(&mut self, id: &str) {
         self.custom_study_sets.sets.retain(|set| set.id != id);
-        self.custom_study_sets.save();
     }
 
     pub fn set_round_count(&mut self, round_count: usize) {
@@ -587,7 +585,7 @@ impl Game {
     pub fn apply_advance(&mut self, response: AdvanceGameResponse) {
         if response.finished && !self.finished {
             self.finished = true;
-            self.record_finished_game();
+            self.last_game_new_best = false;
         } else if !response.finished {
             self.current_round_index = response
                 .current_round_index
@@ -656,32 +654,6 @@ impl Game {
         } else {
             0
         }
-    }
-
-    fn record_finished_game(&mut self) {
-        let finished_game = FinishedGame {
-            difficulty: self
-                .active_game
-                .as_ref()
-                .map(|game| game.difficulty)
-                .unwrap_or(self.settings.difficulty),
-            score: self.total_score(),
-            possible_score: self.max_total_score(),
-            rounds: self
-                .rounds
-                .iter()
-                .filter_map(|round| {
-                    let guess = round.guess.as_ref()?;
-                    Some(FinishedRound {
-                        answer_book: guess.answer.book.clone(),
-                        score: guess.score.points,
-                        possible_score: MAX_SCORE,
-                    })
-                })
-                .collect(),
-        };
-
-        self.last_game_new_best = self.stats.record_game(finished_game);
     }
 }
 

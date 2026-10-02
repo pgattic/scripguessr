@@ -5,6 +5,7 @@
 {
   config,
   lib,
+  pkgs,
   ...
 }:
 
@@ -35,23 +36,43 @@ in
     gameTtlSeconds = lib.mkOption {
       type = lib.types.ints.positive;
       default = 21600;
-      description = "Seconds to keep inactive in-memory games before pruning.";
+      description = "Seconds to keep inactive games before pruning.";
     };
   };
 
   config = lib.mkIf cfg.enable {
+    services.postgresql = {
+      enable = true;
+      ensureDatabases = [ "scripguessr" ];
+      ensureUsers = [
+        {
+          name = "scripguessr";
+          ensureDBOwnership = true;
+        }
+      ];
+    };
+
+    users.users.scripguessr = {
+      isSystemUser = true;
+      group = "scripguessr";
+    };
+    users.groups.scripguessr = { };
+
     systemd.services.scripguessr = {
       description = "ScripGuessr web service";
-      after = [ "network.target" ];
+      after = [ "network.target" "postgresql.service" ];
+      requires = [ "postgresql.service" ];
       wantedBy = [ "multi-user.target" ];
       environment = {
         PORT = toString cfg.port;
         SCRIPGUESSR_GAME_TTL_SECONDS = toString cfg.gameTtlSeconds;
         SCRIPGUESSR_STATIC_DIR = "${cfg.package}/share/scripguessr/public";
+        DATABASE_URL = "postgresql://scripguessr@localhost/scripguessr?host=/run/postgresql";
       };
       serviceConfig = {
         ExecStart = lib.getExe cfg.package;
-        DynamicUser = true;
+        User = "scripguessr";
+        Group = "scripguessr";
         Restart = "on-failure";
         RestartSec = "5s";
         NoNewPrivileges = true;

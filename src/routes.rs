@@ -1,7 +1,8 @@
 use dioxus::prelude::*;
 
 use crate::components::{
-    AppShell, AtlasRoutePage, GameRoutePage, NotFoundRoutePage, ReviewRoutePage, SetupRoutePage,
+    AccountRoutePage, AppShell, AtlasRoutePage, GameRoutePage, LeaderboardsRoutePage,
+    LoginRoutePage, NotFoundRoutePage, RegisterRoutePage, ReviewRoutePage, SetupRoutePage,
     StudyIndexRoutePage, StudySetRoutePage,
 };
 
@@ -21,6 +22,14 @@ pub enum Route {
         Atlas {},
         #[route("/game/v1/:game_id", GameRoutePage)]
         Game { game_id: String },
+        #[route("/login", LoginRoutePage)]
+        Login {},
+        #[route("/register", RegisterRoutePage)]
+        Register {},
+        #[route("/account", AccountRoutePage)]
+        Account {},
+        #[route("/leaderboards", LeaderboardsRoutePage)]
+        Leaderboards {},
         #[route("/:..segments", NotFoundRoutePage)]
         NotFound { segments: Vec<String> },
 }

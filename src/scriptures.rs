@@ -101,7 +101,7 @@ impl Canon {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
 pub enum GameMode {
     BookOfMormon,

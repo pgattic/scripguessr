@@ -1,8 +1,9 @@
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
-use crate::scriptures::{BookInfo, Canon, Difficulty, GameScope};
-use crate::study_sets::{PromptPolicy, StudyPassage};
+use crate::scriptures::{BookInfo, Canon, Difficulty, GameMode, GameScope};
+use crate::stats::Stats;
+use crate::study_sets::{PromptPolicy, StudyPassage, StudySet};
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
@@ -127,4 +128,53 @@ pub struct ChapterRequest {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ChapterResponse {
     pub verses: Vec<ChapterVerse>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AuthRequest {
+    pub username: String,
+    pub password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    pub new_password: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct UserResponse {
+    pub id: String,
+    pub username: String,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LeaderboardEntry {
+    pub rank: u32,
+    pub username: String,
+    pub score: u32,
+    pub possible_score: u32,
+    pub completed_at: String,
+    pub current_user: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LeaderboardResponse {
+    pub preset: GameMode,
+    pub difficulty: Difficulty,
+    pub round_count: usize,
+    pub entries: Vec<LeaderboardEntry>,
+    pub current_user_entry: Option<LeaderboardEntry>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct AccountDataResponse {
+    pub stats: Stats,
+    pub review_items: Vec<crate::stats::ReviewItem>,
+    pub custom_study_sets: Vec<StudySet>,
+}
+
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
+pub struct IdRequest {
+    pub id: String,
 }

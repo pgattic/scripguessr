@@ -11,6 +11,8 @@ let
         "src"
         "src/atlas"
         "src/components"
+        "src/server"
+        "migrations"
       ],
     }:
     lib.cleanSourceWith {
@@ -42,6 +44,7 @@ let
     "src/main.rs"
     "src/scoring.rs"
     "src/scriptures.rs"
+    "src/stats.rs"
     "src/study_sets.rs"
   ];
 
@@ -54,6 +57,10 @@ let
     ++ [
       generatedStudySets
       "src/server.rs"
+      "src/server/account.rs"
+      "src/server/auth.rs"
+      "src/server/leaderboards.rs"
+      "migrations/0001_backend.sql"
     ];
 
   webFiles =
@@ -67,13 +74,13 @@ let
       "src/atlas/layers.rs"
       "src/components.rs"
       "src/components/atlas.rs"
+      "src/components/account.rs"
       "src/components/review.rs"
       "src/components/setup.rs"
       "src/components/study_sets.rs"
       "src/game.rs"
       "src/loader.rs"
       "src/routes.rs"
-      "src/stats.rs"
     ];
 in
 {

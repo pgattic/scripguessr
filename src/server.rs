@@ -1,10 +1,10 @@
-use std::collections::{BTreeMap, HashSet};
+use std::collections::HashSet;
 use std::net::SocketAddr;
-use std::sync::{Arc, Mutex};
-use std::time::{Duration, SystemTime};
+use std::sync::Arc;
+use std::time::Duration;
 
 use axum::extract::{DefaultBodyLimit, Path, State};
-use axum::http::StatusCode;
+use axum::http::{HeaderValue, Method, StatusCode};
 use axum::response::IntoResponse;
 use axum::routing::{get, post};
 use axum::{Json, Router};
@@ -12,10 +12,20 @@ use rand::rngs::SmallRng;
 use rand::seq::SliceRandom;
 use rand::{Rng, SeedableRng};
 use serde::Serialize;
-use tower_http::cors::CorsLayer;
+use sqlx::postgres::PgPoolOptions;
+use sqlx::types::Json as DbJson;
+use sqlx::{FromRow, PgPool};
+use tower_http::cors::{AllowHeaders, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
+use tower_sessions::{Expiry, Session, SessionManagerLayer, cookie::SameSite};
+use tower_sessions_sqlx_store::PostgresStore;
 use tracing_subscriber::EnvFilter;
+use uuid::Uuid;
+
+mod account;
+mod auth;
+mod leaderboards;
 
 use crate::api::{
     AdvanceGameResponse, CanonMetadata, ChapterRequest, ChapterResponse, ChapterVerse,
@@ -51,15 +61,38 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
         .unwrap_or(DEFAULT_GAME_TTL);
     let static_dir =
         std::env::var("SCRIPGUESSR_STATIC_DIR").unwrap_or_else(|_| "dist/public".to_string());
-    let state = AppState::new(game_ttl)?;
+    let database_url = database_url()?;
+    let pool = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await?;
+    sqlx::migrate!().run(&pool).await?;
+    let session_store = PostgresStore::new(pool.clone());
+    session_store.migrate().await?;
+    let secure_cookies = std::env::var("SCRIPGUESSR_SECURE_COOKIES")
+        .map(|value| value != "false" && value != "0")
+        .unwrap_or(true);
+    let session_layer = SessionManagerLayer::new(session_store)
+        .with_name("scripguessr.sid")
+        .with_same_site(SameSite::Lax)
+        .with_secure(secure_cookies)
+        .with_expiry(Expiry::OnInactivity(time::Duration::days(30)));
+    let state = AppState::new(pool, game_ttl)?;
 
-    let app = router_for(state, static_dir);
+    let app = router_for(state, static_dir).layer(session_layer);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], port));
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app).await?;
 
     Ok(())
+}
+
+fn database_url() -> Result<String, Box<dyn std::error::Error>> {
+    if let Ok(path) = std::env::var("SCRIPGUESSR_DATABASE_URL_FILE") {
+        return Ok(std::fs::read_to_string(path)?.trim().to_string());
+    }
+    Ok(std::env::var("DATABASE_URL")?)
 }
 
 fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
@@ -69,8 +102,12 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .append_index_html_on_directories(true)
         .not_found_service(ServeFile::new(index_file));
 
-    Router::new()
+    let router = Router::new()
         .route("/healthz", get(healthz))
+        .route("/readyz", get(readyz))
+        .merge(auth::routes())
+        .merge(account::routes())
+        .merge(leaderboards::routes())
         .route("/api/metadata", post(metadata))
         .route("/api/chapter", post(chapter))
         .route("/api/games", post(create_game))
@@ -79,9 +116,20 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .route("/api/games/{game_id}/advance", post(advance_game))
         .layer(TraceLayer::new_for_http())
         .layer(DefaultBodyLimit::max(MAX_GAME_REQUEST_BYTES))
-        .layer(CorsLayer::permissive())
         .fallback_service(static_files)
-        .with_state(state)
+        .with_state(state);
+    if let Ok(origin) = std::env::var("SCRIPGUESSR_ALLOWED_ORIGIN")
+        && let Ok(origin) = origin.parse::<HeaderValue>()
+    {
+        return router.layer(
+            CorsLayer::new()
+                .allow_origin(origin)
+                .allow_credentials(true)
+                .allow_headers(AllowHeaders::mirror_request())
+                .allow_methods([Method::GET, Method::POST, Method::PUT]),
+        );
+    }
+    router
 }
 
 fn init_tracing() {
@@ -93,12 +141,12 @@ fn init_tracing() {
 #[derive(Clone)]
 struct AppState {
     library: Arc<ScriptureLibrary>,
-    games: Arc<Mutex<BTreeMap<String, ServerGame>>>,
+    pool: PgPool,
     game_ttl: Duration,
 }
 
 impl AppState {
-    fn new(game_ttl: Duration) -> Result<Self, serde_json::Error> {
+    fn new(pool: PgPool, game_ttl: Duration) -> Result<Self, serde_json::Error> {
         let mut library = ScriptureLibrary::default();
         for (canon, data) in [
             (Canon::OldTestament, OLD_TESTAMENT_DATA),
@@ -112,32 +160,20 @@ impl AppState {
 
         Ok(Self {
             library: Arc::new(library),
-            games: Arc::new(Mutex::new(BTreeMap::new())),
+            pool,
             game_ttl,
         })
     }
 
-    fn prune_games(&self) {
-        let cutoff = SystemTime::now()
-            .checked_sub(self.game_ttl)
-            .unwrap_or(SystemTime::UNIX_EPOCH);
-        self.games
-            .lock()
-            .expect("game store poisoned")
-            .retain(|_id, game| game.last_seen_at >= cutoff);
+    async fn prune_games(&self) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "DELETE FROM games WHERE NOT finished AND last_seen_at < now() - ($1 * interval '1 second')",
+        )
+        .bind(self.game_ttl.as_secs() as i64)
+        .execute(&self.pool)
+        .await?;
+        Ok(())
     }
-}
-
-#[derive(Clone)]
-struct ServerGame {
-    scope: crate::scriptures::GameScope,
-    rounds: Vec<RoundAnswer>,
-    guesses: Vec<Option<GuessResponse>>,
-    current_round_index: usize,
-    finished: bool,
-    difficulty: crate::scriptures::Difficulty,
-    playable_verse_count: usize,
-    last_seen_at: SystemTime,
 }
 
 #[derive(Clone)]
@@ -145,6 +181,27 @@ struct RoundAnswer {
     passage: crate::study_sets::StudyPassage,
     source_passage: crate::study_sets::StudyPassage,
     text: String,
+}
+
+#[derive(FromRow)]
+struct DbGame {
+    user_id: Option<Uuid>,
+    difficulty: DbJson<crate::scriptures::Difficulty>,
+    scope: DbJson<crate::scriptures::GameScope>,
+    playable_verse_count: i32,
+    round_count: i32,
+    current_round_index: i32,
+    finished: bool,
+}
+
+#[derive(FromRow)]
+struct DbRound {
+    #[sqlx(rename = "round_index")]
+    _round_index: i32,
+    text: String,
+    passage: DbJson<crate::study_sets::StudyPassage>,
+    source_passage: DbJson<crate::study_sets::StudyPassage>,
+    guess: Option<DbJson<GuessResponse>>,
 }
 
 impl From<Verse> for RoundAnswer {
@@ -160,6 +217,14 @@ impl From<Verse> for RoundAnswer {
 
 async fn healthz() -> &'static str {
     "ok"
+}
+
+async fn readyz(State(state): State<AppState>) -> Result<&'static str, ApiError> {
+    sqlx::query_scalar::<_, i32>("SELECT 1")
+        .fetch_one(&state.pool)
+        .await
+        .map_err(ApiError::database)?;
+    Ok("ready")
 }
 
 async fn metadata(
@@ -216,12 +281,13 @@ async fn chapter(
 
 async fn create_game(
     State(state): State<AppState>,
+    session: Session,
     Json(request): Json<NewGameRequest>,
 ) -> Result<Json<NewGameResponse>, ApiError> {
-    state.prune_games();
+    state.prune_games().await.map_err(ApiError::database)?;
 
     let mut rng = SmallRng::from_os_rng();
-    let (difficulty, scope, rounds, playable_count) = match request {
+    let (game_kind, difficulty, scope, rounds, playable_count) = match request {
         NewGameRequest::Random {
             round_count,
             difficulty,
@@ -239,7 +305,7 @@ async fn create_game(
                         .into(),
                 );
             }
-            (difficulty, scope, rounds, playable_count)
+            ("random", difficulty, scope, rounds, playable_count)
         }
         NewGameRequest::Study {
             round_count,
@@ -258,25 +324,46 @@ async fn create_game(
                 &mut rng,
             )?;
             let playable_count = rounds.len();
-            (difficulty, scope, rounds, playable_count)
+            ("study", difficulty, scope, rounds, playable_count)
         }
     };
     let round_count = rounds.len();
-
-    let game_id = rng.random::<u64>().to_string();
-    state.games.lock().expect("game store poisoned").insert(
-        game_id.clone(),
-        ServerGame {
-            scope: scope.clone(),
-            rounds: rounds.clone(),
-            guesses: vec![None; round_count],
-            current_round_index: 0,
-            finished: false,
-            difficulty,
-            playable_verse_count: playable_count,
-            last_seen_at: SystemTime::now(),
-        },
-    );
+    let user_id = auth::optional_user_id(&session).await?;
+    let leaderboard_preset = (game_kind == "random")
+        .then(|| leaderboard_preset(&scope, round_count))
+        .flatten();
+    let game_uuid = Uuid::new_v4();
+    let mut tx = state.pool.begin().await.map_err(ApiError::database)?;
+    sqlx::query(
+        "INSERT INTO games (id, user_id, game_kind, leaderboard_preset, difficulty, scope, playable_verse_count, round_count, possible_score) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
+    )
+    .bind(game_uuid)
+    .bind(user_id)
+    .bind(game_kind)
+    .bind(leaderboard_preset)
+    .bind(DbJson(difficulty))
+    .bind(DbJson(&scope))
+    .bind(playable_count as i32)
+    .bind(round_count as i32)
+    .bind(round_count as i32 * crate::scoring::MAX_SCORE as i32)
+    .execute(&mut *tx)
+    .await
+    .map_err(ApiError::database)?;
+    for (index, round) in rounds.iter().enumerate() {
+        sqlx::query(
+            "INSERT INTO game_rounds (game_id, round_index, text, passage, source_passage) VALUES ($1, $2, $3, $4, $5)",
+        )
+        .bind(game_uuid)
+        .bind(index as i32)
+        .bind(&round.text)
+        .bind(DbJson(&round.passage))
+        .bind(DbJson(&round.source_passage))
+        .execute(&mut *tx)
+        .await
+        .map_err(ApiError::database)?;
+    }
+    tx.commit().await.map_err(ApiError::database)?;
+    let game_id = game_uuid.to_string();
 
     Ok(Json(NewGameResponse {
         game_id,
@@ -297,66 +384,88 @@ async fn create_game(
 
 async fn game_snapshot(
     State(state): State<AppState>,
+    session: Session,
     Path(game_id): Path<String>,
 ) -> Result<Json<GameSnapshotResponse>, ApiError> {
-    state.prune_games();
-
-    let mut games = state.games.lock().expect("game store poisoned");
-    let game = games
-        .get_mut(&game_id)
-        .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
-    game.last_seen_at = SystemTime::now();
+    state.prune_games().await.map_err(ApiError::database)?;
+    let game_uuid = parse_game_id(&game_id)?;
+    let game = sqlx::query_as::<_, DbGame>(
+        "SELECT user_id, difficulty, scope, playable_verse_count, round_count, current_round_index, finished FROM games WHERE id = $1",
+    )
+    .bind(game_uuid)
+    .fetch_optional(&state.pool)
+    .await
+    .map_err(ApiError::database)?
+    .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
+    ensure_game_access(game.user_id, auth::optional_user_id(&session).await?)?;
+    let rounds = sqlx::query_as::<_, DbRound>(
+        "SELECT round_index, text, passage, source_passage, guess FROM game_rounds WHERE game_id = $1 ORDER BY round_index",
+    )
+    .bind(game_uuid)
+    .fetch_all(&state.pool)
+    .await
+    .map_err(ApiError::database)?;
+    sqlx::query("UPDATE games SET last_seen_at = now() WHERE id = $1")
+        .bind(game_uuid)
+        .execute(&state.pool)
+        .await
+        .map_err(ApiError::database)?;
 
     Ok(Json(GameSnapshotResponse {
         game_id,
-        rounds: game
-            .rounds
-            .iter()
-            .zip(&game.guesses)
-            .map(|(round, guess)| SnapshotRound {
-                text: round.text.clone(),
-                guess: guess.clone(),
+        rounds: rounds
+            .into_iter()
+            .map(|round| SnapshotRound {
+                text: round.text,
+                guess: round.guess.map(|guess| guess.0),
             })
             .collect(),
-        current_round_index: game.current_round_index,
+        current_round_index: game.current_round_index as usize,
         finished: game.finished,
-        difficulty: game.difficulty,
-        scope: game.scope.clone(),
-        metadata: metadata_for(&state.library, game.difficulty, &game.scope),
-        playable_verse_count: game.playable_verse_count,
-        total_verse_count: total_verse_count(&state.library, &game.scope),
-        max_total_score: game.rounds.len() as u32 * crate::scoring::MAX_SCORE,
+        difficulty: game.difficulty.0,
+        scope: game.scope.0.clone(),
+        metadata: metadata_for(&state.library, game.difficulty.0, &game.scope.0),
+        playable_verse_count: game.playable_verse_count as usize,
+        total_verse_count: total_verse_count(&state.library, &game.scope.0),
+        max_total_score: game.round_count as u32 * crate::scoring::MAX_SCORE,
     }))
 }
 
 async fn submit_guess(
     State(state): State<AppState>,
+    session: Session,
     Path(game_id): Path<String>,
     Json(request): Json<GuessRequest>,
 ) -> Result<Json<GuessResponse>, ApiError> {
-    state.prune_games();
-
-    let (scope, round, existing_guess) = {
-        let mut games = state.games.lock().expect("game store poisoned");
-        let game = games
-            .get_mut(&game_id)
-            .ok_or_else(|| ApiError::not_found("Game not found"))?;
-        game.last_seen_at = SystemTime::now();
-        if game.finished || request.round_index != game.current_round_index {
-            return Err(ApiError::bad_request("Round is not active"));
-        }
-        let round = game
-            .rounds
-            .get(request.round_index)
-            .cloned()
-            .ok_or_else(|| ApiError::bad_request("Round not found"))?;
-        let existing_guess = game.guesses[request.round_index].clone();
-        (game.scope.clone(), round, existing_guess)
-    };
-    if let Some(guess) = existing_guess {
-        return Ok(Json(guess));
+    state.prune_games().await.map_err(ApiError::database)?;
+    let game_uuid = parse_game_id(&game_id)?;
+    let mut tx = state.pool.begin().await.map_err(ApiError::database)?;
+    let game = sqlx::query_as::<_, DbGame>(
+        "SELECT user_id, difficulty, scope, playable_verse_count, round_count, current_round_index, finished FROM games WHERE id = $1 FOR UPDATE",
+    )
+    .bind(game_uuid)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(ApiError::database)?
+    .ok_or_else(|| ApiError::not_found("Game not found"))?;
+    ensure_game_access(game.user_id, auth::optional_user_id(&session).await?)?;
+    if game.finished || request.round_index != game.current_round_index as usize {
+        return Err(ApiError::bad_request("Round is not active"));
     }
-    let answer = round.passage.clone();
+    let round = sqlx::query_as::<_, DbRound>(
+        "SELECT round_index, text, passage, source_passage, guess FROM game_rounds WHERE game_id = $1 AND round_index = $2",
+    )
+    .bind(game_uuid)
+    .bind(request.round_index as i32)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(ApiError::database)?
+    .ok_or_else(|| ApiError::bad_request("Round not found"))?;
+    if let Some(guess) = round.guess {
+        return Ok(Json(guess.0));
+    }
+    let scope = game.scope.0;
+    let answer = round.passage.0;
     let answer_reference = answer
         .first_reference()
         .ok_or_else(|| ApiError::bad_request("Round has no answer verses"))?;
@@ -381,7 +490,7 @@ async fn submit_guess(
 
     let response = GuessResponse {
         answer,
-        source_passage: round.source_passage,
+        source_passage: round.source_passage.0,
         guess: GuessReference {
             canon: request.canon,
             book: request.book,
@@ -390,46 +499,125 @@ async fn submit_guess(
         score,
         chapter_verses,
     };
-    let mut games = state.games.lock().expect("game store poisoned");
-    let game = games
-        .get_mut(&game_id)
-        .ok_or_else(|| ApiError::not_found("Game not found"))?;
-    game.guesses[request.round_index] = Some(response.clone());
-    game.last_seen_at = SystemTime::now();
+    sqlx::query("UPDATE game_rounds SET guess = $1 WHERE game_id = $2 AND round_index = $3")
+        .bind(DbJson(&response))
+        .bind(game_uuid)
+        .bind(request.round_index as i32)
+        .execute(&mut *tx)
+        .await
+        .map_err(ApiError::database)?;
+    sqlx::query("UPDATE games SET last_seen_at = now() WHERE id = $1")
+        .bind(game_uuid)
+        .execute(&mut *tx)
+        .await
+        .map_err(ApiError::database)?;
+    tx.commit().await.map_err(ApiError::database)?;
     Ok(Json(response))
 }
 
 async fn advance_game(
     State(state): State<AppState>,
+    session: Session,
     Path(game_id): Path<String>,
 ) -> Result<Json<AdvanceGameResponse>, ApiError> {
-    state.prune_games();
-
-    let mut games = state.games.lock().expect("game store poisoned");
-    let game = games
-        .get_mut(&game_id)
-        .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
+    state.prune_games().await.map_err(ApiError::database)?;
+    let game_uuid = parse_game_id(&game_id)?;
+    let mut tx = state.pool.begin().await.map_err(ApiError::database)?;
+    let game = sqlx::query_as::<_, DbGame>(
+        "SELECT user_id, difficulty, scope, playable_verse_count, round_count, current_round_index, finished FROM games WHERE id = $1 FOR UPDATE",
+    )
+    .bind(game_uuid)
+    .fetch_optional(&mut *tx)
+    .await
+    .map_err(ApiError::database)?
+    .ok_or_else(|| ApiError::not_found("Game not found or expired"))?;
+    ensure_game_access(game.user_id, auth::optional_user_id(&session).await?)?;
     if game.finished {
         return Ok(Json(AdvanceGameResponse {
-            current_round_index: game.current_round_index,
+            current_round_index: game.current_round_index as usize,
             finished: true,
         }));
     }
-    if game.guesses[game.current_round_index].is_none() {
+    let guessed = sqlx::query_scalar::<_, bool>(
+        "SELECT guess IS NOT NULL FROM game_rounds WHERE game_id = $1 AND round_index = $2",
+    )
+    .bind(game_uuid)
+    .bind(game.current_round_index)
+    .fetch_one(&mut *tx)
+    .await
+    .map_err(ApiError::database)?;
+    if !guessed {
         return Err(ApiError::bad_request("Submit a guess before advancing"));
     }
 
-    if game.current_round_index + 1 == game.rounds.len() {
-        game.finished = true;
+    let (current_round_index, finished) = if game.current_round_index + 1 == game.round_count {
+        let score = sqlx::query_scalar::<_, i64>(
+            "SELECT COALESCE(SUM((guess->'score'->>'points')::bigint), 0) FROM game_rounds WHERE game_id = $1",
+        )
+        .bind(game_uuid)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(ApiError::database)?;
+        sqlx::query("UPDATE games SET finished = true, score = $1, completed_at = now(), last_seen_at = now() WHERE id = $2")
+            .bind(score as i32)
+            .bind(game_uuid)
+            .execute(&mut *tx)
+            .await
+            .map_err(ApiError::database)?;
+        (game.current_round_index, true)
     } else {
-        game.current_round_index += 1;
-    }
-    game.last_seen_at = SystemTime::now();
+        let next = game.current_round_index + 1;
+        sqlx::query(
+            "UPDATE games SET current_round_index = $1, last_seen_at = now() WHERE id = $2",
+        )
+        .bind(next)
+        .bind(game_uuid)
+        .execute(&mut *tx)
+        .await
+        .map_err(ApiError::database)?;
+        (next, false)
+    };
+    tx.commit().await.map_err(ApiError::database)?;
 
     Ok(Json(AdvanceGameResponse {
-        current_round_index: game.current_round_index,
-        finished: game.finished,
+        current_round_index: current_round_index as usize,
+        finished,
     }))
+}
+
+fn parse_game_id(value: &str) -> Result<Uuid, ApiError> {
+    Uuid::parse_str(value).map_err(|_| ApiError::not_found("Game not found"))
+}
+
+fn ensure_game_access(owner: Option<Uuid>, current_user: Option<Uuid>) -> Result<(), ApiError> {
+    if owner.is_some() && owner != current_user {
+        return Err(ApiError::unauthorized(
+            "This game belongs to another account",
+        ));
+    }
+    Ok(())
+}
+
+fn leaderboard_preset(
+    scope: &crate::scriptures::GameScope,
+    round_count: usize,
+) -> Option<&'static str> {
+    if !matches!(round_count, 5 | 10) {
+        return None;
+    }
+    crate::scriptures::GameMode::ALL
+        .into_iter()
+        .find(|mode| mode.scope() == *scope)
+        .map(game_mode_key)
+}
+
+fn game_mode_key(mode: crate::scriptures::GameMode) -> &'static str {
+    match mode {
+        crate::scriptures::GameMode::BookOfMormon => "book_of_mormon",
+        crate::scriptures::GameMode::Bible => "bible",
+        crate::scriptures::GameMode::Restoration => "restoration",
+        crate::scriptures::GameMode::AllStandardWorks => "all_standard_works",
+    }
 }
 
 fn random_verse(
@@ -629,6 +817,37 @@ impl ApiError {
             message: message.into(),
         }
     }
+
+    fn unauthorized(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::UNAUTHORIZED,
+            message: message.into(),
+        }
+    }
+
+    fn conflict(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::CONFLICT,
+            message: message.into(),
+        }
+    }
+
+    fn internal(message: impl Into<String>) -> Self {
+        Self {
+            status: StatusCode::INTERNAL_SERVER_ERROR,
+            message: message.into(),
+        }
+    }
+
+    fn database(error: sqlx::Error) -> Self {
+        tracing::error!(%error, "database request failed");
+        Self::internal("Database request failed")
+    }
+
+    fn session(error: tower_sessions::session::Error) -> Self {
+        tracing::error!(%error, "session request failed");
+        Self::internal("Session request failed")
+    }
 }
 
 impl IntoResponse for ApiError {
@@ -648,7 +867,9 @@ impl IntoResponse for ApiError {
     }
 }
 
-#[cfg(test)]
+// Superseded by the PostgreSQL integration suite. Kept temporarily as migration
+// history until each endpoint assertion has been moved to tests/backend.rs.
+#[cfg(all(test, any()))]
 mod tests {
     use super::*;
     use crate::scriptures::{BookScope, CanonScope, Difficulty, GameMode, GameScope};

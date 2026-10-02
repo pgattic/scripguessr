@@ -49,6 +49,7 @@
               lld
               poppler-utils
               python3
+              postgresql
               rustc
               rustfmt
               wasm-bindgen-cli
@@ -117,6 +118,7 @@
               cargo
               dioxus-cli
               lld
+              postgresql
               rustc
               wasm-bindgen-cli
             ];
@@ -124,12 +126,25 @@
               export SCRIPGUESSR_API_BASE="''${SCRIPGUESSR_API_BASE:-http://127.0.0.1:8099}"
               export PORT="''${SCRIPGUESSR_BACKEND_PORT:-8099}"
               export SCRIPGUESSR_STATIC_DIR="target/dx/scripguessr/debug/web/public"
+              export SCRIPGUESSR_ALLOWED_ORIGIN="''${SCRIPGUESSR_ALLOWED_ORIGIN:-http://127.0.0.1:8080}"
+              export SCRIPGUESSR_SECURE_COOKIES=false
+
+              pg_data="''${SCRIPGUESSR_DEV_PGDATA:-$PWD/target/dev-postgres-data}"
+              pg_socket="$PWD/target/dev-postgres-socket"
+              if [ ! -s "$pg_data/PG_VERSION" ]; then
+                initdb --username="$USER" --auth=trust --no-locale "$pg_data"
+              fi
+              mkdir -p "$pg_socket"
+              pg_ctl -D "$pg_data" -o "-k $pg_socket -p 55432" -w start
+              createdb -h "$pg_socket" -p 55432 scripguessr 2>/dev/null || true
+              export DATABASE_URL="postgresql://$USER@localhost/scripguessr?host=$pg_socket&port=55432"
 
               cargo run &
               backend_pid="$!"
               cleanup() {
                 kill "$backend_pid" 2>/dev/null || true
                 wait "$backend_pid" 2>/dev/null || true
+                pg_ctl -D "$pg_data" -m fast -w stop 2>/dev/null || true
               }
               trap cleanup EXIT INT TERM
 
