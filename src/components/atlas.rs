@@ -30,6 +30,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
         .unwrap_or_default();
     let mut selected_layers = use_signal(Vec::<String>::new);
     let mut collapsed_categories = use_signal(|| AtlasCategory::ALL.to_vec());
+    let mut layer_filters = use_signal(|| vec![String::new(); AtlasCategory::ALL.len()]);
     let mut mobile_layers_open = use_signal(|| false);
     let mut selected_chapter = use_signal(|| None::<(String, u16)>);
     let mut reader = use_signal(|| None::<AtlasReaderData>);
@@ -244,6 +245,15 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                         div { class: "atlas-layer-group",
                             {
                                 let collapsed = collapsed_categories().contains(&category);
+                                let category_layers = LAYERS
+                                    .iter()
+                                    .copied()
+                                    .filter(|item| item.category == category)
+                                    .collect::<Vec<_>>();
+                                let selected_count = category_layers
+                                    .iter()
+                                    .filter(|item| active_ids.iter().any(|id| id == item.id))
+                                    .count();
                                 rsx! {
                                     button {
                                         class: "atlas-category-toggle",
@@ -257,14 +267,72 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                             }
                                             collapsed_categories.set(next);
                                         },
-                                        span { class: "setup-label", "{category.label()}" }
+                                        span { class: "setup-label",
+                                            "{category.label()}"
+                                            small { "{selected_count}/{category_layers.len()}" }
+                                        }
                                         span { class: "atlas-category-symbol", aria_hidden: "true",
                                             if collapsed { "+" } else { "-" }
                                         }
                                     }
                                     if !collapsed {
                                         div { class: "atlas-category-layers",
-                                            for atlas_item in LAYERS.iter().copied().filter(|item| item.category == category) {
+                                            div { class: "atlas-category-tools",
+                                                input {
+                                                    class: "atlas-layer-filter",
+                                                    r#type: "search",
+                                                    aria_label: "Filter {category.label()}",
+                                                    placeholder: "Filter {category.label().to_lowercase()}",
+                                                    value: layer_filters()[category.index()].clone(),
+                                                    oninput: move |event| {
+                                                        let mut next = layer_filters();
+                                                        next[category.index()] = event.value();
+                                                        layer_filters.set(next);
+                                                    }
+                                                }
+                                                div { class: "atlas-category-actions",
+                                                    button {
+                                                        class: "text-button",
+                                                        disabled: selected_count == category_layers.len(),
+                                                        onclick: move |_| {
+                                                            let mut next = selected_layers();
+                                                            for item in LAYERS.iter().filter(|item| item.category == category) {
+                                                                if !next.iter().any(|id| id == item.id) {
+                                                                    next.push(item.id.to_string());
+                                                                }
+                                                            }
+                                                            selected_layers.set(next);
+                                                        },
+                                                        "Select all"
+                                                    }
+                                                    button {
+                                                        class: "text-button",
+                                                        disabled: selected_count == 0,
+                                                        onclick: move |_| {
+                                                            let mut next = selected_layers();
+                                                            next.retain(|id| {
+                                                                !LAYERS.iter().any(|item| {
+                                                                    item.category == category && item.id == id
+                                                                })
+                                                            });
+                                                            selected_layers.set(next);
+                                                        },
+                                                        "Clear"
+                                                    }
+                                                }
+                                            }
+                                            div { class: "atlas-category-scroll",
+                                            {
+                                                let filter = layer_filters()[category.index()].trim().to_lowercase();
+                                                let visible_layers = category_layers
+                                                    .iter()
+                                                    .copied()
+                                                    .filter(|item| filter.is_empty()
+                                                        || item.name.to_lowercase().contains(&filter)
+                                                        || item.summary.to_lowercase().contains(&filter))
+                                                    .collect::<Vec<_>>();
+                                                rsx! {
+                                            for atlas_item in visible_layers.iter().copied() {
                                                 {
                                                     let active = active_ids.iter().any(|id| id == atlas_item.id);
                                                     let id = atlas_item.id.to_string();
@@ -288,6 +356,12 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                         }
                                                     }
                                                 }
+                                            }
+                                            if visible_layers.is_empty() {
+                                                span { class: "atlas-filter-empty muted", "No matching layers" }
+                                            }
+                                                }
+                                            }
                                             }
                                         }
                                     }

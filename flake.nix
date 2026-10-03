@@ -116,6 +116,7 @@
             runtimeInputs = with pkgs; [
               gcc
               cargo
+              curl
               dioxus-cli
               lld
               postgresql
@@ -135,16 +136,27 @@
                 initdb --username="$USER" --auth=trust --no-locale "$pg_data"
               fi
               mkdir -p "$pg_socket"
-              pg_ctl -D "$pg_data" -o "-k $pg_socket -p 55432" -w start
+              started_postgres=false
+              if ! pg_ctl -D "$pg_data" status >/dev/null 2>&1; then
+                pg_ctl -D "$pg_data" -o "-k $pg_socket -p 55432" -w start
+                started_postgres=true
+              fi
               createdb -h "$pg_socket" -p 55432 scripguessr 2>/dev/null || true
               export DATABASE_URL="postgresql://$USER@localhost/scripguessr?host=$pg_socket&port=55432"
 
-              cargo run &
-              backend_pid="$!"
+              backend_pid=""
+              if ! curl --fail --silent --max-time 2 "http://127.0.0.1:$PORT/readyz" >/dev/null; then
+                cargo run &
+                backend_pid="$!"
+              fi
               cleanup() {
-                kill "$backend_pid" 2>/dev/null || true
-                wait "$backend_pid" 2>/dev/null || true
-                pg_ctl -D "$pg_data" -m fast -w stop 2>/dev/null || true
+                if [ -n "$backend_pid" ]; then
+                  kill "$backend_pid" 2>/dev/null || true
+                  wait "$backend_pid" 2>/dev/null || true
+                fi
+                if [ "$started_postgres" = true ]; then
+                  pg_ctl -D "$pg_data" -m fast -w stop 2>/dev/null || true
+                fi
               }
               trap cleanup EXIT INT TERM
 

@@ -23,6 +23,16 @@ impl AtlasCategory {
             Self::Teaching => "Teachings",
         }
     }
+
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub const fn index(self) -> usize {
+        match self {
+            Self::Person => 0,
+            Self::Narrative => 1,
+            Self::Event => 2,
+            Self::Teaching => 3,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -175,6 +185,21 @@ mod tests {
                 .flat_map(|layer| layer.spans)
                 .all(|span| { !span.book.is_empty() && span.start > 0 && span.start <= span.end })
         );
+    }
+
+    #[test]
+    fn every_category_has_a_useful_catalog() {
+        for category in AtlasCategory::ALL {
+            assert!(
+                LAYERS
+                    .iter()
+                    .filter(|layer| layer.category == category)
+                    .count()
+                    >= 8,
+                "{} needs more layers",
+                category.label()
+            );
+        }
     }
 
     #[test]

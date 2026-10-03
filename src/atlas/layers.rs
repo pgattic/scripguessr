@@ -416,6 +416,130 @@ const GATHERING_ISRAEL: &[AtlasSpan] = &[
     },
 ];
 
+const LEHI: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "1 Nephi",
+        start: 1,
+        end: 18,
+        note: "Lehi leads his family from Jerusalem, teaches in the wilderness, and reaches the promised land (1 Nephi 1-18).",
+    },
+    AtlasSpan {
+        book: "2 Nephi",
+        start: 1,
+        end: 4,
+        note: "Lehi gives his final blessings and teachings to his family (2 Nephi 1-4).",
+    },
+];
+
+const ZEEZROM: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Alma",
+        start: 10,
+        end: 15,
+        note: "Zeezrom challenges Alma and Amulek, repents, is healed, and begins to preach (Alma 10-15).",
+    },
+    AtlasSpan {
+        book: "Alma",
+        start: 31,
+        end: 35,
+        note: "Zeezrom joins Alma's mission among the Zoramites (Alma 31-35).",
+    },
+];
+
+const BROTHER_OF_JARED: &[AtlasSpan] = &[AtlasSpan {
+    book: "Ether",
+    start: 1,
+    end: 6,
+    note: "The brother of Jared leads his people, sees the premortal Christ, and crosses the ocean (Ether 1-6).",
+}];
+
+const LEHI_DREAM: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "1 Nephi",
+        start: 8,
+        end: 8,
+        note: "Lehi sees the tree of life, the rod of iron, and the great and spacious building (1 Nephi 8).",
+    },
+    AtlasSpan {
+        book: "1 Nephi",
+        start: 11,
+        end: 15,
+        note: "Nephi sees and receives an interpretation of his father's vision (1 Nephi 11-15).",
+    },
+];
+
+const SHIP_AND_VOYAGE: &[AtlasSpan] = &[AtlasSpan {
+    book: "1 Nephi",
+    start: 17,
+    end: 18,
+    note: "Nephi builds a ship and Lehi's family crosses the sea to the promised land (1 Nephi 17-18).",
+}];
+
+const AMMONIHAH: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 8,
+    end: 16,
+    note: "Alma and Amulek preach in Ammonihah through rejection, martyrdom, imprisonment, and deliverance (Alma 8-16).",
+}];
+
+const REIGN_OF_JUDGES: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Mosiah",
+        start: 29,
+        end: 29,
+        note: "Mosiah proposes judges and the people establish a new form of government (Mosiah 29).",
+    },
+    AtlasSpan {
+        book: "Alma",
+        start: 1,
+        end: 1,
+        note: "The reign of the judges begins amid the challenge of Nehor (Alma 1).",
+    },
+];
+
+const TITLE_OF_LIBERTY: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 46,
+    end: 51,
+    note: "Moroni raises the title of liberty and confronts internal rebellion and invasion (Alma 46-51).",
+}];
+
+const CUMORAH: &[AtlasSpan] = &[AtlasSpan {
+    book: "Mormon",
+    start: 5,
+    end: 7,
+    note: "The Nephites gather at Cumorah for their final battle, and Mormon mourns their destruction (Mormon 5-7).",
+}];
+
+const KING_BENJAMIN_ADDRESS: &[AtlasSpan] = &[AtlasSpan {
+    book: "Mosiah",
+    start: 2,
+    end: 5,
+    note: "King Benjamin teaches service, the Atonement, conversion, and covenant discipleship (Mosiah 2-5).",
+}];
+
+const FAITH_AS_SEED: &[AtlasSpan] = &[AtlasSpan {
+    book: "Alma",
+    start: 32,
+    end: 33,
+    note: "Alma compares the word to a seed and teaches the Zoramites how faith grows into knowledge (Alma 32-33).",
+}];
+
+const FAITH_HOPE_CHARITY: &[AtlasSpan] = &[
+    AtlasSpan {
+        book: "Ether",
+        start: 12,
+        end: 12,
+        note: "Moroni teaches about faith, hope, weakness, and the grace of Christ (Ether 12).",
+    },
+    AtlasSpan {
+        book: "Moroni",
+        start: 7,
+        end: 7,
+        note: "Mormon teaches how faith, hope, and charity identify disciples of Christ (Moroni 7).",
+    },
+];
+
 pub const LAYERS: &[AtlasLayer] = &[
     AtlasLayer {
         id: "lehi-journey",
@@ -704,5 +828,101 @@ pub const LAYERS: &[AtlasLayer] = &[
         tone: "cyan",
         summary: "Christ explains covenant Israel and the latter-day gathering.",
         spans: GATHERING_ISRAEL,
+    },
+    AtlasLayer {
+        id: "lehi",
+        name: "Lehi",
+        category: AtlasCategory::Person,
+        tone: "green",
+        summary: "Prophet, patriarch, and leader of the journey from Jerusalem.",
+        spans: LEHI,
+    },
+    AtlasLayer {
+        id: "zeezrom",
+        name: "Zeezrom",
+        category: AtlasCategory::Person,
+        tone: "rose",
+        summary: "From determined opponent to converted missionary.",
+        spans: ZEEZROM,
+    },
+    AtlasLayer {
+        id: "brother-jared",
+        name: "Brother of Jared",
+        category: AtlasCategory::Person,
+        tone: "cyan",
+        summary: "Revelation, sacred stones, and the Jaredite ocean crossing.",
+        spans: BROTHER_OF_JARED,
+    },
+    AtlasLayer {
+        id: "lehi-dream",
+        name: "Lehi's dream",
+        category: AtlasCategory::Narrative,
+        tone: "violet",
+        summary: "The tree of life and Nephi's expansive interpretation.",
+        spans: LEHI_DREAM,
+    },
+    AtlasLayer {
+        id: "ship-voyage",
+        name: "Ship and ocean voyage",
+        category: AtlasCategory::Narrative,
+        tone: "blue",
+        summary: "Building the ship and crossing to the promised land.",
+        spans: SHIP_AND_VOYAGE,
+    },
+    AtlasLayer {
+        id: "ammonihah",
+        name: "Mission to Ammonihah",
+        category: AtlasCategory::Narrative,
+        tone: "orange",
+        summary: "Alma and Amulek face rejection, persecution, and prison.",
+        spans: AMMONIHAH,
+    },
+    AtlasLayer {
+        id: "reign-judges",
+        name: "Reign of the judges begins",
+        category: AtlasCategory::Event,
+        tone: "teal",
+        summary: "The transition from kings to a system of judges.",
+        spans: REIGN_OF_JUDGES,
+    },
+    AtlasLayer {
+        id: "title-liberty",
+        name: "Title of liberty",
+        category: AtlasCategory::Event,
+        tone: "gold",
+        summary: "A public covenant to defend faith, family, and freedom.",
+        spans: TITLE_OF_LIBERTY,
+    },
+    AtlasLayer {
+        id: "cumorah",
+        name: "Battle of Cumorah",
+        category: AtlasCategory::Event,
+        tone: "red",
+        summary: "The final gathering and destruction of the Nephite nation.",
+        spans: CUMORAH,
+    },
+    AtlasLayer {
+        id: "benjamin-address",
+        name: "King Benjamin's address",
+        category: AtlasCategory::Teaching,
+        tone: "yellow",
+        summary: "Service, redemption through Christ, and covenant rebirth.",
+        spans: KING_BENJAMIN_ADDRESS,
+    },
+    AtlasLayer {
+        id: "faith-seed",
+        name: "Faith as a seed",
+        category: AtlasCategory::Teaching,
+        tone: "green",
+        summary: "Alma's experiment upon the word and growth of faith.",
+        spans: FAITH_AS_SEED,
+    },
+    AtlasLayer {
+        id: "faith-hope-charity",
+        name: "Faith, hope, and charity",
+        category: AtlasCategory::Teaching,
+        tone: "rose",
+        summary: "Moroni preserves complementary teachings on discipleship.",
+        spans: FAITH_HOPE_CHARITY,
     },
 ];
