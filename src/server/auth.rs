@@ -12,6 +12,7 @@ use super::{ApiError, AppState};
 use crate::api::{AuthRequest, ChangePasswordRequest, UserResponse};
 
 const USER_ID_KEY: &str = "user_id";
+const INVALID_LOGIN: &str = "Invalid username or password";
 
 pub(super) fn routes() -> Router<AppState> {
     Router::new()
@@ -23,10 +24,7 @@ pub(super) fn routes() -> Router<AppState> {
 }
 
 pub(super) async fn optional_user_id(session: &Session) -> Result<Option<Uuid>, ApiError> {
-    let id = session
-        .get::<String>(USER_ID_KEY)
-        .await
-        .map_err(ApiError::session)?;
+    let id = session.get::<String>(USER_ID_KEY).await?;
     id.map(|id| Uuid::parse_str(&id).map_err(|_| ApiError::unauthorized("Invalid user session")))
         .transpose()
 }
@@ -63,14 +61,11 @@ async fn register(
         {
             return Err(ApiError::conflict("Username is already taken"));
         }
-        return Err(ApiError::database(error));
+        return Err(error.into());
     }
 
     establish_session(&session, id).await?;
-    Ok(Json(UserResponse {
-        id: id.to_string(),
-        username,
-    }))
+    Ok(Json(user_response(id, username)))
 }
 
 async fn login(
@@ -79,28 +74,24 @@ async fn login(
     Json(request): Json<AuthRequest>,
 ) -> Result<Json<UserResponse>, ApiError> {
     let normalized = normalize_username(&request.username);
-    let row = sqlx::query_as::<_, (Uuid, String, String)>(
+    let (id, username, password_hash) = sqlx::query_as::<_, (Uuid, String, String)>(
         "SELECT id, username, password_hash FROM users WHERE username_normalized = $1",
     )
     .bind(normalized)
     .fetch_optional(&state.pool)
-    .await
-    .map_err(ApiError::database)?
-    .ok_or_else(|| ApiError::unauthorized("Invalid username or password"))?;
+    .await?
+    .ok_or_else(|| ApiError::unauthorized(INVALID_LOGIN))?;
 
-    if !verify_password(request.password, row.2).await? {
-        return Err(ApiError::unauthorized("Invalid username or password"));
+    if !verify_password(request.password, password_hash).await? {
+        return Err(ApiError::unauthorized(INVALID_LOGIN));
     }
-    establish_session(&session, row.0).await?;
-    Ok(Json(UserResponse {
-        id: row.0.to_string(),
-        username: row.1,
-    }))
+    establish_session(&session, id).await?;
+    Ok(Json(user_response(id, username)))
 }
 
-async fn logout(session: Session) -> Result<Json<()>, ApiError> {
+async fn logout(session: Session) -> Json<()> {
     session.clear().await;
-    Ok(Json(()))
+    Json(())
 }
 
 async fn me(
@@ -111,13 +102,9 @@ async fn me(
     let username = sqlx::query_scalar::<_, String>("SELECT username FROM users WHERE id = $1")
         .bind(id)
         .fetch_optional(&state.pool)
-        .await
-        .map_err(ApiError::database)?
+        .await?
         .ok_or_else(|| ApiError::unauthorized("User no longer exists"))?;
-    Ok(Json(UserResponse {
-        id: id.to_string(),
-        username,
-    }))
+    Ok(Json(user_response(id, username)))
 }
 
 async fn change_password(
@@ -131,8 +118,7 @@ async fn change_password(
         sqlx::query_scalar::<_, String>("SELECT password_hash FROM users WHERE id = $1")
             .bind(id)
             .fetch_one(&state.pool)
-            .await
-            .map_err(ApiError::database)?;
+            .await?;
     if !verify_password(request.current_password, current_hash).await? {
         return Err(ApiError::unauthorized("Current password is incorrect"));
     }
@@ -141,18 +127,21 @@ async fn change_password(
         .bind(new_hash)
         .bind(id)
         .execute(&state.pool)
-        .await
-        .map_err(ApiError::database)?;
-    session.cycle_id().await.map_err(ApiError::session)?;
+        .await?;
+    session.cycle_id().await?;
     Ok(Json(()))
 }
 
 async fn establish_session(session: &Session, id: Uuid) -> Result<(), ApiError> {
-    session.cycle_id().await.map_err(ApiError::session)?;
-    session
-        .insert(USER_ID_KEY, id.to_string())
-        .await
-        .map_err(ApiError::session)
+    session.cycle_id().await?;
+    Ok(session.insert(USER_ID_KEY, id.to_string()).await?)
+}
+
+fn user_response(id: Uuid, username: String) -> UserResponse {
+    UserResponse {
+        id: id.to_string(),
+        username,
+    }
 }
 
 fn validate_username(value: &str) -> Result<(String, String), ApiError> {

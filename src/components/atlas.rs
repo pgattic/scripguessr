@@ -1,45 +1,39 @@
 use dioxus::prelude::*;
 
-use super::{ChapterReader, request_study_game};
-use crate::api::{ChapterRequest, ChapterVerse};
+use super::actions::{create_study_set, request_study_game};
+use super::ui::{Callout, ChapterReader, HomeButton, Readout, use_game};
+use crate::api::ChapterVerse;
 use crate::atlas::{
-    AtlasCategory, AtlasLayer, LAYERS, book_chronology, era_starting_at, layer as atlas_layer,
+    AtlasCategory, LAYERS, book_chronology, chronology_title, layers_covering, practice_set,
 };
-use crate::game::Game;
-use crate::loader::{load_chapter, save_study_set};
-use crate::routes::Route;
-use crate::scriptures::{BookInfo, Canon};
-use crate::study_sets::{PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
-
-#[derive(Clone, PartialEq)]
-struct AtlasReaderData {
-    title: String,
-    answer: StudyPassage,
-    verses: Vec<ChapterVerse>,
-}
+use crate::game::catalog;
+use crate::loader::load_chapter;
+use crate::scriptures::{Canon, ChapterRef};
 
 #[component]
-pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Element {
+pub fn AtlasPanel(load_error: Option<String>) -> Element {
+    let game = use_game();
     let navigator = use_navigator();
-    let snapshot = game.read().clone();
-    let books = snapshot
-        .study_metadata
-        .iter()
-        .find(|metadata| metadata.canon == Canon::BookOfMormon)
-        .map(|metadata| metadata.books.clone())
-        .unwrap_or_default();
-    let mut selected_layers = use_signal(Vec::<String>::new);
+    let (books, loading_game, signed_in) = {
+        let game = game.read();
+        (
+            catalog::books(&game.study_catalog, Canon::BookOfMormon).to_vec(),
+            game.loading_game,
+            game.account.user.is_some(),
+        )
+    };
+    let mut selected_layers = use_signal(Vec::<&'static str>::new);
     let mut collapsed_categories = use_signal(|| AtlasCategory::ALL.to_vec());
     let mut layer_filters = use_signal(|| vec![String::new(); AtlasCategory::ALL.len()]);
     let mut mobile_layers_open = use_signal(|| false);
-    let mut selected_chapter = use_signal(|| None::<(String, u16)>);
-    let mut reader = use_signal(|| None::<AtlasReaderData>);
-    let mut saved_atlas_selection = use_signal(|| None::<Vec<String>>);
+    let mut selected_chapter = use_signal(|| None::<ChapterRef>);
+    let mut reader = use_signal(|| None::<(ChapterRef, Vec<ChapterVerse>)>);
+    let mut saved_atlas_selection = use_signal(|| None::<Vec<&'static str>>);
     let reader_loading = use_signal(|| false);
     let reader_error = use_signal(|| None::<String>);
     let active_ids = selected_layers();
     let selection_saved = saved_atlas_selection().as_ref() == Some(&active_ids);
-    let practice_set = atlas_practice_set(&active_ids, &books);
+    let practice_set = practice_set(&active_ids, &books);
     let selected = selected_chapter();
 
     rsx! {
@@ -51,14 +45,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                         span { class: "muted", "The record at chapter scale" }
                     }
                     div { class: "actions atlas-top-actions",
-                        button {
-                            class: "button secondary",
-                            onclick: move |_| {
-                                game.write().change_settings();
-                                navigator.push(Route::Setup {});
-                            },
-                            "Home"
-                        }
+                        HomeButton {}
                         if let Some(set) = practice_set.clone() {
                             {
                                 let practice_set = set.clone();
@@ -67,32 +54,25 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                 rsx! {
                                     button {
                                         class: "button",
-                                        disabled: snapshot.loading_game,
+                                        disabled: loading_game,
                                         onclick: move |_| request_study_game(
                                             game,
                                             navigator,
                                             practice_set.clone(),
                                             10.min(practice_set.passages.len()),
                                         ),
-                                        if snapshot.loading_game { "Starting" } else { "Practice highlighted" }
+                                        if loading_game { "Starting" } else { "Practice highlighted" }
                                     }
                                     button {
                                         class: "button secondary",
-                                        disabled: selection_saved || snapshot.user.is_none(),
+                                        disabled: selection_saved || !signed_in,
                                         onclick: move |_| {
-                                            let set = saved_set.clone();
                                             let selection = saved_selection.clone();
-                                            spawn(async move {
-                                                match save_study_set(set).await {
-                                                    Ok(set) => {
-                                                        game.write().upsert_custom_study_set(set);
-                                                        saved_atlas_selection.set(Some(selection));
-                                                    }
-                                                    Err(error) => game.write().fail_request(error),
-                                                }
+                                            create_study_set(game, saved_set.clone(), move |_| {
+                                                saved_atlas_selection.set(Some(selection));
                                             });
                                         },
-                                        if snapshot.user.is_none() { "Sign in to save" } else if selection_saved { "Saved" } else { "Save as study set" }
+                                        if !signed_in { "Sign in to save" } else if selection_saved { "Saved" } else { "Save as study set" }
                                     }
                                 }
                             }
@@ -117,13 +97,9 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
 
                 if books.is_empty() {
                     if let Some(error) = load_error {
-                        div { class: "callout warning",
-                            strong { "Atlas unavailable" }
-                            span { "{error}" }
-                        }
+                        Callout { title: "Atlas unavailable", message: error }
                     } else {
-                        div { class: "ready atlas-loading",
-                            span { class: "muted", "Scripture catalog" }
+                        Readout { label: "Scripture catalog", class: "atlas-loading",
                             strong { "Loading" }
                         }
                     }
@@ -133,17 +109,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                             for book in books.iter() {
                                 {
                                     let chronology = book_chronology(&book.name);
-                                    let era = era_starting_at(&book.name);
-                                    let chronology_title = chronology.map(|chronology| {
-                                        if let Some(era) = era {
-                                            format!(
-                                                "{}. {}. Dates are approximate.",
-                                                chronology.note, era.name
-                                            )
-                                        } else {
-                                            format!("{}. Dates are approximate.", chronology.note)
-                                        }
-                                    });
+                                    let chronology_title = chronology_title(&book.name);
                                     rsx! {
                                     div { class: "atlas-book-row",
                                     div { class: "atlas-book-heading",
@@ -159,15 +125,17 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                     div { class: "atlas-chapters chapter-matrix",
                                         for chapter in book.chapters.iter().copied() {
                                             {
-                                                let book_name = book.name.clone();
-                                                let hits = atlas_hits(&active_ids, &book.name, chapter);
+                                                let chapter_ref = ChapterRef {
+                                                    canon: Canon::BookOfMormon,
+                                                    book: book.name.clone(),
+                                                    chapter,
+                                                };
+                                                let hits = layers_covering(&active_ids, &book.name, chapter);
                                                 let title = if hits.is_empty() {
-                                                    format!("{} {}", book.name, chapter)
+                                                    chapter_ref.to_string()
                                                 } else {
                                                     format!(
-                                                        "{} {} · {}",
-                                                        book.name,
-                                                        chapter,
+                                                        "{chapter_ref} · {}",
                                                         hits.iter().map(|layer| layer.name).collect::<Vec<_>>().join(" + ")
                                                     )
                                                 };
@@ -177,11 +145,10 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                         title,
                                                         aria_label: "{book.name} chapter {chapter}",
                                                         onclick: move |_| {
-                                                            let next = (book_name.clone(), chapter);
-                                                            if selected_chapter().as_ref() == Some(&next) {
+                                                            if selected_chapter().as_ref() == Some(&chapter_ref) {
                                                                 selected_chapter.set(None);
                                                             } else {
-                                                                selected_chapter.set(Some(next));
+                                                                selected_chapter.set(Some(chapter_ref.clone()));
                                                             }
                                                         },
                                                         span { "{chapter}" }
@@ -224,7 +191,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                 class: "text-button",
                                 disabled: active_ids.len() == LAYERS.len(),
                                 onclick: move |_| selected_layers.set(
-                                    LAYERS.iter().map(|layer| layer.id.to_string()).collect()
+                                    LAYERS.iter().map(|layer| layer.id).collect()
                                 ),
                                 "Select all"
                             }
@@ -252,7 +219,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                     .collect::<Vec<_>>();
                                 let selected_count = category_layers
                                     .iter()
-                                    .filter(|item| active_ids.iter().any(|id| id == item.id))
+                                    .filter(|item| active_ids.contains(&item.id))
                                     .count();
                                 rsx! {
                                     button {
@@ -297,8 +264,8 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                         onclick: move |_| {
                                                             let mut next = selected_layers();
                                                             for item in LAYERS.iter().filter(|item| item.category == category) {
-                                                                if !next.iter().any(|id| id == item.id) {
-                                                                    next.push(item.id.to_string());
+                                                                if !next.contains(&item.id) {
+                                                                    next.push(item.id);
                                                                 }
                                                             }
                                                             selected_layers.set(next);
@@ -312,7 +279,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                             let mut next = selected_layers();
                                                             next.retain(|id| {
                                                                 !LAYERS.iter().any(|item| {
-                                                                    item.category == category && item.id == id
+                                                                    item.category == category && item.id == *id
                                                                 })
                                                             });
                                                             selected_layers.set(next);
@@ -334,8 +301,8 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                 rsx! {
                                             for atlas_item in visible_layers.iter().copied() {
                                                 {
-                                                    let active = active_ids.iter().any(|id| id == atlas_item.id);
-                                                    let id = atlas_item.id.to_string();
+                                                    let active = active_ids.contains(&atlas_item.id);
+                                                    let id = atlas_item.id;
                                                     rsx! {
                                                         label { class: if active { "atlas-layer-toggle active" } else { "atlas-layer-toggle" },
                                                             input {
@@ -344,9 +311,9 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                                                 onchange: move |_| {
                                                                     let mut next = selected_layers();
                                                                     if active {
-                                                                        next.retain(|candidate| candidate != &id);
+                                                                        next.retain(|candidate| *candidate != id);
                                                                     } else {
-                                                                        next.push(id.clone());
+                                                                        next.push(id);
                                                                     }
                                                                     selected_layers.set(next);
                                                                 }
@@ -381,7 +348,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
             }
         }
 
-        if let Some((book, chapter)) = selected.clone() {
+        if let Some(chapter) = selected.clone() {
             div {
                 class: "dialog-backdrop",
                 onclick: move |_| selected_chapter.set(None),
@@ -391,7 +358,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                     aria_modal: "true",
                     onclick: move |event| event.stop_propagation(),
                     div { class: "dialog-header",
-                        h2 { "{book} {chapter}" }
+                        h2 { "{chapter}" }
                         button {
                             class: "button secondary compact-button",
                             onclick: move |_| selected_chapter.set(None),
@@ -400,7 +367,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                     }
                     div { class: "atlas-overlay-content",
                         div { class: "atlas-chapter-layers",
-                            for atlas_item in LAYERS.iter().copied().filter(|item| item.span_for(&book, chapter).is_some()) {
+                            for atlas_item in LAYERS.iter().copied().filter(|item| item.span_for(&chapter.book, chapter.chapter).is_some()) {
                                 div { class: "atlas-overlay-layer",
                                     i { class: "atlas-layer-swatch tone-{atlas_item.tone}" }
                                     div {
@@ -409,15 +376,12 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                     }
                                 }
                             }
-                            if !LAYERS.iter().any(|item| item.span_for(&book, chapter).is_some()) {
+                            if !LAYERS.iter().any(|item| item.span_for(&chapter.book, chapter.chapter).is_some()) {
                                 span { class: "muted", "No curated layers include this chapter." }
                             }
                         }
                         if let Some(error) = reader_error() {
-                            div { class: "callout warning",
-                                strong { "Chapter unavailable" }
-                                span { "{error}" }
-                            }
+                            Callout { title: "Chapter unavailable", message: error }
                         }
                         div { class: "actions atlas-overlay-actions",
                             button {
@@ -428,8 +392,7 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
                                     reader_loading,
                                     reader_error,
                                     selected_chapter,
-                                    book.clone(),
-                                    chapter,
+                                    chapter.clone(),
                                 ),
                                 if reader_loading() { "Loading" } else { "Read chapter" }
                             }
@@ -439,107 +402,33 @@ pub(super) fn AtlasPanel(game: Signal<Game>, load_error: Option<String>) -> Elem
             }
         }
 
-        if let Some(data) = reader() {
+        if let Some((chapter, verses)) = reader() {
             ChapterReader {
-                title: data.title,
-                answer: data.answer,
-                verses: data.verses,
+                title: chapter.to_string(),
+                verses,
                 on_close: move |_| reader.set(None),
             }
         }
     }
 }
 
-fn atlas_hits(selected: &[String], book: &str, chapter: u16) -> Vec<AtlasLayer> {
-    selected
-        .iter()
-        .filter_map(|id| atlas_layer(id))
-        .filter(|layer| layer.span_for(book, chapter).is_some())
-        .collect()
-}
-
-fn atlas_practice_set(selected: &[String], books: &[BookInfo]) -> Option<StudySet> {
-    let layers = selected
-        .iter()
-        .filter_map(|id| atlas_layer(id))
-        .collect::<Vec<_>>();
-    if layers.is_empty() {
-        return None;
-    }
-    let passages = books
-        .iter()
-        .flat_map(|book| {
-            let layers = &layers;
-            book.chapters.iter().filter_map(move |chapter| {
-                if !layers
-                    .iter()
-                    .any(|layer| layer.span_for(&book.name, *chapter).is_some())
-                {
-                    return None;
-                }
-                let verse_count = book.verse_count(*chapter)?;
-                Some(StudyPassage {
-                    canon: Canon::BookOfMormon,
-                    book: book.name.clone(),
-                    chapter: *chapter,
-                    verses: (1..=verse_count).collect(),
-                })
-            })
-        })
-        .collect::<Vec<_>>();
-    if passages.is_empty() {
-        return None;
-    }
-    let name = if layers.len() == 1 {
-        layers[0].name.to_string()
-    } else {
-        "Atlas selection".to_string()
-    };
-    Some(StudySet {
-        id: "atlas-selection".to_string(),
-        name,
-        passages,
-        guess_scope: StudyGuessScope::FullCanons,
-        prompt_policy: PromptPolicy::SingleVerse,
-    })
-}
-
 fn request_atlas_chapter(
-    mut reader: Signal<Option<AtlasReaderData>>,
+    mut reader: Signal<Option<(ChapterRef, Vec<ChapterVerse>)>>,
     mut loading: Signal<bool>,
     mut error: Signal<Option<String>>,
-    mut selected_chapter: Signal<Option<(String, u16)>>,
-    book: String,
-    chapter: u16,
+    mut selected_chapter: Signal<Option<ChapterRef>>,
+    chapter: ChapterRef,
 ) {
     loading.set(true);
     error.set(None);
     spawn(async move {
-        match load_chapter(ChapterRequest {
-            canon: Canon::BookOfMormon,
-            book: book.clone(),
-            chapter,
-        })
-        .await
-        {
+        match load_chapter(chapter.clone()).await {
             Ok(response) => {
                 selected_chapter.set(None);
-                reader.set(Some(AtlasReaderData {
-                    title: format!("{book} {chapter}"),
-                    answer: StudyPassage {
-                        canon: Canon::BookOfMormon,
-                        book,
-                        chapter,
-                        verses: Vec::new(),
-                    },
-                    verses: response.verses,
-                }));
-                loading.set(false);
+                reader.set(Some((chapter, response.verses)));
             }
-            Err(message) => {
-                error.set(Some(message));
-                loading.set(false);
-            }
+            Err(message) => error.set(Some(message)),
         }
+        loading.set(false);
     });
 }

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::scoring::Score;
-use crate::scriptures::{BookInfo, Canon, Difficulty, GameMode, GameScope};
+use crate::scriptures::{BookInfo, Canon, ChapterRef, Difficulty, GameMode, GameScope};
 use crate::stats::Stats;
 use crate::study_sets::{PromptPolicy, StudyPassage, StudySet};
 
@@ -22,29 +22,15 @@ pub enum NewGameRequest {
     },
 }
 
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct NewGameResponse {
-    pub game_id: String,
-    pub rounds: Vec<RoundPrompt>,
-    pub difficulty: Difficulty,
-    pub scope: GameScope,
-    pub metadata: Vec<CanonMetadata>,
-    pub playable_verse_count: usize,
-    pub total_verse_count: usize,
-    pub max_total_score: u32,
-}
-
+/// Returned when a game is created and whenever it is resumed.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GameSnapshotResponse {
     pub game_id: String,
     pub rounds: Vec<SnapshotRound>,
     pub current_round_index: usize,
     pub finished: bool,
-    pub difficulty: Difficulty,
-    pub scope: GameScope,
-    pub metadata: Vec<CanonMetadata>,
-    pub playable_verse_count: usize,
-    pub total_verse_count: usize,
+    #[serde(flatten)]
+    pub summary: ScopeSummary,
     pub max_total_score: u32,
 }
 
@@ -66,18 +52,14 @@ pub struct MetadataRequest {
     pub scope: GameScope,
 }
 
+/// The verse pool and book catalog for a difficulty and scope.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct MetadataResponse {
+pub struct ScopeSummary {
     pub difficulty: Difficulty,
     pub scope: GameScope,
     pub metadata: Vec<CanonMetadata>,
     pub playable_verse_count: usize,
     pub total_verse_count: usize,
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct RoundPrompt {
-    pub text: String,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -91,38 +73,23 @@ pub struct CanonMetadata {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GuessRequest {
     pub round_index: usize,
-    pub canon: Canon,
-    pub book: String,
-    pub chapter: u16,
+    #[serde(flatten)]
+    pub chapter: ChapterRef,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct GuessResponse {
     pub answer: StudyPassage,
     pub source_passage: StudyPassage,
-    pub guess: GuessReference,
+    pub guess: ChapterRef,
     pub score: Score,
     pub chapter_verses: Vec<ChapterVerse>,
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct GuessReference {
-    pub canon: Canon,
-    pub book: String,
-    pub chapter: u16,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct ChapterVerse {
     pub verse: u16,
     pub text: String,
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-pub struct ChapterRequest {
-    pub canon: Canon,
-    pub book: String,
-    pub chapter: u16,
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
@@ -148,6 +115,15 @@ pub struct UserResponse {
     pub username: String,
 }
 
+pub const LEADERBOARD_ROUND_COUNTS: [usize; 2] = [5, 10];
+
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
+pub struct LeaderboardQuery {
+    pub preset: GameMode,
+    pub difficulty: Difficulty,
+    pub rounds: usize,
+}
+
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct LeaderboardEntry {
     pub rank: u32,
@@ -156,6 +132,13 @@ pub struct LeaderboardEntry {
     pub possible_score: u32,
     pub completed_at: String,
     pub current_user: bool,
+}
+
+impl LeaderboardEntry {
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+    pub fn percent(&self) -> u32 {
+        crate::scoring::percent(self.score, self.possible_score).unwrap_or(0)
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

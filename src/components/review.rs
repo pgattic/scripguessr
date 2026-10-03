@@ -1,21 +1,23 @@
 use dioxus::prelude::*;
 
-use super::{delete_review, request_review_game};
-use crate::game::Game;
+use super::actions::{request_study_game, unmark_review};
+use super::ui::{HomeButton, PanelHeader, Readout, use_game};
 use crate::routes::Route;
-use crate::stats::{ReviewItem, Stats};
+use crate::stats::ReviewItem;
 
 #[component]
-pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
+pub fn StatsPanel() -> Element {
     let navigator = use_navigator();
-    let review_count = stats.review_items.len();
+    let (stats, review_count) = {
+        let game = use_game();
+        let game = game.read();
+        (game.account.stats.clone(), game.account.review_items.len())
+    };
+    let weakest_books = stats.weakest_books(3);
 
     rsx! {
         div { class: "stats-panel",
-            div { class: "picker-header",
-                h2 { "Stats" }
-                span { class: "muted", "{stats.games_played} games" }
-            }
+            PanelHeader { title: "Stats", detail: "{stats.games_played} games" }
 
             if stats.games_played == 0 {
                 p { class: "muted", "No completed games yet." }
@@ -35,15 +37,15 @@ pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
                     }
                     div {
                         span { class: "muted", "Review" }
-                        strong { "{stats.review_items.len()}" }
+                        strong { "{review_count}" }
                         span { class: "muted", "marked" }
                     }
                 }
 
-                if !stats.weakest_books(3).is_empty() {
+                if !weakest_books.is_empty() {
                     div { class: "weak-books",
                         span { class: "setup-label", "Weakest books" }
-                        for (book, book_stats) in stats.weakest_books(3) {
+                        for (book, book_stats) in weakest_books {
                             div { class: "weak-book-row",
                                 span { "{book}" }
                                 span { class: "muted", "{book_stats.average_percent().unwrap_or_default()}%" }
@@ -68,61 +70,49 @@ pub(super) fn StatsPanel(game: Signal<Game>, stats: Stats) -> Element {
 }
 
 #[component]
-pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
+pub fn ReviewPanel() -> Element {
+    let game = use_game();
     let navigator = use_navigator();
     let mut selected_index = use_signal(|| 0_usize);
-    let snapshot = game.read().clone();
-    let items = snapshot.stats.review_items.clone();
+    let (items, loading_game) = {
+        let game = game.read();
+        (game.account.review_items.clone(), game.loading_game)
+    };
     let bounded_index = selected_index().min(items.len().saturating_sub(1));
     let selected_item = items.get(bounded_index).cloned();
 
     rsx! {
         div { class: "review-layout",
             section { class: "panel review-list-panel",
-                div { class: "picker-header",
-                    h2 { "Review" }
-                    span { class: "muted", "{items.len()} marked" }
-                }
+                PanelHeader { title: "Review", detail: "{items.len()} marked" }
 
                 if items.is_empty() {
                     p { class: "muted", "No marked verses yet." }
                 } else {
                     div { class: "review-list",
-                        for (index, item) in items.iter().cloned().enumerate() {
-                            {
-                                let reference = item.passage().label();
-                                rsx! {
-                                    button {
-                                        class: if index == bounded_index { "review-row active" } else { "review-row" },
-                                        onclick: move |_| selected_index.set(index),
-                                        strong { "{reference}" }
-                                        span { class: "muted", "{item.score} pts" }
-                                    }
-                                }
+                        for (index, item) in items.iter().enumerate() {
+                            button {
+                                class: if index == bounded_index { "review-row active" } else { "review-row" },
+                                onclick: move |_| selected_index.set(index),
+                                strong { "{item.passage.label()}" }
+                                span { class: "muted", "{item.score} pts" }
                             }
                         }
                     }
                 }
 
                 div { class: "actions",
-                    button {
-                        class: "button secondary",
-                        onclick: move |_| {
-                            game.write().change_settings();
-                            navigator.push(Route::Setup {});
-                        },
-                        "Home"
-                    }
+                    HomeButton {}
                     if !items.is_empty() {
                         button {
                             class: "button",
-                            disabled: snapshot.loading_game,
-                            onclick: move |_| request_review_game(game, navigator),
-                            if snapshot.loading_game {
-                                "Starting..."
-                            } else {
-                                "Practice marked"
-                            }
+                            disabled: loading_game,
+                            onclick: move |_| {
+                                let set = game.read().review_study_set();
+                                let round_count = set.passages.len();
+                                request_study_game(game, navigator, set, round_count);
+                            },
+                            if loading_game { "Starting..." } else { "Practice marked" }
                         }
                     }
                 }
@@ -131,16 +121,12 @@ pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
             aside { class: "panel review-detail-panel",
                 if let Some(item) = selected_item {
                     ReviewDetail {
-                        game,
                         item,
                         selected_index: bounded_index,
                         set_selected_index: selected_index,
                     }
                 } else {
-                    div { class: "ready",
-                        span { class: "muted", "Review queue" }
-                        strong { "Nothing marked" }
-                    }
+                    Readout { label: "Review queue", strong { "Nothing marked" } }
                 }
             }
         }
@@ -149,31 +135,23 @@ pub(super) fn ReviewPanel(game: Signal<Game>) -> Element {
 
 #[component]
 fn ReviewDetail(
-    game: Signal<Game>,
     item: ReviewItem,
     selected_index: usize,
     set_selected_index: Signal<usize>,
 ) -> Element {
-    let remove_passage = item.passage();
-    let reference = remove_passage.label();
+    let game = use_game();
+    let reference = item.passage.label();
 
     rsx! {
         div { class: "review-detail",
-            div { class: "picker-header",
-                h2 { "{reference}" }
-                span { class: "muted", "{item.score} pts" }
-            }
+            PanelHeader { title: "{reference}", detail: "{item.score} pts" }
             blockquote { class: "review-verse", "{item.text}" }
-            div { class: "ready",
-                span { class: "muted", "Marked answer" }
-                strong { "{reference}" }
-            }
+            Readout { label: "Marked answer", strong { "{reference}" } }
             div { class: "actions",
                 button {
                     class: "button secondary",
                     onclick: move |_| {
-                        game.write().remove_review_item(&remove_passage);
-                        delete_review(game, remove_passage.clone());
+                        unmark_review(game, item.passage.clone());
                         set_selected_index.set(selected_index.saturating_sub(1));
                     },
                     "Unmark"

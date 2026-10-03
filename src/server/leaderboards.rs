@@ -1,19 +1,26 @@
 use axum::extract::{Query, State};
 use axum::routing::get;
 use axum::{Json, Router};
-use serde::Deserialize;
+use sqlx::FromRow;
+use sqlx::types::Json as DbJson;
 use tower_sessions::Session;
 use uuid::Uuid;
 
-use super::{ApiError, AppState, auth, game_mode_key};
-use crate::api::{LeaderboardEntry, LeaderboardResponse};
-use crate::scriptures::{Difficulty, GameMode};
+use super::{ApiError, AppState, auth};
+use crate::api::{
+    LEADERBOARD_ROUND_COUNTS, LeaderboardEntry, LeaderboardQuery, LeaderboardResponse,
+};
 
-#[derive(Deserialize)]
-struct LeaderboardQuery {
-    preset: GameMode,
-    difficulty: Difficulty,
-    rounds: usize,
+const LEADERBOARD_SIZE: i64 = 50;
+
+#[derive(FromRow)]
+struct DbLeaderboardRow {
+    rank: i64,
+    user_id: Uuid,
+    username: String,
+    score: i32,
+    possible_score: i32,
+    completed_at: time::OffsetDateTime,
 }
 
 pub(super) fn routes() -> Router<AppState> {
@@ -25,11 +32,11 @@ async fn leaderboard(
     session: Session,
     Query(query): Query<LeaderboardQuery>,
 ) -> Result<Json<LeaderboardResponse>, ApiError> {
-    if !matches!(query.rounds, 5 | 10) {
+    if !LEADERBOARD_ROUND_COUNTS.contains(&query.rounds) {
         return Err(ApiError::bad_request("Leaderboard rounds must be 5 or 10"));
     }
     let current_user = auth::optional_user_id(&session).await?;
-    let rows = sqlx::query_as::<_, (i64, Uuid, String, i32, i32, time::OffsetDateTime)>(
+    let rows = sqlx::query_as::<_, DbLeaderboardRow>(
         r#"
         WITH ranked AS (
             SELECT
@@ -55,30 +62,30 @@ async fn leaderboard(
         )
         SELECT rank, user_id, username, score, possible_score, completed_at
         FROM best
-        WHERE rank <= 50 OR user_id = $4
+        WHERE rank <= $4 OR user_id = $5
         ORDER BY rank
         "#,
     )
-    .bind(game_mode_key(query.preset))
-    .bind(sqlx::types::Json(query.difficulty))
+    .bind(query.preset.key())
+    .bind(DbJson(query.difficulty))
     .bind(query.rounds as i32)
+    .bind(LEADERBOARD_SIZE)
     .bind(current_user)
     .fetch_all(&state.pool)
-    .await
-    .map_err(ApiError::database)?;
+    .await?;
 
     let mut current_user_entry = None;
     let mut entries = Vec::new();
-    for (rank, user_id, username, score, possible_score, completed_at) in rows {
+    for row in rows {
         let entry = LeaderboardEntry {
-            rank: rank as u32,
-            username,
-            score: score as u32,
-            possible_score: possible_score as u32,
-            completed_at: completed_at.date().to_string(),
-            current_user: Some(user_id) == current_user,
+            rank: row.rank as u32,
+            username: row.username,
+            score: row.score as u32,
+            possible_score: row.possible_score as u32,
+            completed_at: row.completed_at.date().to_string(),
+            current_user: Some(row.user_id) == current_user,
         };
-        if entry.rank <= 50 {
+        if row.rank <= LEADERBOARD_SIZE {
             entries.push(entry.clone());
         }
         if entry.current_user {

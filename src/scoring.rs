@@ -4,6 +4,14 @@ pub const MAX_SCORE: u32 = 1000;
 #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
 const POINTS_LOST_PER_CHAPTER: u32 = 22;
 
+pub fn percent(score: u32, possible_score: u32) -> Option<u32> {
+    (possible_score > 0).then(|| ((score as f64 / possible_score as f64) * 100.0).round() as u32)
+}
+
+pub fn max_total_score(round_count: usize) -> u32 {
+    round_count as u32 * MAX_SCORE
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
 pub struct Score {
     pub points: u32,

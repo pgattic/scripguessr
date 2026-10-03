@@ -1,64 +1,3 @@
-mod layers;
-
-pub use layers::LAYERS;
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AtlasCategory {
-    Person,
-    Narrative,
-    Event,
-    Teaching,
-}
-
-impl AtlasCategory {
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub const ALL: [Self; 4] = [Self::Person, Self::Narrative, Self::Event, Self::Teaching];
-
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Person => "People",
-            Self::Narrative => "Narratives",
-            Self::Event => "Events",
-            Self::Teaching => "Teachings",
-        }
-    }
-
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub const fn index(self) -> usize {
-        match self {
-            Self::Person => 0,
-            Self::Narrative => 1,
-            Self::Event => 2,
-            Self::Teaching => 3,
-        }
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AtlasSpan {
-    pub book: &'static str,
-    pub start: u16,
-    pub end: u16,
-    pub note: &'static str,
-}
-
-impl AtlasSpan {
-    pub fn includes(self, book: &str, chapter: u16) -> bool {
-        self.book == book && (self.start..=self.end).contains(&chapter)
-    }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub struct AtlasLayer {
-    pub id: &'static str,
-    pub name: &'static str,
-    pub category: AtlasCategory,
-    pub tone: &'static str,
-    pub summary: &'static str,
-    pub spans: &'static [AtlasSpan],
-}
-
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct BookChronology {
     pub dates: &'static str,
@@ -143,72 +82,19 @@ pub fn book_chronology(book: &str) -> Option<BookChronology> {
     Some(BookChronology { dates, note })
 }
 
-impl AtlasLayer {
-    pub fn span_for(self, book: &str, chapter: u16) -> Option<AtlasSpan> {
-        self.spans
-            .iter()
-            .copied()
-            .find(|span| span.includes(book, chapter))
-    }
-}
-
-pub fn layer(id: &str) -> Option<AtlasLayer> {
-    LAYERS.iter().copied().find(|layer| layer.id == id)
+/// Hover text for a book's date range.
+#[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
+pub fn chronology_title(book: &str) -> Option<String> {
+    let chronology = book_chronology(book)?;
+    Some(match era_starting_at(book) {
+        Some(era) => format!("{}. {}. Dates are approximate.", chronology.note, era.name),
+        None => format!("{}. Dates are approximate.", chronology.note),
+    })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn overlapping_layers_are_independently_discoverable() {
-        assert!(
-            layer("alma-younger")
-                .unwrap()
-                .span_for("Alma", 20)
-                .is_some()
-        );
-        assert!(layer("sons-mosiah").unwrap().span_for("Alma", 20).is_some());
-        assert!(
-            layer("captain-moroni")
-                .unwrap()
-                .span_for("Alma", 20)
-                .is_none()
-        );
-    }
-
-    #[test]
-    fn every_span_has_valid_bounds() {
-        assert!(
-            LAYERS
-                .iter()
-                .flat_map(|layer| layer.spans)
-                .all(|span| { !span.book.is_empty() && span.start > 0 && span.start <= span.end })
-        );
-    }
-
-    #[test]
-    fn every_category_has_a_useful_catalog() {
-        for category in AtlasCategory::ALL {
-            assert!(
-                LAYERS
-                    .iter()
-                    .filter(|layer| layer.category == category)
-                    .count()
-                    >= 8,
-                "{} needs more layers",
-                category.label()
-            );
-        }
-    }
-
-    #[test]
-    fn layer_ids_are_unique() {
-        let mut ids = LAYERS.iter().map(|layer| layer.id).collect::<Vec<_>>();
-        ids.sort_unstable();
-        ids.dedup();
-        assert_eq!(ids.len(), LAYERS.len());
-    }
 
     #[test]
     fn every_book_has_chronology() {

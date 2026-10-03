@@ -1,37 +1,42 @@
+use std::mem::discriminant;
 use std::sync::Arc;
 
 use dioxus::prelude::*;
 
-use super::{persist_study_set, request_study_game};
-use crate::game::Game;
-use crate::loader::{remove_study_set as delete_remote_study_set, save_study_set};
+use super::actions::{create_study_set, delete_study_set, request_study_game, update_study_set};
+use super::ui::{
+    Callout, ChoiceSelect, HomeButton, Readout, ScopeEditor, Segmented, ToggleButton, use_game,
+};
+use crate::game::catalog;
 use crate::routes::Route;
-use crate::scriptures::{BookScope, Canon};
+use crate::scriptures::{Canon, GameScope};
 use crate::study_sets::{
-    PromptPolicy, StudyGuessScope, StudyPassage, StudySet, built_in_study_sets,
+    MAX_VERSES_PER_PASSAGE, PromptPolicy, StudyGuessScope, StudyPassage, StudySet,
+    built_in_study_sets,
 };
 
 #[component]
-pub(super) fn StudySetsPanel(
-    game: Signal<Game>,
-    selected_id: String,
-    load_error: Option<String>,
-) -> Element {
+pub fn StudySetsPanel(selected_id: String, load_error: Option<String>) -> Element {
+    let game = use_game();
     let navigator = use_navigator();
-    let snapshot = game.read().clone();
-    let built_ins = built_in_study_sets();
-    let custom_sets = snapshot.custom_study_sets.sets.clone();
+    let (custom_sets, signed_in, catalog_loaded) = {
+        let game = game.read();
+        (
+            game.account.study_sets.clone(),
+            game.account.user.is_some(),
+            !game.study_catalog.is_empty(),
+        )
+    };
+    let built_ins = built_in_study_sets().to_vec();
     let selected = built_ins
         .iter()
         .find(|set| set.id == selected_id)
-        .cloned()
-        .map(|set| (set, false))
+        .map(|set| (set.clone(), false))
         .or_else(|| {
             custom_sets
                 .iter()
                 .find(|set| set.id == selected_id)
-                .cloned()
-                .map(|set| (Arc::new(set), true))
+                .map(|set| (Arc::new(set.clone()), true))
         });
 
     rsx! {
@@ -41,102 +46,52 @@ pub(super) fn StudySetsPanel(
                     h2 { "Study sets" }
                     button {
                         class: "button secondary compact-button",
-                        disabled: snapshot.user.is_none(),
-                        onclick: move |_| {
-                            spawn(async move {
-                                let set = StudySet {
-                                    id: String::new(),
-                                    name: "Untitled set".to_string(),
-                                    passages: Vec::new(),
-                                    guess_scope: StudyGuessScope::FullCanons,
-                                    prompt_policy: PromptPolicy::Automatic,
-                                };
-                                match save_study_set(set).await {
-                                    Ok(set) => {
-                                        let id = set.id.clone();
-                                        game.write().upsert_custom_study_set(set);
-                                        navigator.push(Route::StudySet { set_id: id });
-                                    }
-                                    Err(error) => game.write().fail_request(error),
-                                }
-                            });
-                        },
-                        if snapshot.user.is_some() { "New set" } else { "Sign in to create" }
+                        disabled: !signed_in,
+                        onclick: move |_| create_study_set(
+                            game,
+                            StudySet {
+                                id: String::new(),
+                                name: "Untitled set".to_string(),
+                                passages: Vec::new(),
+                                guess_scope: StudyGuessScope::FullCanons,
+                                prompt_policy: PromptPolicy::Automatic,
+                            },
+                            move |set| {
+                                navigator.push(Route::StudySet { set_id: set.id.clone() });
+                            },
+                        ),
+                        if signed_in { "New set" } else { "Sign in to create" }
                     }
                 }
 
-                span { class: "setup-label", "Built in" }
-                div { class: "study-set-list",
-                    for set in built_ins.iter() {
-                        {
-                            let id = set.id.clone();
-                            rsx! {
-                                button {
-                                    class: if selected_id == set.id { "study-set-row active" } else { "study-set-row" },
-                                    onclick: move |_| {
-                                        navigator.push(Route::StudySet { set_id: id.clone() });
-                                    },
-                                    strong { "{set.name}" }
-                                    span { class: "muted", "{set.passages.len()} passages" }
-                                }
-                            }
-                        }
-                    }
+                StudySetList {
+                    title: "Built in",
+                    sets: built_ins,
+                    selected_id: selected_id.clone(),
                 }
-
                 if !custom_sets.is_empty() {
-                    span { class: "setup-label study-custom-label", "Custom" }
-                    div { class: "study-set-list",
-                        for set in custom_sets.iter() {
-                            {
-                                let id = set.id.clone();
-                                rsx! {
-                                    button {
-                                        class: if selected_id == set.id { "study-set-row active" } else { "study-set-row" },
-                                        onclick: move |_| {
-                                            navigator.push(Route::StudySet { set_id: id.clone() });
-                                        },
-                                        strong { "{set.name}" }
-                                        span { class: "muted", "{set.passages.len()} passages" }
-                                    }
-                                }
-                            }
-                        }
+                    StudySetList {
+                        title: "Custom",
+                        class: "study-custom-label",
+                        sets: custom_sets.into_iter().map(Arc::new).collect::<Vec<_>>(),
+                        selected_id,
                     }
                 }
 
                 div { class: "actions",
-                    button {
-                        class: "button secondary",
-                        onclick: move |_| {
-                            game.write().change_settings();
-                            navigator.push(Route::Setup {});
-                        },
-                        "Home"
-                    }
+                    HomeButton {}
                 }
             }
 
             aside { class: "panel study-detail-panel",
                 if let Some(error) = load_error {
-                    div { class: "callout warning",
-                        strong { "Study sets unavailable" }
-                        span { "{error}" }
-                    }
-                } else if snapshot.study_metadata.is_empty() {
-                    div { class: "ready",
-                        span { class: "muted", "Scripture catalog" }
-                        strong { "Loading" }
-                    }
+                    Callout { title: "Study sets unavailable", message: error }
+                } else if !catalog_loaded {
+                    Readout { label: "Scripture catalog", strong { "Loading" } }
                 } else if let Some((set, custom)) = selected {
-                    StudySetDetail {
-                        game,
-                        set,
-                        custom,
-                    }
+                    StudySetDetail { set, custom }
                 } else {
-                    div { class: "ready",
-                        span { class: "muted", "Study set" }
+                    Readout { label: "Study set",
                         strong { "Not found" }
                         button {
                             class: "button secondary",
@@ -153,23 +108,69 @@ pub(super) fn StudySetsPanel(
 }
 
 #[component]
-fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Element {
+fn StudySetList(
+    title: String,
+    #[props(default)] class: &'static str,
+    sets: Vec<Arc<StudySet>>,
+    selected_id: String,
+) -> Element {
+    let navigator = use_navigator();
+    rsx! {
+        span { class: "setup-label {class}", "{title}" }
+        div { class: "study-set-list",
+            for set in sets {
+                {
+                    let id = set.id.clone();
+                    rsx! {
+                        button {
+                            class: if selected_id == set.id { "study-set-row active" } else { "study-set-row" },
+                            onclick: move |_| {
+                                navigator.push(Route::StudySet { set_id: id.clone() });
+                            },
+                            strong { "{set.name}" }
+                            span { class: "muted", "{set.passages.len()} passages" }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+#[component]
+fn StudySetDetail(set: ReadSignal<Arc<StudySet>>, custom: bool) -> Element {
+    let game = use_game();
+    let edit = move |change: &dyn Fn(&mut StudySet)| update_study_set(game, &set.read().id, change);
+    let set = set();
     let navigator = use_navigator();
     let mut round_count = use_signal(|| 10_usize);
     let mut visible_passages = use_signal(|| 50_usize);
-    let snapshot = game.read().clone();
+    let (study_catalog, loading_game, error) = {
+        let game = game.read();
+        (
+            game.study_catalog.clone(),
+            game.loading_game,
+            game.error.clone(),
+        )
+    };
     let passage_count = set.passages.len();
-    let set_id = set.id.clone();
-    let practice_set = set.as_ref().clone();
     let guess_scope_covers_passages = set.guess_scope_covers_passages();
-    let custom_scope_start = set.resolved_guess_scope();
     let mut round_choices = vec![5_usize];
-    if set.passages.len() > 10 {
+    if passage_count > 10 {
         round_choices.push(10);
     }
-    if set.passages.len() > 5 {
-        round_choices.push(set.passages.len());
+    if passage_count > 5 {
+        round_choices.push(passage_count);
     }
+    let answer_scopes = [
+        ("Books in set", StudyGuessScope::BooksInSet),
+        ("Full canons", StudyGuessScope::FullCanons),
+        ("All works", StudyGuessScope::AllStandardWorks),
+        (
+            "Custom",
+            StudyGuessScope::Custom(set.resolved_guess_scope()),
+        ),
+    ];
 
     rsx! {
         div { class: "study-detail",
@@ -180,42 +181,31 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                         aria_label: "Study set name",
                         value: "{set.name}",
                         onchange: move |event| {
-                            game.write().rename_study_set(&set_id, event.value());
-                            persist_study_set(game, set_id.clone());
+                            let name = event.value();
+                            edit(&|set| set.name = name.clone());
                         },
                     }
                 } else {
                     h2 { "{set.name}" }
                 }
-                span { class: "muted", "{set.passages.len()} passages" }
+                span { class: "muted", "{passage_count} passages" }
             }
 
             if custom {
-                PassageEditor { game, set_id: set.id.clone() }
+                PassageEditor { set_id: set.id.clone() }
             }
 
             div { class: "setup-group study-prompt-policy",
                 span { class: "setup-label", "What should each round show?" }
                 if custom {
-                    div { class: "segmented prompt-policy-options",
-                        for policy in PromptPolicy::ALL {
-                            button {
-                                class: if set.prompt_policy == policy { "segment active" } else { "segment" },
-                                onclick: {
-                                    let id = set.id.clone();
-                                    move |_| {
-                                        game.write().set_study_prompt_policy(&id, policy);
-                                        persist_study_set(game, id.clone());
-                                    }
-                                },
-                                "{policy.label()}"
-                            }
-                        }
+                    Segmented {
+                        class: "prompt-policy-options",
+                        value: set.prompt_policy,
+                        onchange: move |policy| edit(&|set| set.prompt_policy = policy),
                     }
                     p { class: "muted setting-description", "{set.prompt_policy.description()}" }
                 } else {
-                    div { class: "ready compact-ready",
-                        span { class: "muted", "Rounds show" }
+                    Readout { label: "Rounds show", class: "compact-ready",
                         strong { "{set.prompt_policy.label()}" }
                     }
                 }
@@ -225,67 +215,31 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                 span { class: "setup-label", "Answer choices" }
                 if custom {
                     div { class: "segmented answer-scope-options",
-                        button {
-                            class: if matches!(set.guess_scope, StudyGuessScope::BooksInSet) { "segment active" } else { "segment" },
-                            onclick: {
-                                let id = set.id.clone();
-                                move |_| {
-                                    game.write().set_study_guess_scope(&id, StudyGuessScope::BooksInSet);
-                                    persist_study_set(game, id.clone());
-                                }
-                            },
-                            "Books in set"
-                        }
-                        button {
-                            class: if matches!(set.guess_scope, StudyGuessScope::FullCanons) { "segment active" } else { "segment" },
-                            onclick: {
-                                let id = set.id.clone();
-                                move |_| {
-                                    game.write().set_study_guess_scope(&id, StudyGuessScope::FullCanons);
-                                    persist_study_set(game, id.clone());
-                                }
-                            },
-                            "Full canons"
-                        }
-                        button {
-                            class: if matches!(set.guess_scope, StudyGuessScope::AllStandardWorks) { "segment active" } else { "segment" },
-                            onclick: {
-                                let id = set.id.clone();
-                                move |_| {
-                                    game.write().set_study_guess_scope(&id, StudyGuessScope::AllStandardWorks);
-                                    persist_study_set(game, id.clone());
-                                }
-                            },
-                            "All works"
-                        }
-                        button {
-                            class: if matches!(set.guess_scope, StudyGuessScope::Custom(_)) { "segment active" } else { "segment" },
-                            onclick: {
-                                let id = set.id.clone();
-                                move |_| {
-                                    game.write().set_study_guess_scope(
-                                        &id,
-                                        StudyGuessScope::Custom(custom_scope_start.clone()),
-                                    );
-                                    persist_study_set(game, id.clone());
-                                }
-                            },
-                            "Custom"
+                        for (label, scope) in answer_scopes {
+                            ToggleButton {
+                                active: discriminant(&set.guess_scope) == discriminant(&scope),
+                                onclick: move |_| edit(&|set| set.guess_scope = scope.clone()),
+                                "{label}"
+                            }
                         }
                     }
                     if let StudyGuessScope::Custom(scope) = set.guess_scope.clone() {
-                        StudyGuessScopeEditor { game, set_id: set.id.clone(), scope }
+                        ScopeEditor {
+                            class: "study-scope-editor",
+                            scope,
+                            catalog: study_catalog,
+                            on_change: move |scope: GameScope| edit(&|set| set.guess_scope = StudyGuessScope::Custom(scope.clone())),
+                        }
                     }
                 } else {
-                    div { class: "ready compact-ready",
-                        span { class: "muted", "This set uses" }
+                    Readout { label: "This set uses", class: "compact-ready",
                         strong { "{set.guess_scope.label()}" }
                     }
                 }
                 if !guess_scope_covers_passages {
-                    div { class: "callout warning",
-                        strong { "Answer scope incomplete" }
-                        span { "Include every book represented in this set." }
+                    Callout {
+                        title: "Answer scope incomplete",
+                        message: "Include every book represented in this set.",
                     }
                 }
             }
@@ -301,18 +255,14 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                                 small { class: "muted", "{set.prompt_policy.behavior_label(passage)}" }
                             }
                             if custom {
-                                {
-                                    let remove_id = set.id.clone();
-                                    rsx! {
-                                        button {
-                                            class: "text-button",
-                                            onclick: move |_| {
-                                                game.write().remove_study_passage(&remove_id, index);
-                                                persist_study_set(game, remove_id.clone());
-                                            },
-                                            "Remove"
+                                button {
+                                    class: "text-button",
+                                    onclick: move |_| edit(&|set| {
+                                        if index < set.passages.len() {
+                                            set.passages.remove(index);
                                         }
-                                    }
+                                    }),
+                                    "Remove"
                                 }
                             }
                         }
@@ -332,45 +282,34 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                 }
             }
 
-            if set.passages.len() > 5 {
+            if passage_count > 5 {
                 div { class: "setup-group study-rounds",
                     span { class: "setup-label", "Rounds" }
                     div { class: "segmented",
                         for count in round_choices {
-                            button {
-                                class: if round_count().min(set.passages.len()) == count { "segment active" } else { "segment" },
+                            ToggleButton {
+                                active: round_count().min(passage_count) == count,
                                 onclick: move |_| round_count.set(count),
-                                if count == set.passages.len() { "All ({count})" } else { "{count}" }
+                                if count == passage_count { "All ({count})" } else { "{count}" }
                             }
                         }
                     }
                 }
             }
 
-            if let Some(error) = snapshot.error.as_ref() {
-                div { class: "callout warning",
-                    strong { "Set unavailable" }
-                    span { "{error}" }
-                }
+            if let Some(error) = error {
+                Callout { title: "Set unavailable", message: error }
             }
 
             div { class: "actions study-actions",
                 if custom {
                     {
-                        let delete_id = set.id.clone();
+                        let id = set.id.clone();
                         rsx! {
                             button {
                                 class: "button secondary",
                                 onclick: move |_| {
-                                    game.write().delete_study_set(&delete_id);
-                                    spawn({
-                                        let delete_id = delete_id.clone();
-                                        async move {
-                                            if let Err(error) = delete_remote_study_set(delete_id).await {
-                                                game.write().fail_request(error);
-                                            }
-                                        }
-                                    });
+                                    delete_study_set(game, id.clone());
                                     navigator.replace(Route::StudyIndex {});
                                 },
                                 "Delete set"
@@ -380,14 +319,14 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
                 }
                 button {
                     class: "button",
-                    disabled: set.passages.is_empty() || !guess_scope_covers_passages || snapshot.loading_game,
+                    disabled: set.passages.is_empty() || !guess_scope_covers_passages || loading_game,
                     onclick: move |_| request_study_game(
                         game,
                         navigator,
-                        practice_set.clone(),
-                        round_count().min(practice_set.passages.len()),
+                        set.as_ref().clone(),
+                        round_count().min(passage_count),
                     ),
-                    if snapshot.loading_game { "Starting" } else { "Practice set" }
+                    if loading_game { "Starting" } else { "Practice set" }
                 }
             }
         }
@@ -395,164 +334,39 @@ fn StudySetDetail(game: Signal<Game>, set: Arc<StudySet>, custom: bool) -> Eleme
 }
 
 #[component]
-fn StudyGuessScopeEditor(
-    game: Signal<Game>,
-    set_id: String,
-    scope: crate::scriptures::GameScope,
-) -> Element {
-    let metadata = game.read().study_metadata.clone();
-
-    rsx! {
-        div { class: "study-scope-editor",
-            for canon in Canon::ALL {
-                {
-                    let selected = scope.contains_canon(canon);
-                    let canon_scope = scope.canon_scope(canon).cloned();
-                    let books = metadata
-                        .iter()
-                        .find(|item| item.canon == canon)
-                        .map(|item| item.books.clone())
-                        .unwrap_or_default();
-                    rsx! {
-                        div { class: if selected { "scope-canon selected" } else { "scope-canon" },
-                            div { class: "scope-canon-header",
-                                button {
-                                    class: if selected { "choice active" } else { "choice" },
-                                    onclick: {
-                                        let id = set_id.clone();
-                                        let mut next = scope.clone();
-                                        move |_| {
-                                            if selected {
-                                                next.canons.retain(|item| item.canon != canon);
-                                            } else {
-                                                next.canons.push(crate::scriptures::CanonScope {
-                                                    canon,
-                                                    books: BookScope::All,
-                                                });
-                                                next.canons.sort_by_key(|item| Canon::ALL.iter().position(|candidate| *candidate == item.canon));
-                                            }
-                                            game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
-                                            persist_study_set(game, id.clone());
-                                        }
-                                    },
-                                    "{canon.label()}"
-                                }
-                            }
-                            if let Some(canon_scope) = canon_scope {
-                                div { class: "segmented scope-mode",
-                                    button {
-                                        class: if canon_scope.books == BookScope::All { "segment active" } else { "segment" },
-                                        onclick: {
-                                            let id = set_id.clone();
-                                            let mut next = scope.clone();
-                                            move |_| {
-                                                if let Some(item) = next.canons.iter_mut().find(|item| item.canon == canon) {
-                                                    item.books = BookScope::All;
-                                                }
-                                                game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
-                                                persist_study_set(game, id.clone());
-                                            }
-                                        },
-                                        "All books"
-                                    }
-                                    button {
-                                        class: if matches!(canon_scope.books, BookScope::Selected(_)) { "segment active" } else { "segment" },
-                                        onclick: {
-                                            let id = set_id.clone();
-                                            let mut next = scope.clone();
-                                            move |_| {
-                                                if let Some(item) = next.canons.iter_mut().find(|item| item.canon == canon) {
-                                                    item.books = BookScope::Selected(Vec::new());
-                                                }
-                                                game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
-                                                persist_study_set(game, id.clone());
-                                            }
-                                        },
-                                        "Choose books"
-                                    }
-                                }
-                                if let BookScope::Selected(ref selected_books) = canon_scope.books {
-                                    div { class: "book-select-grid study-book-grid",
-                                        for book in books {
-                                            {
-                                                let active = selected_books.contains(&book.name);
-                                                let book_name = book.name.clone();
-                                                let selected_books = selected_books.clone();
-                                                rsx! {
-                                                    button {
-                                                        class: if active { "choice active" } else { "choice" },
-                                                        onclick: {
-                                                            let id = set_id.clone();
-                                                            let mut next = scope.clone();
-                                                            move |_| {
-                                                                let mut names = selected_books.clone();
-                                                                if active {
-                                                                    names.retain(|name| name != &book_name);
-                                                                } else {
-                                                                    names.push(book_name.clone());
-                                                                }
-                                                                if let Some(item) = next.canons.iter_mut().find(|item| item.canon == canon) {
-                                                                    item.books = BookScope::Selected(names.clone());
-                                                                }
-                                                                game.write().set_study_guess_scope(&id, StudyGuessScope::Custom(next.clone()));
-                                                                persist_study_set(game, id.clone());
-                                                            }
-                                                        },
-                                                        "{book.name}"
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[component]
-fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
-    let snapshot = game.read().clone();
+fn PassageEditor(set_id: String) -> Element {
+    let game = use_game();
     let mut selected_canon = use_signal(|| Canon::BookOfMormon);
     let mut selected_book = use_signal(String::new);
     let mut chapter = use_signal(|| 1_u16);
     let mut start_verse = use_signal(|| 1_u16);
     let mut end_verse = use_signal(|| 1_u16);
     let canon = selected_canon();
-    let books = snapshot
-        .study_metadata
+    let books = catalog::books(&game.read().study_catalog, canon).to_vec();
+    let book = books
         .iter()
-        .find(|metadata| metadata.canon == canon)
-        .map(|metadata| metadata.books.clone())
+        .find(|item| item.name == selected_book())
+        .or_else(|| books.first())
+        .cloned();
+    let chapters = book
+        .as_ref()
+        .map(|book| book.chapters.clone())
         .unwrap_or_default();
-    let book = if books.iter().any(|item| item.name == selected_book()) {
-        selected_book()
-    } else {
-        books
-            .first()
-            .map(|item| item.name.clone())
-            .unwrap_or_default()
-    };
-    let chapters = books
-        .iter()
-        .find(|item| item.name == book)
-        .map(|item| item.chapters.clone())
+    let max_verse = book
+        .as_ref()
+        .and_then(|book| book.verse_count(chapter()))
         .unwrap_or_default();
-    let max_verse = books
-        .iter()
-        .find(|item| item.name == book)
-        .and_then(|item| item.verse_count(chapter()))
-        .unwrap_or_default();
-    let valid = !book.is_empty()
+    let book_name = book.map(|book| book.name).unwrap_or_default();
+    let valid = !book_name.is_empty()
         && chapters.contains(&chapter())
         && start_verse() > 0
         && end_verse() >= start_verse()
         && end_verse() <= max_verse
-        && end_verse() - start_verse() < 200;
+        && usize::from(end_verse() - start_verse()) < MAX_VERSES_PER_PASSAGE;
+    let mut reset_verses = move || {
+        start_verse.set(1);
+        end_verse.set(1);
+    };
 
     rsx! {
         div { class: "passage-editor",
@@ -560,31 +374,24 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
             div { class: "passage-fields",
                 label {
                     span { "Canon" }
-                    select {
-                        value: "{canon.label()}",
-                        onchange: move |event| {
-                            if let Some(next) = Canon::ALL.into_iter().find(|item| item.label() == event.value()) {
-                                selected_canon.set(next);
-                                selected_book.set(String::new());
-                                chapter.set(1);
-                                start_verse.set(1);
-                                end_verse.set(1);
-                            }
+                    ChoiceSelect {
+                        value: canon,
+                        onchange: move |next| {
+                            selected_canon.set(next);
+                            selected_book.set(String::new());
+                            chapter.set(1);
+                            reset_verses();
                         },
-                        for item in Canon::ALL {
-                            option { value: "{item.label()}", "{item.label()}" }
-                        }
                     }
                 }
                 label {
                     span { "Book" }
                     select {
-                        value: "{book}",
+                        value: "{book_name}",
                         onchange: move |event| {
                             selected_book.set(event.value());
                             chapter.set(1);
-                            start_verse.set(1);
-                            end_verse.set(1);
+                            reset_verses();
                         },
                         for item in books.iter() {
                             option { value: "{item.name}", "{item.name}" }
@@ -598,8 +405,7 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                         onchange: move |event| {
                             if let Ok(value) = event.value().parse() {
                                 chapter.set(value);
-                                start_verse.set(1);
-                                end_verse.set(1);
+                                reset_verses();
                             }
                         },
                         for item in chapters {
@@ -607,51 +413,46 @@ fn PassageEditor(game: Signal<Game>, set_id: String) -> Element {
                         }
                     }
                 }
-                label {
-                    span { "First verse" }
-                    input {
-                        r#type: "number",
-                        min: "1",
-                        max: "{max_verse}",
-                        value: "{start_verse}",
-                        oninput: move |event| {
-                            if let Ok(value) = event.value().parse() {
-                                start_verse.set(value);
-                            }
-                        },
-                    }
-                }
-                label {
-                    span { "Last verse" }
-                    input {
-                        r#type: "number",
-                        min: "1",
-                        max: "{max_verse}",
-                        value: "{end_verse}",
-                        oninput: move |event| {
-                            if let Ok(value) = event.value().parse() {
-                                end_verse.set(value);
-                            }
-                        },
-                    }
-                }
+                VerseInput { label: "First verse", max: max_verse, value: start_verse }
+                VerseInput { label: "Last verse", max: max_verse, value: end_verse }
                 button {
                     class: "button",
                     disabled: !valid,
                     onclick: move |_| {
-                        game.write().add_study_passage(
-                            &set_id,
-                            StudyPassage {
-                                canon,
-                                book: book.clone(),
-                                chapter: chapter(),
-                                verses: (start_verse()..=end_verse()).collect(),
-                            },
-                        );
-                        persist_study_set(game, set_id.clone());
+                        let passage = StudyPassage {
+                            canon,
+                            book: book_name.clone(),
+                            chapter: chapter(),
+                            verses: (start_verse()..=end_verse()).collect(),
+                        };
+                        update_study_set(game, &set_id, |set| {
+                            if !set.passages.contains(&passage) {
+                                set.passages.push(passage);
+                            }
+                        });
                     },
                     "Add"
                 }
+            }
+        }
+    }
+}
+
+#[component]
+fn VerseInput(label: String, max: u16, value: Signal<u16>) -> Element {
+    rsx! {
+        label {
+            span { "{label}" }
+            input {
+                r#type: "number",
+                min: "1",
+                max: "{max}",
+                value: "{value}",
+                oninput: move |event| {
+                    if let Ok(next) = event.value().parse() {
+                        value.set(next);
+                    }
+                },
             }
         }
     }

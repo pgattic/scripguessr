@@ -1,180 +1,9 @@
-use serde::{Deserialize, Serialize};
 use std::sync::{Arc, OnceLock};
 
-use crate::scriptures::{BookScope, Canon, CanonScope, GameMode, GameScope, Reference};
+use serde::Deserialize;
 
-#[derive(Clone, Debug, Deserialize, Hash, PartialEq, Eq, Serialize)]
-pub struct StudyPassage {
-    pub canon: Canon,
-    pub book: String,
-    pub chapter: u16,
-    pub verses: Vec<u16>,
-}
-
-impl StudyPassage {
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
-    pub fn single(reference: &Reference) -> Self {
-        Self {
-            canon: reference.canon,
-            book: reference.book.clone(),
-            chapter: reference.chapter,
-            verses: vec![reference.verse],
-        }
-    }
-
-    pub fn label(&self) -> String {
-        let verses = compact_verses(&self.verses);
-        format!("{} {}:{}", self.book, self.chapter, verses)
-    }
-
-    #[cfg_attr(target_arch = "wasm32", allow(dead_code))]
-    pub fn first_reference(&self) -> Option<Reference> {
-        Some(Reference {
-            canon: self.canon,
-            book: self.book.clone(),
-            chapter: self.chapter,
-            verse: *self.verses.first()?,
-        })
-    }
-
-    pub fn contains_verse(&self, verse: u16) -> bool {
-        self.verses.contains(&verse)
-    }
-}
-
-#[derive(Clone, Debug, Deserialize, PartialEq, Eq, Serialize)]
-pub struct StudySet {
-    pub id: String,
-    pub name: String,
-    pub passages: Vec<StudyPassage>,
-    pub guess_scope: StudyGuessScope,
-    pub prompt_policy: PromptPolicy,
-}
-
-impl StudySet {
-    pub fn resolved_guess_scope(&self) -> GameScope {
-        match &self.guess_scope {
-            StudyGuessScope::BooksInSet => scope_for_passages(&self.passages),
-            StudyGuessScope::FullCanons => full_canons_for_passages(&self.passages),
-            StudyGuessScope::AllStandardWorks => GameMode::AllStandardWorks.scope(),
-            StudyGuessScope::Custom(scope) => scope.clone(),
-        }
-    }
-
-    pub fn guess_scope_covers_passages(&self) -> bool {
-        let scope = self.resolved_guess_scope();
-        self.passages
-            .iter()
-            .all(|passage| scope.includes_book(passage.canon, &passage.book))
-    }
-}
-
-#[derive(Clone, Copy, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
-pub enum PromptPolicy {
-    #[default]
-    Automatic,
-    SingleVerse,
-    WholePassage,
-}
-
-impl PromptPolicy {
-    pub const ALL: [Self; 3] = [Self::Automatic, Self::SingleVerse, Self::WholePassage];
-
-    pub fn label(self) -> &'static str {
-        match self {
-            Self::Automatic => "Automatic",
-            Self::SingleVerse => "One verse",
-            Self::WholePassage => "Whole passage",
-        }
-    }
-
-    pub fn description(self) -> &'static str {
-        match self {
-            Self::Automatic => "Short passages stay together; longer passages use one verse.",
-            Self::SingleVerse => "Each round uses one randomly selected verse from its passage.",
-            Self::WholePassage => "Each round shows every verse in its passage.",
-        }
-    }
-
-    pub fn shows_whole_passage(self, passage: &StudyPassage) -> bool {
-        match self {
-            Self::Automatic => passage.verses.len() <= 3,
-            Self::SingleVerse => false,
-            Self::WholePassage => true,
-        }
-    }
-
-    pub fn behavior_label(self, passage: &StudyPassage) -> &'static str {
-        if self.shows_whole_passage(passage) {
-            "Whole passage"
-        } else {
-            "Random verse"
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
-pub enum StudyGuessScope {
-    BooksInSet,
-    #[default]
-    FullCanons,
-    AllStandardWorks,
-    Custom(GameScope),
-}
-
-impl StudyGuessScope {
-    pub fn label(&self) -> &'static str {
-        match self {
-            Self::BooksInSet => "Books in set",
-            Self::FullCanons => "Full canons",
-            Self::AllStandardWorks => "All standard works",
-            Self::Custom(_) => "Custom",
-        }
-    }
-}
-
-#[derive(Clone, Debug, Default, Deserialize, PartialEq, Eq, Serialize)]
-pub struct CustomStudySets {
-    pub sets: Vec<StudySet>,
-}
-
-pub fn scope_for_passages(passages: &[StudyPassage]) -> GameScope {
-    let canons = Canon::ALL
-        .iter()
-        .copied()
-        .filter_map(|canon| {
-            let books = passages
-                .iter()
-                .filter(|passage| passage.canon == canon)
-                .map(|passage| passage.book.clone())
-                .fold(Vec::new(), |mut books, book| {
-                    if !books.contains(&book) {
-                        books.push(book);
-                    }
-                    books
-                });
-            (!books.is_empty()).then_some(CanonScope {
-                canon,
-                books: BookScope::Selected(books),
-            })
-        })
-        .collect();
-    GameScope { canons }
-}
-
-fn full_canons_for_passages(passages: &[StudyPassage]) -> GameScope {
-    GameScope {
-        canons: Canon::ALL
-            .iter()
-            .copied()
-            .filter(|canon| passages.iter().any(|passage| passage.canon == *canon))
-            .map(|canon| CanonScope {
-                canon,
-                books: BookScope::All,
-            })
-            .collect(),
-    }
-}
+use super::{PromptPolicy, StudyGuessScope, StudyPassage, StudySet};
+use crate::scriptures::{BookScope, Canon, CanonScope, GameScope};
 
 pub fn built_in_study_sets() -> &'static [Arc<StudySet>] {
     static SETS: OnceLock<Vec<Arc<StudySet>>> = OnceLock::new();
@@ -232,7 +61,7 @@ fn preach_my_gospel_study_sets() -> Vec<StudySet> {
     }
 
     let data: Data = serde_json::from_str(include_str!(
-        "../assets/data/preach-my-gospel-study-sets.json"
+        "../../assets/data/preach-my-gospel-study-sets.json"
     ))
     .expect("Preach My Gospel study-set data must be valid");
     let mut all_passages = Vec::new();
@@ -451,43 +280,9 @@ fn doctrine_and_covenants_mastery() -> StudySet {
     }
 }
 
-fn compact_verses(verses: &[u16]) -> String {
-    let mut verses = verses.to_vec();
-    verses.sort_unstable();
-    verses.dedup();
-    let mut parts = Vec::new();
-    let mut index = 0;
-    while index < verses.len() {
-        let start = verses[index];
-        let mut end = start;
-        while index + 1 < verses.len() && verses[index + 1] == end + 1 {
-            index += 1;
-            end = verses[index];
-        }
-        if start == end {
-            parts.push(start.to_string());
-        } else {
-            parts.push(format!("{start}-{end}"));
-        }
-        index += 1;
-    }
-    parts.join(", ")
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn labels_discontinuous_verse_ranges() {
-        let passage = StudyPassage {
-            canon: Canon::DoctrineAndCovenants,
-            book: "D&C".to_string(),
-            chapter: 121,
-            verses: vec![36, 41, 42],
-        };
-        assert_eq!(passage.label(), "D&C 121:36, 41-42");
-    }
 
     #[test]
     fn book_of_mormon_mastery_uses_the_full_canon_for_guesses() {
@@ -499,26 +294,6 @@ mod tests {
 
         assert!(scope.includes_book(Canon::BookOfMormon, "Jacob"));
         assert!(!scope.includes_book(Canon::NewTestament, "Matthew"));
-    }
-
-    #[test]
-    fn books_in_set_remains_available_for_focused_custom_sets() {
-        let set = StudySet {
-            id: "alma".to_string(),
-            name: "Alma".to_string(),
-            passages: vec![StudyPassage {
-                canon: Canon::BookOfMormon,
-                book: "Alma".to_string(),
-                chapter: 32,
-                verses: vec![21],
-            }],
-            guess_scope: StudyGuessScope::BooksInSet,
-            prompt_policy: PromptPolicy::Automatic,
-        };
-        let scope = set.resolved_guess_scope();
-
-        assert!(scope.includes_book(Canon::BookOfMormon, "Alma"));
-        assert!(!scope.includes_book(Canon::BookOfMormon, "Jacob"));
     }
 
     #[test]
