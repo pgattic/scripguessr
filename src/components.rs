@@ -96,7 +96,7 @@ pub fn AppShell() -> Element {
         main { class: "app",
             div { class: "shell",
                 header { class: "topbar",
-                    div { class: "brand",
+                    Link { class: "brand brand-link", to: Route::Setup {},
                         h1 { "ScripGuessr" }
                         span { "{subtitle}" }
                     }

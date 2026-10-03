@@ -19,7 +19,7 @@ argon2 = "0.5"
 axum = "0.8"
 sqlx = { version = "0.8", features = ["json", "migrate", "postgres", "runtime-tokio-rustls", "time", "uuid"] }
 time = "0.3"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "net"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "net", "time"] }
 tower-sessions = "0.14"
 tracing = "0.1"
 tower-sessions-sqlx-store = { version = "0.15", features = ["postgres"] }

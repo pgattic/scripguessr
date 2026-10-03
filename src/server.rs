@@ -18,7 +18,9 @@ use sqlx::{FromRow, PgPool};
 use tower_http::cors::{AllowHeaders, CorsLayer};
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::trace::TraceLayer;
-use tower_sessions::{Expiry, Session, SessionManagerLayer, cookie::SameSite};
+use tower_sessions::{
+    Expiry, Session, SessionManagerLayer, cookie::SameSite, session_store::ExpiredDeletion,
+};
 use tower_sessions_sqlx_store::PostgresStore;
 use tracing_subscriber::EnvFilter;
 use uuid::Uuid;
@@ -42,6 +44,8 @@ const PEARL_OF_GREAT_PRICE_DATA: &str =
 const OLD_TESTAMENT_DATA: &str = include_str!("../assets/data/old-testament-flat.json");
 const NEW_TESTAMENT_DATA: &str = include_str!("../assets/data/new-testament-flat.json");
 const DEFAULT_GAME_TTL: Duration = Duration::from_secs(6 * 60 * 60);
+const CLEANUP_INTERVAL: Duration = Duration::from_secs(15 * 60);
+const SESSION_CLEANUP_INTERVAL: Duration = Duration::from_secs(60 * 60);
 const MAX_GAME_ROUNDS: usize = 1_000;
 const MAX_STUDY_PASSAGES: usize = 2_000;
 const MAX_VERSES_PER_PASSAGE: usize = 200;
@@ -69,6 +73,7 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
     sqlx::migrate!().run(&pool).await?;
     let session_store = PostgresStore::new(pool.clone());
     session_store.migrate().await?;
+    spawn_session_cleanup(session_store.clone());
     let secure_cookies = std::env::var("SCRIPGUESSR_SECURE_COOKIES")
         .map(|value| value != "false" && value != "0")
         .unwrap_or(true);
@@ -78,6 +83,8 @@ pub async fn serve() -> Result<(), Box<dyn std::error::Error>> {
         .with_secure(secure_cookies)
         .with_expiry(Expiry::OnInactivity(time::Duration::days(30)));
     let state = AppState::new(pool, game_ttl)?;
+    state.prune_games().await?;
+    spawn_game_cleanup(state.clone());
 
     let app = router_for(state, static_dir).layer(session_layer);
 
@@ -167,13 +174,37 @@ impl AppState {
 
     async fn prune_games(&self) -> Result<(), sqlx::Error> {
         sqlx::query(
-            "DELETE FROM games WHERE NOT finished AND last_seen_at < now() - ($1 * interval '1 second')",
+            "DELETE FROM games WHERE (NOT finished OR user_id IS NULL) AND last_seen_at < now() - ($1 * interval '1 second')",
         )
         .bind(self.game_ttl.as_secs() as i64)
         .execute(&self.pool)
         .await?;
         Ok(())
     }
+}
+
+fn spawn_game_cleanup(state: AppState) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(CLEANUP_INTERVAL);
+        interval.tick().await;
+        loop {
+            interval.tick().await;
+            if let Err(error) = state.prune_games().await {
+                tracing::error!(%error, "could not prune expired games");
+            }
+        }
+    });
+}
+
+fn spawn_session_cleanup(store: PostgresStore) {
+    tokio::spawn(async move {
+        if let Err(error) = store
+            .continuously_delete_expired(SESSION_CLEANUP_INTERVAL)
+            .await
+        {
+            tracing::error!(%error, "expired session cleanup stopped");
+        }
+    });
 }
 
 #[derive(Clone)]
@@ -284,8 +315,6 @@ async fn create_game(
     session: Session,
     Json(request): Json<NewGameRequest>,
 ) -> Result<Json<NewGameResponse>, ApiError> {
-    state.prune_games().await.map_err(ApiError::database)?;
-
     let mut rng = SmallRng::from_os_rng();
     let (game_kind, difficulty, scope, rounds, playable_count) = match request {
         NewGameRequest::Random {
@@ -387,7 +416,6 @@ async fn game_snapshot(
     session: Session,
     Path(game_id): Path<String>,
 ) -> Result<Json<GameSnapshotResponse>, ApiError> {
-    state.prune_games().await.map_err(ApiError::database)?;
     let game_uuid = parse_game_id(&game_id)?;
     let game = sqlx::query_as::<_, DbGame>(
         "SELECT user_id, difficulty, scope, playable_verse_count, round_count, current_round_index, finished FROM games WHERE id = $1",
@@ -437,7 +465,6 @@ async fn submit_guess(
     Path(game_id): Path<String>,
     Json(request): Json<GuessRequest>,
 ) -> Result<Json<GuessResponse>, ApiError> {
-    state.prune_games().await.map_err(ApiError::database)?;
     let game_uuid = parse_game_id(&game_id)?;
     let mut tx = state.pool.begin().await.map_err(ApiError::database)?;
     let game = sqlx::query_as::<_, DbGame>(
@@ -520,7 +547,6 @@ async fn advance_game(
     session: Session,
     Path(game_id): Path<String>,
 ) -> Result<Json<AdvanceGameResponse>, ApiError> {
-    state.prune_games().await.map_err(ApiError::database)?;
     let game_uuid = parse_game_id(&game_id)?;
     let mut tx = state.pool.begin().await.map_err(ApiError::database)?;
     let game = sqlx::query_as::<_, DbGame>(
@@ -552,7 +578,7 @@ async fn advance_game(
 
     let (current_round_index, finished) = if game.current_round_index + 1 == game.round_count {
         let score = sqlx::query_scalar::<_, i64>(
-            "SELECT COALESCE(SUM((guess->'score'->>'points')::bigint), 0) FROM game_rounds WHERE game_id = $1",
+            "SELECT COALESCE(SUM((guess->'score'->>'points')::integer), 0::bigint) FROM game_rounds WHERE game_id = $1",
         )
         .bind(game_uuid)
         .fetch_one(&mut *tx)
