@@ -123,10 +123,10 @@
               wasm-bindgen-cli
             ];
             text = ''
-              export SCRIPGUESSR_API_BASE="''${SCRIPGUESSR_API_BASE:-http://127.0.0.1:8099}"
+              export SCRIPGUESSR_API_BASE="''${SCRIPGUESSR_API_BASE:-http://localhost:8099}"
               export PORT="''${SCRIPGUESSR_BACKEND_PORT:-8099}"
               export SCRIPGUESSR_STATIC_DIR="target/dx/scripguessr/debug/web/public"
-              export SCRIPGUESSR_ALLOWED_ORIGIN="''${SCRIPGUESSR_ALLOWED_ORIGIN:-http://127.0.0.1:8080}"
+              export SCRIPGUESSR_ALLOWED_ORIGIN="''${SCRIPGUESSR_ALLOWED_ORIGIN:-http://localhost:8080,http://127.0.0.1:8080}"
               export SCRIPGUESSR_SECURE_COOKIES=false
 
               pg_data="''${SCRIPGUESSR_DEV_PGDATA:-$PWD/target/dev-postgres-data}"

@@ -125,12 +125,17 @@ fn router_for(state: AppState, static_dir: impl Into<String>) -> Router {
         .layer(DefaultBodyLimit::max(MAX_GAME_REQUEST_BYTES))
         .fallback_service(static_files)
         .with_state(state);
-    if let Ok(origin) = std::env::var("SCRIPGUESSR_ALLOWED_ORIGIN")
-        && let Ok(origin) = origin.parse::<HeaderValue>()
-    {
+    if let Ok(configured_origins) = std::env::var("SCRIPGUESSR_ALLOWED_ORIGIN") {
+        let origins = configured_origins
+            .split(',')
+            .filter_map(|origin| origin.trim().parse::<HeaderValue>().ok())
+            .collect::<Vec<_>>();
+        if origins.is_empty() {
+            return router;
+        }
         return router.layer(
             CorsLayer::new()
-                .allow_origin(origin)
+                .allow_origin(origins)
                 .allow_credentials(true)
                 .allow_headers(AllowHeaders::mirror_request())
                 .allow_methods([Method::GET, Method::POST, Method::PUT]),

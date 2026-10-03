@@ -1,6 +1,6 @@
 use dioxus::prelude::*;
 
-use crate::api::{AuthRequest, ChangePasswordRequest};
+use crate::api::{AuthRequest, ChangePasswordRequest, LeaderboardEntry};
 use crate::game::Game;
 use crate::loader::{
     change_password, load_account_data, load_leaderboard, login, logout, register,
@@ -28,33 +28,39 @@ fn AuthPanel(registering: bool) -> Element {
     let mut error = use_signal(|| None::<String>);
 
     rsx! {
-        div { class: "setup-layout account-layout",
-            section { class: "panel setup-panel account-panel",
-                div { class: "picker-header",
+        div { class: "auth-layout",
+            section { class: "panel auth-panel",
+                div { class: "account-heading",
+                    span { class: "section-kicker", if registering { "New account" } else { "Welcome back" } }
                     h2 { if registering { "Create account" } else { "Sign in" } }
                 }
-                label { class: "setup-group",
+                div { class: "auth-fields",
+                label { class: "form-field",
                     span { class: "setup-label", "Username" }
                     input {
+                        class: "form-control",
                         value: "{username}",
                         autocomplete: "username",
                         maxlength: 32,
                         oninput: move |event| username.set(event.value()),
                     }
                 }
-                label { class: "setup-group",
+                label { class: "form-field",
                     span { class: "setup-label", "Password" }
                     input {
+                        class: "form-control",
                         r#type: "password",
+                        minlength: 12,
                         value: "{password}",
                         autocomplete: if registering { "new-password" } else { "current-password" },
                         oninput: move |event| password.set(event.value()),
                     }
                 }
+                }
                 if let Some(message) = error() {
                     div { class: "callout warning", span { "{message}" } }
                 }
-                div { class: "actions",
+                div { class: "actions auth-actions",
                     button {
                         class: "button",
                         disabled: busy() || username().is_empty() || password().is_empty(),
@@ -111,44 +117,80 @@ pub fn AccountRoutePage() -> Element {
 
     let Some(user) = snapshot.user else {
         return rsx! {
-            section { class: "panel setup-panel",
-                div { class: "ready",
-                    strong { "Sign in to view your account" }
-                    button { class: "button", onclick: move |_| { navigator.replace(Route::Login {}); }, "Sign in" }
+            section { class: "panel account-guest-panel",
+                div { class: "account-empty-state",
+                    span { class: "section-kicker", "Account" }
+                    h2 { "Sign in to view your progress" }
+                    div { class: "actions compact-actions",
+                        button { class: "button", onclick: move |_| { navigator.replace(Route::Login {}); }, "Sign in" }
+                        button { class: "button secondary", onclick: move |_| { navigator.replace(Route::Register {}); }, "Create account" }
+                    }
                 }
             }
         };
     };
 
     rsx! {
-        div { class: "setup-layout account-layout",
-            section { class: "panel setup-panel account-panel",
-                div { class: "picker-header",
-                    h2 { "{user.username}" }
-                    span { class: "muted", "{snapshot.stats.games_played} games" }
+        div { class: "account-layout",
+            section { class: "panel account-panel account-overview",
+                div { class: "account-heading account-heading-row",
+                    div {
+                        span { class: "section-kicker", "Account" }
+                        h2 { "{user.username}" }
+                    }
+                    span { class: "account-status", "Signed in" }
                 }
-                div { class: "stat-grid",
-                    div { span { class: "muted", "Games" } strong { "{snapshot.stats.games_played}" } }
-                    div { span { class: "muted", "Rounds" } strong { "{snapshot.stats.rounds_played}" } }
-                    div { span { class: "muted", "Average" } strong { "{snapshot.stats.average_percent().unwrap_or_default()}%" } }
+                div { class: "account-stat-grid",
+                    div { span { "Games" } strong { "{snapshot.stats.games_played}" } }
+                    div { span { "Rounds" } strong { "{snapshot.stats.rounds_played}" } }
+                    div { span { "Average" } strong { "{snapshot.stats.average_percent().unwrap_or_default()}%" } }
+                    div { span { "Marked" } strong { "{snapshot.stats.review_items.len()}" } }
                 }
-                div { class: "setup-group",
-                    span { class: "setup-label", "Change password" }
+                div { class: "account-links",
+                    button { class: "account-link", onclick: move |_| { navigator.push(Route::Review {}); },
+                        strong { "Review queue" }
+                        span { "{snapshot.stats.review_items.len()} passages" }
+                    }
+                    button { class: "account-link", onclick: move |_| { navigator.push(Route::StudyIndex {}); },
+                        strong { "Custom study sets" }
+                        span { "{snapshot.custom_study_sets.sets.len()} sets" }
+                    }
+                    button { class: "account-link", onclick: move |_| { navigator.push(Route::Leaderboards {}); },
+                        strong { "Leaderboards" }
+                        span { "View standings" }
+                    }
+                }
+            }
+            aside { class: "panel account-panel security-panel",
+                div { class: "account-heading",
+                    span { class: "section-kicker", "Security" }
+                    h2 { "Change password" }
+                }
+                div { class: "auth-fields",
+                label { class: "form-field",
+                    span { class: "setup-label", "Current password" }
                     input {
+                        class: "form-control",
                         r#type: "password",
-                        placeholder: "Current password",
+                        autocomplete: "current-password",
                         value: "{current_password}",
                         oninput: move |event| current_password.set(event.value()),
                     }
+                }
+                label { class: "form-field",
+                    span { class: "setup-label", "New password" }
                     input {
+                        class: "form-control",
                         r#type: "password",
-                        placeholder: "New password",
+                        minlength: 12,
+                        autocomplete: "new-password",
                         value: "{new_password}",
                         oninput: move |event| new_password.set(event.value()),
                     }
                 }
-                if let Some(text) = message() { p { class: "muted", "{text}" } }
-                div { class: "actions",
+                }
+                if let Some(text) = message() { div { class: "account-message", "{text}" } }
+                div { class: "actions security-actions",
                     button {
                         class: "button secondary",
                         disabled: current_password().is_empty() || new_password().is_empty(),
@@ -187,7 +229,7 @@ pub fn AccountRoutePage() -> Element {
 #[component]
 pub fn LeaderboardsRoutePage() -> Element {
     let mut preset = use_signal(|| GameMode::BookOfMormon);
-    let mut difficulty = use_signal(|| Difficulty::Normal);
+    let mut difficulty = use_signal(|| Difficulty::Easy);
     let mut rounds = use_signal(|| 5_usize);
     let resource =
         use_resource(
@@ -195,45 +237,84 @@ pub fn LeaderboardsRoutePage() -> Element {
         );
 
     rsx! {
-        section { class: "panel setup-panel leaderboard-panel",
-            div { class: "picker-header", h2 { "Leaderboards" } }
+        section { class: "panel leaderboard-panel",
+            div { class: "account-heading leaderboard-heading",
+                span { class: "section-kicker", "Best scores" }
+                h2 { "Leaderboards" }
+            }
             div { class: "leaderboard-filters",
-                label { span { class: "setup-label", "Preset" }
-                    select { value: "{preset():?}", onchange: move |event| {
+                label { class: "form-field", span { class: "setup-label", "Preset" }
+                    select { class: "form-control", value: "{preset():?}", onchange: move |event| {
                         if let Some(mode) = parse_mode(&event.value()) { preset.set(mode); }
                     },
                         for mode in GameMode::ALL { option { value: "{mode:?}", "{mode.label()}" } }
                     }
                 }
-                label { span { class: "setup-label", "Difficulty" }
-                    select { value: "{difficulty():?}", onchange: move |event| {
+                label { class: "form-field", span { class: "setup-label", "Difficulty" }
+                    select { class: "form-control", value: "{difficulty():?}", onchange: move |event| {
                         if let Some(value) = parse_difficulty(&event.value()) { difficulty.set(value); }
                     },
                         for value in Difficulty::ALL { option { value: "{value:?}", "{value.label()}" } }
                     }
                 }
+                label { class: "form-field leaderboard-round-filter",
+                    span { class: "setup-label", "Rounds" }
                 div { class: "segmented",
                     for count in [5_usize, 10] {
                         button { class: if rounds() == count { "segment active" } else { "segment" }, onclick: move |_| rounds.set(count), "{count}" }
                     }
                 }
+                }
             }
             match resource.value().read().as_ref() {
-                Some(Ok(board)) if board.entries.is_empty() => rsx! { p { class: "muted", "No completed games in this category yet." } },
+                Some(Ok(board)) if board.entries.is_empty() => rsx! {
+                    div { class: "leaderboard-state",
+                        strong { "No scores yet" }
+                        span { class: "muted", "The first completed game will set the pace." }
+                    }
+                },
                 Some(Ok(board)) => rsx! {
-                    div { class: "round-list leaderboard-list",
+                    div { class: "leaderboard-table",
+                        div { class: "leaderboard-table-header",
+                            span { "Rank" }
+                            span { "Player" }
+                            span { "Score" }
+                            span { "Date" }
+                        }
                         for entry in board.entries.iter() {
-                            div { class: if entry.current_user { "round-row leaderboard-row current-user" } else { "round-row leaderboard-row" },
-                                strong { "#{entry.rank}" }
-                                span { "{entry.username}" }
-                                span { "{entry.score} / {entry.possible_score}" }
-                            }
+                            LeaderboardRow { entry: entry.clone() }
+                        }
+                    }
+                    if let Some(entry) = board.current_user_entry.as_ref().filter(|current| !board.entries.iter().any(|entry| entry.rank == current.rank)) {
+                        div { class: "leaderboard-personal",
+                            span { class: "setup-label", "Your best" }
+                            LeaderboardRow { entry: entry.clone() }
                         }
                     }
                 },
                 Some(Err(error)) => rsx! { div { class: "callout warning", span { "{error}" } } },
-                None => rsx! { p { class: "muted", "Loading standings" } },
+                None => rsx! { div { class: "leaderboard-state", strong { "Loading standings" } } },
             }
+        }
+    }
+}
+
+#[component]
+fn LeaderboardRow(entry: LeaderboardEntry) -> Element {
+    let percent = if entry.possible_score == 0 {
+        0
+    } else {
+        ((entry.score as f64 / entry.possible_score as f64) * 100.0).round() as u32
+    };
+    rsx! {
+        div { class: if entry.current_user { "leaderboard-row current-user" } else { "leaderboard-row" },
+            strong { class: "leaderboard-rank", "#{entry.rank}" }
+            span { class: "leaderboard-player", "{entry.username}" }
+            div { class: "leaderboard-score",
+                strong { "{entry.score} / {entry.possible_score}" }
+                span { class: "muted", "{percent}%" }
+            }
+            span { class: "leaderboard-date muted", "{entry.completed_at}" }
         }
     }
 }

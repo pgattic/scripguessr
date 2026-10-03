@@ -90,38 +90,256 @@ button {
   color: var(--text);
 }
 
-.account-layout {
-  grid-template-columns: minmax(0, 560px);
+.auth-layout {
+  width: min(440px, 100%);
+  margin: 24px auto 0;
 }
 
+.auth-panel,
 .account-panel,
+.account-guest-panel,
 .leaderboard-panel {
-  padding: 20px;
+  padding: clamp(20px, 4vw, 30px);
 }
 
-.leaderboard-panel {
-  max-width: 760px;
-}
-
-.leaderboard-filters {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px;
-}
-
-.leaderboard-filters label {
+.account-heading {
   display: grid;
+  gap: 5px;
+  margin-bottom: 22px;
+}
+
+.account-heading-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.account-heading h2,
+.account-empty-state h2 {
+  margin: 0;
+  font-size: 1.45rem;
+}
+
+.section-kicker {
+  color: var(--accent);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.auth-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.form-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.form-control {
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  border: 1px solid var(--control-border);
+  border-radius: 8px;
+  padding: 9px 11px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+}
+
+.form-control:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent-soft);
+}
+
+.auth-actions,
+.security-actions {
+  justify-content: flex-end;
+}
+
+.account-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(300px, 0.8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.account-status {
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.account-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  border-block: 1px solid var(--border);
+}
+
+.account-stat-grid div {
+  display: grid;
+  gap: 4px;
+  padding: 18px 12px;
+}
+
+.account-stat-grid div + div {
+  border-left: 1px solid var(--border);
+}
+
+.account-stat-grid span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.account-stat-grid strong {
+  font-size: 1.5rem;
+}
+
+.account-links {
+  display: grid;
+  margin-top: 20px;
+  border-top: 1px solid var(--border-soft);
+}
+
+.account-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border-soft);
+  padding: 14px 4px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.account-link:hover strong {
+  color: var(--accent);
+}
+
+.account-link span {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.account-message {
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+
+.account-empty-state {
+  display: grid;
+  justify-items: start;
   gap: 6px;
 }
 
+.leaderboard-panel {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.leaderboard-heading {
+  margin-bottom: 18px;
+}
+
+.leaderboard-filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.5fr) minmax(150px, 1fr) minmax(180px, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--raised-soft);
+}
+
+.leaderboard-table {
+  margin-top: 20px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.leaderboard-table-header,
 .leaderboard-row {
-  grid-template-columns: 56px minmax(0, 1fr) auto;
+  display: grid;
+  grid-template-columns: 64px minmax(130px, 1fr) minmax(130px, auto) 100px;
+  gap: 12px;
+  align-items: center;
+}
+
+.leaderboard-table-header {
+  padding: 9px 14px;
+  background: var(--raised-soft);
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.leaderboard-row {
+  min-height: 62px;
+  padding: 10px 14px;
+  border-top: 1px solid var(--border-soft);
+  background: var(--raised);
 }
 
 .leaderboard-row.current-user {
-  border-color: var(--accent);
   background: var(--accent-soft);
+  box-shadow: inset 3px 0 var(--accent);
+}
+
+.leaderboard-rank {
+  color: var(--muted-strong);
+}
+
+.leaderboard-player {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.leaderboard-score {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.leaderboard-score span,
+.leaderboard-date {
+  font-size: 0.8rem;
+}
+
+.leaderboard-personal {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.leaderboard-personal .leaderboard-row {
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+}
+
+.leaderboard-state {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  margin-top: 20px;
+  padding: 32px 16px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  text-align: center;
 }
 
 .brand {
@@ -1270,6 +1488,7 @@ button {
   .review-layout,
   .study-layout,
   .atlas-layout,
+  .account-layout,
   .setup-layout,
   .topbar {
     grid-template-columns: 1fr;
@@ -1339,6 +1558,14 @@ button {
   .atlas-top-actions {
     flex-wrap: wrap;
   }
+
+  .leaderboard-filters {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .leaderboard-round-filter {
+    grid-column: 1 / -1;
+  }
 }
 
 @media (max-width: 520px) {
@@ -1361,6 +1588,42 @@ button {
 
   .stat-grid {
     grid-template-columns: 1fr;
+  }
+
+  .account-stat-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .account-stat-grid div + div {
+    border-left: 0;
+  }
+
+  .account-stat-grid div:nth-child(even) {
+    border-left: 1px solid var(--border);
+  }
+
+  .account-stat-grid div:nth-child(n + 3) {
+    border-top: 1px solid var(--border);
+  }
+
+  .leaderboard-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .leaderboard-round-filter {
+    grid-column: auto;
+  }
+
+  .leaderboard-table-header {
+    display: none;
+  }
+
+  .leaderboard-row {
+    grid-template-columns: 52px minmax(0, 1fr) auto;
+  }
+
+  .leaderboard-date {
+    display: none;
   }
 
   .scope-book-tools {

@@ -44,7 +44,7 @@ impl Game {
             game_id: None,
             metadata: Vec::new(),
             study_metadata: Vec::new(),
-            metadata_difficulty: Difficulty::Normal,
+            metadata_difficulty: Difficulty::Easy,
             metadata_scope: settings.scope.clone(),
             playable_verse_count: 0,
             total_verse_count: 0,
@@ -106,7 +106,7 @@ impl Game {
 
     pub fn study_metadata_request(&self) -> MetadataRequest {
         MetadataRequest {
-            difficulty: Difficulty::Normal,
+            difficulty: Difficulty::Easy,
             scope: GameMode::AllStandardWorks.scope(),
         }
     }
@@ -677,7 +677,7 @@ impl Default for GameSettings {
     fn default() -> Self {
         Self {
             round_count: 5,
-            difficulty: Difficulty::Normal,
+            difficulty: Difficulty::Easy,
             scope: GameScope::default(),
         }
     }
