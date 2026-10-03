@@ -1325,10 +1325,6 @@ button {
   background: var(--raised-soft);
 }
 
-.study-book-grid {
-  margin-top: 2px;
-}
-
 .compact-ready {
   padding: 10px 12px;
 }

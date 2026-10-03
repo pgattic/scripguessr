@@ -2,6 +2,7 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use crate::scoring::percent;
 use crate::scriptures::Difficulty;
 use crate::study_sets::StudyPassage;
 
@@ -14,8 +15,6 @@ pub struct Stats {
     pub best_score: Option<ScoreMark>,
     pub best_by_difficulty: BTreeMap<Difficulty, ScoreMark>,
     pub books: BTreeMap<String, BookStats>,
-    #[serde(default)]
-    pub review_items: Vec<ReviewItem>,
 }
 
 impl Stats {
@@ -74,36 +73,6 @@ impl Stats {
         books.sort_by_key(|(_book, stats)| stats.average_percent().unwrap_or(u32::MAX));
         books.into_iter().take(limit).collect()
     }
-
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn is_marked_for_review(&self, passage: &StudyPassage) -> bool {
-        self.review_items
-            .iter()
-            .any(|item| item.passage() == *passage)
-    }
-
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn toggle_review_item(&mut self, item: ReviewItem) -> bool {
-        if let Some(index) = self
-            .review_items
-            .iter()
-            .position(|candidate| candidate.passage() == item.passage())
-        {
-            self.review_items.remove(index);
-            false
-        } else {
-            self.review_items.push(item);
-            true
-        }
-    }
-
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn remove_review_item(&mut self, passage: &StudyPassage) -> bool {
-        let original_len = self.review_items.len();
-        self.review_items.retain(|item| item.passage() != *passage);
-
-        self.review_items.len() != original_len
-    }
 }
 
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Serialize)]
@@ -132,13 +101,6 @@ pub struct ReviewItem {
     pub passage: StudyPassage,
     pub text: String,
     pub score: u32,
-}
-
-impl ReviewItem {
-    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))]
-    pub fn passage(&self) -> StudyPassage {
-        self.passage.clone()
-    }
 }
 
 impl BookStats {
@@ -172,18 +134,9 @@ pub struct FinishedRound {
     pub possible_score: u32,
 }
 
-fn percent(score: u32, possible_score: u32) -> Option<u32> {
-    if possible_score == 0 {
-        None
-    } else {
-        Some(((score as f64 / possible_score as f64) * 100.0).round() as u32)
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::scriptures::Reference;
 
     fn round(book: &str, score: u32) -> FinishedRound {
         FinishedRound {
@@ -258,48 +211,5 @@ mod tests {
 
         assert_eq!(weakest[0].0, "Jacob");
         assert_eq!(weakest[1].0, "Mosiah");
-    }
-
-    #[test]
-    fn review_items_toggle_by_reference() {
-        let mut stats = Stats::default();
-        let item = ReviewItem {
-            passage: StudyPassage::single(&Reference {
-                canon: crate::scriptures::Canon::BookOfMormon,
-                book: "Alma".to_string(),
-                chapter: 32,
-                verse: 21,
-            }),
-            text: "And now as I said concerning faith".to_string(),
-            score: 612,
-        };
-
-        assert!(stats.toggle_review_item(item.clone()));
-        assert!(stats.is_marked_for_review(&item.passage()));
-        assert_eq!(stats.review_items.len(), 1);
-
-        assert!(!stats.toggle_review_item(item.clone()));
-        assert!(!stats.is_marked_for_review(&item.passage()));
-        assert!(stats.review_items.is_empty());
-    }
-
-    #[test]
-    fn review_items_can_be_removed_by_reference() {
-        let mut stats = Stats::default();
-        let reference = Reference {
-            canon: crate::scriptures::Canon::BookOfMormon,
-            book: "Mosiah".to_string(),
-            chapter: 2,
-            verse: 17,
-        };
-        stats.review_items.push(ReviewItem {
-            passage: StudyPassage::single(&reference),
-            text: "When ye are in the service of your fellow beings".to_string(),
-            score: 734,
-        });
-
-        assert!(stats.remove_review_item(&StudyPassage::single(&reference)));
-        assert!(stats.review_items.is_empty());
-        assert!(!stats.remove_review_item(&StudyPassage::single(&reference)));
     }
 }
