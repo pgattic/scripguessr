@@ -12,7 +12,16 @@ config :scripguessr, ScripguessrWeb.Endpoint,
   pubsub_server: Scripguessr.PubSub,
   live_view: [signing_salt: "quiz-live-v1"]
 
+config :pbkdf2_elixir, rounds: 600_000
+
 config :phoenix, :json_library, Jason
+
+config :phoenix, :filter_parameters, [
+  "password",
+  "password_confirmation",
+  "token",
+  "recovery_code"
+]
 
 config :logger, :default_formatter,
   format: "$time $metadata[$level] $message\n",

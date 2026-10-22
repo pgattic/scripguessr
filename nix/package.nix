@@ -9,7 +9,7 @@ let
     version = "0.1.0";
     inherit src;
     mixEnv = "test";
-    hash = "sha256-cbYy8vilZJgPpzcfoK7q0a+7Hu6GEtMXm3bhC6UCIY4=";
+    hash = "sha256-b4b8fS6FoyZctnVG4kzHfWAPRt+KBLaamsh5k2/nk6s=";
   };
   lexbor = pkgs.fetchFromGitHub {
     owner = "lexbor";

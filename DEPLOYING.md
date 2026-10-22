@@ -47,7 +47,9 @@ backup policy.
 
 If you already manage the proxy, set `configureNginx = false`. Forward HTTPS
 traffic to the configured localhost port, preserve the public Host header, set
-`X-Forwarded-Proto: https`, and enable WebSocket upgrades for `/live/websocket`.
+`X-Forwarded-Proto: https`, overwrite `X-Real-IP` with the client's actual IP, and
+enable WebSocket upgrades for `/live/websocket`. The application trusts that IP
+header only from a loopback proxy, for authentication request limiting.
 
 ## Runtime secret
 
@@ -63,7 +65,10 @@ dependencies, and place it in the host's secret file. Keep the directory and
 file restricted to root (for example, modes 0700 and 0600); systemd reads the file
 before dropping privileges to the service user. Do not put the secret in Nix
 expressions, command-line arguments, Git, or the Nix store. Preserve it across
-upgrades so existing anonymous browser identities remain valid.
+upgrades so existing browser identities and account sessions remain valid.
+
+Accounts use usernames, passwords, and saved recovery codes. No mail server,
+email provider, or additional runtime credentials are needed.
 
 The module supplies `PHX_HOST`, `PHX_SERVER`, `PORT`, and PostgreSQL connection
 settings. An optional `CORPUS_URL` in the environment file overrides the API SQL
@@ -104,3 +109,6 @@ or quiz deletion job is included in this milestone.
 After initial deployment, run a real five-round quiz through the HTTPS hostname,
 refresh mid-round, and restart the service to confirm resumption. This live-host
 verification is separate from the local and sandboxed checks.
+Also register an account, save its recovery code, attach an anonymous quiz, sign
+out, and sign in from a second browser to verify saved history. Check that recovery
+with the saved code replaces the password and issues a new code.

@@ -1,4 +1,5 @@
 import Config
+config :scripguessr, trust_loopback_proxy: true
 
 config :scripguessr, ScripguessrWeb.Endpoint,
   cache_static_manifest: "priv/static/cache_manifest.json",

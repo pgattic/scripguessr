@@ -181,6 +181,15 @@ Keep missing annotation coverage in the corpus, with no application-owned
 category or chapter annotation lists. Research findings and design decisions
 are documented in [ATLAS.md](ATLAS.md).
 
+## Accounts milestone
+
+The subsequent accounts milestone adds optional username/password registration
+and sign-in, sign-out, offline recovery codes, paginated quiz history, cross-device
+resumption, and explicit attachment of this browser's anonymous quizzes. New quizzes
+belong to the signed-in account. Anonymous play remains available. Accounts require
+no email delivery service. Legacy Rust data migration is not a release requirement;
+see [ACCOUNTS.md](ACCOUNTS.md) for the implemented boundaries and access model.
+
 ## Lessons to retain
 
 - Prefer a single documented Nix workflow over manually coordinated toolchains.

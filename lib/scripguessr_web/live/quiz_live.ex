@@ -25,7 +25,7 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_params(params, _uri, socket) do
     case params do
       %{"id" => id} ->
-        case Quizzes.fetch(id, socket.assigns.owner) do
+        case Quizzes.fetch(id, socket.assigns.owner, user_id(socket)) do
           {:ok, quiz} ->
             {:noreply,
              assign(socket,
@@ -51,11 +51,12 @@ defmodule ScripguessrWeb.QuizLive do
 
   def handle_event("start", _, socket) do
     owner = socket.assigns.owner
+    user_id = user_id(socket)
 
     {:noreply,
      socket
      |> assign(preparing: true, error: nil)
-     |> start_async(:prepare, fn -> Quizzes.create(owner) end)}
+     |> start_async(:prepare, fn -> Quizzes.create(owner, user_id) end)}
   end
 
   def handle_event("choose-book", %{"book" => book}, socket) do
@@ -105,7 +106,7 @@ defmodule ScripguessrWeb.QuizLive do
     with {index, ""} <- Integer.parse(index) do
       update(
         socket,
-        Quizzes.submit(id, socket.assigns.owner, index, book, chapter)
+        Quizzes.submit(id, socket.assigns.owner, index, book, chapter, user_id(socket))
       )
     else
       _ -> {:noreply, assign(socket, error: "Choose a valid book and chapter.")}
@@ -115,7 +116,7 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_event("advance", %{"round" => index}, %{assigns: %{quiz: %{id: id}}} = socket)
       when is_binary(index) do
     with {index, ""} <- Integer.parse(index) do
-      update(socket, Quizzes.advance(id, socket.assigns.owner, index))
+      update(socket, Quizzes.advance(id, socket.assigns.owner, index, user_id(socket)))
     else
       _ -> {:noreply, socket}
     end
@@ -196,7 +197,7 @@ defmodule ScripguessrWeb.QuizLive do
     do: {:noreply, assign(socket, error: "Choose a valid book and chapter.")}
 
   defp update(socket, {:error, _}) do
-    case Quizzes.fetch(socket.assigns.quiz.id, socket.assigns.owner) do
+    case Quizzes.fetch(socket.assigns.quiz.id, socket.assigns.owner, user_id(socket)) do
       {:ok, quiz} ->
         {:noreply,
          assign(socket,
@@ -208,6 +209,8 @@ defmodule ScripguessrWeb.QuizLive do
         {:noreply, assign(socket, quiz: nil, unavailable: true)}
     end
   end
+
+  defp user_id(socket), do: socket.assigns.current_user && socket.assigns.current_user.id
 
   defp reference(round), do: "#{round["book"]} #{round["chapter"]}:#{round["verse"]}"
   defp books(snapshot), do: snapshot["chapters"] |> Enum.map(& &1["book"]) |> Enum.uniq()

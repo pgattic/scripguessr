@@ -1,0 +1,146 @@
+<section :if={@mode in [:sign_in, :register, :recover]} class="account-card panel">
+  <h1>
+    {case @mode do
+      :sign_in -> "Sign in"
+      :register -> "Create an account"
+      :recover -> "Recover your account"
+    end}
+  </h1>
+  <p :if={@mode == :recover} class="muted">Use your saved recovery code to set a new password.</p>
+  <p :if={@error} class="error" role="alert">{@error}</p>
+  <.form for={%{}} action={form_action(@mode)} id={form_id(@mode)} class="account-form">
+    <label for="account-username">Username</label>
+    <input
+      id="account-username"
+      type="text"
+      name="username"
+      required
+      minlength="3"
+      maxlength="32"
+      pattern="[A-Za-z0-9_-]+"
+      autocomplete="username"
+      autocapitalize="none"
+      spellcheck="false"
+      aria-describedby={if @mode == :register, do: "username-hint"}
+    />
+    <p :if={@mode == :register} id="username-hint" class="muted account-field-hint">
+      3–32 letters, numbers, underscores, or hyphens.
+    </p>
+    <label :if={@mode == :recover} for="account-recovery-code">Recovery code</label>
+    <input
+      :if={@mode == :recover}
+      id="account-recovery-code"
+      type="text"
+      name="recovery_code"
+      required
+      maxlength="43"
+      autocomplete="off"
+      autocapitalize="none"
+      spellcheck="false"
+    />
+    <label for="account-password">{if @mode == :recover, do: "New password", else: "Password"}</label>
+    <input
+      id="account-password"
+      type="password"
+      name="password"
+      required
+      minlength={if @mode != :sign_in, do: 8}
+      maxlength="128"
+      autocomplete={if @mode == :sign_in, do: "current-password", else: "new-password"}
+      aria-describedby={if @mode != :sign_in, do: "password-hint"}
+    />
+    <p :if={@mode != :sign_in} id="password-hint" class="muted account-field-hint">
+      Use at least 8 characters.
+    </p>
+    <label :if={@mode != :sign_in} for="account-password-confirmation">Confirm password</label>
+    <input
+      :if={@mode != :sign_in}
+      id="account-password-confirmation"
+      type="password"
+      name="password_confirmation"
+      required
+      minlength="8"
+      maxlength="128"
+      autocomplete="new-password"
+    />
+    <button class="button">{case @mode do
+      :sign_in -> "Sign in"
+      :register -> "Create account"
+      :recover -> "Reset password"
+    end}</button>
+  </.form>
+  <div class="account-links">
+    <a :if={@mode != :register} href="/account/register" class="text-button">Create an account</a>
+    <a :if={@mode != :sign_in} href="/account/sign-in" class="text-button">Sign in</a>
+    <a :if={@mode == :sign_in} href="/account/recover" class="text-button">Forgot password?</a>
+  </div>
+  <a href="/" class="text-button">Keep playing without an account →</a>
+</section>
+
+<section :if={@mode == :recovery_code} class="account-card panel">
+  <h1>Save your recovery code</h1>
+  <p>
+    Store this with your password manager. You’ll need it if you forget your password. It’s shown only once.
+  </p>
+  <label for="recovery-code" class="muted">Recovery code for {@current_user.username}</label>
+  <textarea id="recovery-code" class="recovery-code" rows="2" readonly spellcheck="false">{@code}</textarea>
+  <a class="button" href="/account">Continue to your account →</a>
+</section>
+
+<section :if={@mode == :account} class="account-page">
+  <div class="summary-heading">
+    <div>
+      <h1>Your account</h1><p class="muted">{@current_user.username}</p>
+    </div>
+    <.form for={%{}} action="/account/sign-out" id="sign-out-form">
+      <button class="crumb">Sign out</button>
+    </.form>
+  </div>
+  <div :if={@unclaimed > 0} class="panel account-claim">
+    <div>
+      <h2>Keep this browser’s quizzes</h2>
+      <p class="muted">
+        Add {@unclaimed} {if @unclaimed == 1, do: "quiz", else: "quizzes"} to your account to access {if @unclaimed ==
+                                                                                                           1,
+                                                                                                         do:
+                                                                                                           "it",
+                                                                                                         else:
+                                                                                                           "them"} on other devices.
+      </p>
+    </div>
+    <.form for={%{}} action="/account/claim-quizzes" id="claim-quizzes-form">
+      <button class="button">Add to my account</button>
+    </.form>
+  </div>
+  <h2>Quiz history</h2>
+  <div :if={@quizzes == []} class="panel account-empty">
+    <p class="muted">
+      {if @page_number == 1, do: "Your saved quizzes will appear here.", else: "No more quizzes."}
+    </p>
+    <a href="/" class="button">Start a quiz →</a>
+  </div>
+  <div :if={@quizzes != []} id="quiz-history" class="quiz-history">
+    <a :for={quiz <- @quizzes} href={"/quiz/#{quiz.id}"} class="panel history-row">
+      <div>
+        <strong>{if quiz.snapshot["finished"], do: "Completed quiz", else: "Quiz in progress"}</strong>
+        <span class="muted"><time datetime={DateTime.to_iso8601(quiz.inserted_at)}>{Calendar.strftime(
+          quiz.inserted_at,
+          "%b %-d, %Y"
+        )}</time>
+        · {Enum.count(quiz.snapshot["rounds"], & &1["guess"])} / 5 answered</span>
+      </div>
+      <div class="history-score">
+        <strong>{Rules.total(quiz.snapshot)}</strong><span class="muted">{if quiz.snapshot[
+                                                                               "finished"
+                                                                             ],
+                                                                             do: "/ 5,000",
+                                                                             else: "pts"}</span>
+      </div>
+      <span class="text-button">{if quiz.snapshot["finished"], do: "Review", else: "Resume"} →</span>
+    </a>
+  </div>
+  <nav :if={@more || @page_number > 1} class="history-pages" aria-label="Quiz history pages">
+    <a :if={@page_number > 1} href={"/account?page=#{@page_number - 1}"} class="crumb">← Newer</a>
+    <a :if={@more} href={"/account?page=#{@page_number + 1}"} class="crumb">Older →</a>
+  </nav>
+</section>

@@ -4,6 +4,7 @@ defmodule Scripguessr.Application do
   def start(_type, _args) do
     children = [
       Scripguessr.Repo,
+      Scripguessr.Accounts.RateLimit,
       {Phoenix.PubSub, name: Scripguessr.PubSub},
       Scripguessr.Corpus.Cache,
       Scripguessr.Atlas.Cache,

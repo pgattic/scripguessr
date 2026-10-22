@@ -66,6 +66,8 @@ hash. Do not commit build outputs or corpus payloads.
 - `Scripguessr.Quizzes` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
 - `ScripguessrWeb.QuizLive` renders the quiz and final summary.
+- `Scripguessr.Accounts` manages username/password accounts, private recovery
+  codes, and expiring, revocable sessions.
 
 Only numbered, nonempty verses from the Book of Mormon (2013) edition are eligible.
 Five distinct references are sampled locally and their text fetched in one batch.
@@ -81,9 +83,28 @@ upstream failures do not affect scoring or progression.
 
 Quizzes belong to an anonymous browser identity in a signed, HttpOnly, SameSite
 cookie, valid for 30 days and Secure over production HTTPS. Keep the browser
-cookie and quiz URL to resume. Clearing the cookie loses access; the URL alone
-does not authorize access. There are no accounts or recovery links yet. Quiz
-rows currently remain in PostgreSQL until explicitly removed by an operator.
+cookie and quiz URL to resume anonymously. Clearing the cookie loses anonymous
+access; the URL alone does not authorize access. Quiz rows currently remain in
+PostgreSQL until explicitly removed by an operator.
+
+## Accounts
+
+Create an account with a username and password; no email service is required.
+Usernames are case insensitive. Save the private recovery code shown after
+registration in your password manager. If you forget your password, **Forgot
+password?** accepts that code and lets you choose a new password. Recovery
+replaces the code and signs out existing sessions.
+
+The account page lists saved quizzes, with **Resume** for unfinished games and
+**Review** for completed games. New quizzes started while signed in are saved
+automatically. **Add to my account** explicitly attaches this browser's earlier
+anonymous quizzes. Attached quizzes require that account even on the original
+browser after signing out. Anonymous play remains available.
+
+Sessions last 30 days. Development and production use the same account flow,
+without an email provider or development mailbox. Deployment requires only the
+application secret described in [DEPLOYING.md](DEPLOYING.md). Authentication
+behavior and limits are described in [ACCOUNTS.md](ACCOUNTS.md).
 
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
 navigation. Search for topics, people, places, and other corpus entries, select

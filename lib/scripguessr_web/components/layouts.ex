@@ -30,6 +30,9 @@ defmodule ScripguessrWeb.Layouts do
         <nav class="site-nav" aria-label="Main navigation">
           <a href="/" class="home-link">Quiz</a>
           <a href="/atlas" class="home-link">Atlas</a>
+          <a href={if @current_user, do: "/account", else: "/account/sign-in"} class="home-link">
+            {if @current_user, do: "Account", else: "Sign in"}
+          </a>
         </nav>
       </header>
       <div
@@ -39,7 +42,12 @@ defmodule ScripguessrWeb.Layouts do
       >
         Reconnecting…
       </div>
-      <main id="main">{@inner_content}</main>
+      <main id="main">
+        <p :if={Phoenix.Flash.get(@flash, :info)} class="account-flash panel" role="status">
+          {Phoenix.Flash.get(@flash, :info)}
+        </p>
+        {@inner_content}
+      </main>
       <footer>
         <span>
           Text from <a href="https://standardworkscorpus.org">Standard Works Corpus</a>

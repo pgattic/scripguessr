@@ -6,6 +6,7 @@ defmodule Scripguessr.DataCase do
     Ecto.Adapters.SQL.Sandbox.mode(Scripguessr.Repo, {:shared, self()})
     Scripguessr.Corpus.Fake.reset()
     Scripguessr.Corpus.Cache.clear()
+    Scripguessr.Accounts.RateLimit.clear()
     :ok
   end
 end

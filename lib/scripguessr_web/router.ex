@@ -10,6 +10,7 @@ defmodule ScripguessrWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug ScripguessrWeb.Owner
+    plug ScripguessrWeb.Auth
   end
 
   get "/healthz", ScripguessrWeb.HealthController, :live
@@ -17,8 +18,20 @@ defmodule ScripguessrWeb.Router do
 
   scope "/", ScripguessrWeb do
     pipe_through :browser
-    live "/", QuizLive, :home
-    live "/quiz/:id", QuizLive, :quiz
-    live "/atlas", AtlasLive, :index
+    get "/account/sign-in", AccountController, :new
+    post "/account/sign-in", AccountController, :sign_in
+    get "/account/register", AccountController, :registration
+    post "/account/register", AccountController, :register
+    get "/account/recover", AccountController, :recovery
+    post "/account/recover", AccountController, :recover
+    post "/account/sign-out", AccountController, :sign_out
+    get "/account", AccountController, :show
+    post "/account/claim-quizzes", AccountController, :claim
+
+    live_session :public, on_mount: [{ScripguessrWeb.Auth, :current_user}] do
+      live "/", QuizLive, :home
+      live "/quiz/:id", QuizLive, :quiz
+      live "/atlas", AtlasLive, :index
+    end
   end
 end
