@@ -370,7 +370,20 @@ footer {
   font-size: .85rem;
 }
 
-.crumb:hover, .crumb.current {
+.clear-guess {
+  margin-left: auto;
+  min-width: 36px;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.clear-guess:hover {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+
+.crumb:not(.clear-guess):hover, .crumb.current {
   border-color: var(--accent);
   background: var(--accent-soft);
   color: var(--accent-ink);

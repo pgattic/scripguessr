@@ -76,12 +76,20 @@ defmodule ScripguessrWeb.QuizLive do
   end
 
   def handle_event("edit-book", _, socket) do
-    if editable?(socket), do: {:noreply, assign(socket, step: :book)}, else: {:noreply, socket}
+    if editable?(socket) and socket.assigns.book != "",
+      do: {:noreply, assign(socket, step: :chapter)},
+      else: {:noreply, socket}
   end
 
   def handle_event("edit-chapter", _, socket) do
-    if editable?(socket) and socket.assigns.book != "",
-      do: {:noreply, assign(socket, step: :chapter)},
+    if editable?(socket) and socket.assigns.chapter != "",
+      do: {:noreply, assign(socket, step: :ready)},
+      else: {:noreply, socket}
+  end
+
+  def handle_event("clear-guess", _, socket) do
+    if editable?(socket),
+      do: {:noreply, assign(socket, book: "", chapter: "", step: :book, error: nil)},
       else: {:noreply, socket}
   end
 

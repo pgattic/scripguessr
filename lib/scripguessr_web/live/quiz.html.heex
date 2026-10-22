@@ -70,16 +70,23 @@
       <nav :if={@book != "" && !@round["guess"]} class="breadcrumbs" aria-label="Your guess">
         <button
           id="edit-book"
-          class={if @step == :book, do: "crumb current", else: "crumb"}
+          class={if @step == :chapter, do: "crumb current", else: "crumb"}
           phx-click="edit-book"
         >{@book}</button>
         <span :if={@chapter != ""} aria-hidden="true">/</span>
         <button
           :if={@chapter != ""}
           id="edit-chapter"
-          class={if @step == :chapter, do: "crumb current", else: "crumb"}
+          class={if @step == :ready, do: "crumb current", else: "crumb"}
           phx-click="edit-chapter"
         >Chapter {@chapter}</button>
+        <button
+          id="clear-guess"
+          class="crumb clear-guess"
+          phx-click="clear-guess"
+          aria-label="Clear guess"
+          title="Clear guess"
+        >×</button>
       </nav>
       <div :if={!@round["guess"] && @step == :book} id="book-grid" class="grid book-grid">
         <button
