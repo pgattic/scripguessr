@@ -10,7 +10,7 @@ defmodule ScripguessrWeb.QuizLiveTest do
     assert has_element?(view, "#start-quiz")
     Scripguessr.Corpus.Fake.reset(:down)
     view |> element("#start-quiz") |> render_click()
-    assert render_async(view) =~ "couldn’t prepare"
+    assert render_async(view) =~ "couldn’t load"
     Scripguessr.Corpus.Fake.reset()
     view |> element("#start-quiz") |> render_click()
     {path, _flash} = assert_redirect(view, 1_000)
@@ -23,35 +23,60 @@ defmodule ScripguessrWeb.QuizLiveTest do
     first = hd(quiz.snapshot["rounds"])
     refute html =~ "#{first["book"]} #{first["chapter"]}:#{first["verse"]}"
 
-    for {round, index} <- Enum.with_index(quiz.snapshot["rounds"]) do
+    for round <- quiz.snapshot["rounds"] do
       assert has_element?(view, "#verse-text", round["text"])
-      view |> form("#guess-form", guess: %{book: round["book"]}) |> render_change()
+      view |> element("#book-grid button", round["book"]) |> render_click()
 
       view
-      |> form("#guess-form",
-        guess: %{
-          book: round["book"],
-          chapter: to_string(round["chapter"]),
-          round: to_string(index)
-        }
-      )
-      |> render_submit()
+      |> element("#chapter-grid button[phx-value-chapter='#{round["chapter"]}']")
+      |> render_click()
 
-      assert has_element?(view, "#answer-reveal", "RIGHT AT HOME")
+      view |> form("#guess-form") |> render_submit()
+
+      assert has_element?(view, "#answer-reveal", "Exact chapter")
       view |> element("#next-round") |> render_click()
     end
 
-    assert render(view) =~ "A little better acquainted."
+    assert render(view) =~ "Final score"
     assert render(view) =~ "5000"
     {:ok, _view, html} = live(conn("owner"), "/quiz/#{quiz.id}")
-    assert html =~ "A little better acquainted."
+    assert html =~ "Final score"
   end
 
   test "a copied URL shows no prompt to a different browser" do
     {:ok, quiz} = Scripguessr.Quizzes.create("owner")
     {:ok, _view, html} = live(conn("stranger"), "/quiz/#{quiz.id}")
-    assert html =~ "This quiz isn’t available."
+    assert html =~ "Quiz unavailable"
     refute html =~ hd(quiz.snapshot["rounds"])["text"]
+  end
+
+  test "breadcrumbs let the player revise a selection before submitting" do
+    {:ok, quiz} = Scripguessr.Quizzes.create("owner")
+    {:ok, view, _} = live(conn("owner"), "/quiz/#{quiz.id}")
+    assert has_element?(view, "[role=progressbar][aria-valuenow='0']")
+    refute has_element?(view, ".progress-track .filled")
+    view |> element("#book-grid button", "1 Nephi") |> render_click()
+    view |> element("#chapter-grid button[phx-value-chapter='3']") |> render_click()
+    assert has_element?(view, "#guess-form .ready", "1 Nephi 3")
+    view |> element("#edit-chapter") |> render_click()
+    assert has_element?(view, "#chapter-grid button.active[phx-value-chapter='3']")
+    view |> element("#chapter-grid button[phx-value-chapter='4']") |> render_click()
+    assert has_element?(view, "#guess-form .ready", "1 Nephi 4")
+    view |> element("#edit-book") |> render_click()
+    view |> element("#book-grid button", "2 Nephi") |> render_click()
+    refute has_element?(view, "#guess-form")
+    view |> element("#chapter-grid button[phx-value-chapter='1']") |> render_click()
+    view |> form("#guess-form") |> render_submit()
+    assert has_element?(view, "#answer-reveal", "2 Nephi 1")
+    assert has_element?(view, "[role=progressbar][aria-valuenow='1']")
+    assert has_element?(view, ".progress-track .filled:first-child")
+    refute has_element?(view, ".progress-track .filled:nth-child(2)")
+    render_click(view, "choose-book", %{"book" => "1 Nephi"})
+    assert has_element?(view, "#answer-reveal", "2 Nephi 1")
+    view |> element("#next-round") |> render_click()
+    assert has_element?(view, "#book-grid")
+    assert has_element?(view, "[role=progressbar][aria-valuenow='1']")
+    refute has_element?(view, ".progress-track .filled:nth-child(2)")
   end
 
   test "malformed round events leave the saved quiz playable" do
@@ -63,7 +88,7 @@ defmodule ScripguessrWeb.QuizLiveTest do
     })
 
     render_click(view, "advance", %{"round" => -1})
-    assert has_element?(view, "#guess-form")
+    assert has_element?(view, "#book-grid")
     assert {:ok, saved} = Scripguessr.Quizzes.fetch(quiz.id, "owner")
     assert saved.snapshot == quiz.snapshot
   end

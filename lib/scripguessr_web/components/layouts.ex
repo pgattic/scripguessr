@@ -10,7 +10,7 @@ defmodule ScripguessrWeb.Layouts do
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <meta name="csrf-token" content={get_csrf_token()} />
         <meta name="theme-color" content="#294b3d" />
-        <title>ScripGuessr · A little time in the word</title>
+        <title>ScripGuessr</title>
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
         <link rel="stylesheet" href="/assets/app.css" />
         <script defer src="/assets/app.js">
@@ -26,19 +26,18 @@ defmodule ScripguessrWeb.Layouts do
     <div class="site-shell">
       <header class="site-header">
         <a href="/" class="wordmark" aria-label="ScripGuessr home"><span class="brand-mark">S</span>
-        ScripGuessr<span class="edition-label">A SCRIPTURE QUIZ</span></a>
-        <span class="header-note">A little time in the word.</span>
+        ScripGuessr</a>
+        <a href="/" class="home-link">Home</a>
       </header>
       <div
         id="connection-status"
         role="status"
         class="connection-status phx-client-error:hidden phx-server-error:hidden"
       >
-        Connection interrupted. Reconnecting to your saved quiz…
+        Reconnecting…
       </div>
       <main id="main">{@inner_content}</main>
       <footer>
-        <span>Read closely. Find your bearings.</span>
         <span>
           Text from <a href="https://standardworkscorpus.org">Standard Works Corpus</a>
           ·

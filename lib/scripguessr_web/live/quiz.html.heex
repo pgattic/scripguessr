@@ -1,0 +1,158 @@
+<section :if={@unavailable} class="empty-state panel">
+  <h1>Quiz unavailable</h1>
+  <p>Open it in the browser where you started, or start a new quiz.</p>
+  <a class="button" href="/">Home</a>
+</section>
+
+<section :if={!@quiz && !@unavailable} class="welcome">
+  <div class="intro-copy">
+    <span class="pill">Book of Mormon · 5 rounds</span>
+    <h1>How well do you<br />know the verses?</h1>
+    <p class="lede">Read a verse. Guess its book and chapter.</p>
+    <button
+      id="start-quiz"
+      class="button"
+      phx-click="start"
+      disabled={@preparing}
+      phx-disable-with="Loading…"
+    >
+      {if @preparing, do: "Loading…", else: "Start quiz"}
+      <span aria-hidden="true">→</span>
+    </button>
+    <p :if={@error} role="alert" class="error">{@error}</p>
+  </div>
+  <aside class="intro-art" aria-hidden="true">
+    <div class="art-orbit"></div>
+    <div class="art-book"><span></span><span></span></div>
+    <span class="art-star">✳</span>
+  </aside>
+</section>
+
+<section :if={@quiz && !@snapshot["finished"]} class="quiz-page">
+  <div class="progress-header">
+    <span>Round <strong>{@snapshot["current"] + 1}</strong> / 5</span>
+    <span><strong>{Rules.total(@snapshot)}</strong> pts</span>
+  </div>
+  <div
+    class="progress-track"
+    role="progressbar"
+    aria-label="Quiz progress"
+    aria-valuemin="0"
+    aria-valuemax="5"
+    aria-valuenow={Enum.count(@snapshot["rounds"], & &1["guess"])}
+  >
+    <span :for={round <- @snapshot["rounds"]} class={if round["guess"], do: "filled"}></span>
+  </div>
+  <div class="quiz-layout">
+    <article class="panel verse-panel">
+      <div class="verse-label">
+        <span>Book of Mormon</span><span :if={@round["guess"]}>{reference(@round)}</span>
+      </div>
+      <blockquote id="verse-text" class="verse" tabindex="-1">{@round["text"]}</blockquote>
+    </article>
+    <aside
+      id="picker"
+      class="panel picker"
+      phx-hook="PickerFocus"
+      data-step={if @round["guess"], do: "result", else: @step}
+    >
+      <div class="picker-header">
+        <h1 id="picker-heading" tabindex="-1">
+          {if @round["guess"], do: "Result", else: "Guess location"}
+        </h1>
+        <span :if={!@round["guess"]} class="muted">{case @step do
+          :book -> "Book"
+          :chapter -> "Chapter"
+          :ready -> "Confirm"
+        end}</span>
+      </div>
+      <p :if={@error} role="alert" class="error">{@error}</p>
+      <nav :if={@book != "" && !@round["guess"]} class="breadcrumbs" aria-label="Your guess">
+        <button
+          id="edit-book"
+          class={if @step == :book, do: "crumb current", else: "crumb"}
+          phx-click="edit-book"
+        >{@book}</button>
+        <span :if={@chapter != ""} aria-hidden="true">/</span>
+        <button
+          :if={@chapter != ""}
+          id="edit-chapter"
+          class={if @step == :chapter, do: "crumb current", else: "crumb"}
+          phx-click="edit-chapter"
+        >Chapter {@chapter}</button>
+      </nav>
+      <div :if={!@round["guess"] && @step == :book} id="book-grid" class="grid book-grid">
+        <button
+          :for={book <- books(@snapshot)}
+          class={if book == @book, do: "choice active", else: "choice"}
+          phx-click="choose-book"
+          phx-value-book={book}
+          aria-pressed={book == @book}
+        >{book}</button>
+      </div>
+      <div :if={!@round["guess"] && @step == :chapter} id="chapter-grid" class="grid chapter-grid">
+        <button
+          :for={chapter <- chapters(@snapshot, @book)}
+          class={if to_string(chapter) == @chapter, do: "choice active", else: "choice"}
+          phx-click="choose-chapter"
+          phx-value-chapter={chapter}
+          aria-label={"Chapter #{chapter}"}
+          aria-pressed={to_string(chapter) == @chapter}
+        >{chapter}</button>
+      </div>
+      <form :if={!@round["guess"] && @step == :ready} id="guess-form" phx-submit="guess">
+        <input type="hidden" name="guess[round]" value={@snapshot["current"]} />
+        <input type="hidden" name="guess[book]" value={@book} />
+        <input type="hidden" name="guess[chapter]" value={@chapter} />
+        <div class="ready">
+          <span class="muted">Your guess</span><strong>{@book} {@chapter}</strong>
+        </div>
+        <button class="button full-width" phx-disable-with="Submitting…">Submit guess</button>
+      </form>
+      <div :if={@round["guess"]} id="answer-reveal" class="result" role="status">
+        <p class="score">{@round["guess"]["points"]}<span> / 1,000</span></p>
+        <p class="distance">{distance_label(@round["guess"]["distance"])}</p>
+        <div class="score-meter" aria-hidden="true">
+          <span style={"width: #{@round["guess"]["points"] / 10}%"}></span>
+        </div>
+        <div class="result-grid">
+          <div><span class="muted">Actual</span><strong>{reference(@round)}</strong></div>
+          <div>
+            <span class="muted">Guess</span><strong>{@round["guess"]["book"]} {@round["guess"][
+              "chapter"
+            ]}</strong>
+          </div>
+        </div>
+        <button
+          id="next-round"
+          class="button full-width"
+          phx-click="advance"
+          phx-value-round={@snapshot["current"]}
+          phx-disable-with="Saving…"
+        >{if @snapshot["current"] == 4, do: "Finish game", else: "Next round"}<span aria-hidden="true">→</span></button>
+      </div>
+    </aside>
+  </div>
+</section>
+
+<section :if={@quiz && @snapshot["finished"]} class="summary-page">
+  <div class="summary-heading">
+    <div>
+      <p class="eyebrow">5 rounds complete</p><h1>Final score</h1>
+    </div><a href="/" class="button">Play again <span aria-hidden="true">→</span></a>
+  </div>
+  <div class="final-score panel">
+    <strong>{Rules.total(@snapshot)}</strong><span>/ 5,000</span>
+  </div>
+  <div class="round-list">
+    <article :for={{round, index} <- Enum.with_index(@snapshot["rounds"])} class="panel">
+      <span class="round-number">{index + 1}</span>
+      <div>
+        <h2>{reference(round)}</h2><p>{round["text"]}</p><span class="muted">Guessed {round[
+          "guess"
+        ]["book"]} {round["guess"]["chapter"]} · {distance_label(round["guess"]["distance"])}</span>
+      </div>
+      <strong>{round["guess"]["points"]}<small>pts</small></strong>
+    </article>
+  </div>
+</section>
