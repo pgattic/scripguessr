@@ -1,0 +1,7 @@
+/_build/
+/deps/
+/.nix/
+/result*
+/priv/static/assets/app.js
+/priv/static/assets/app.js.map
+/erl_crash.dump

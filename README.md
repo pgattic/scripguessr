@@ -1,0 +1,95 @@
+# ScripGuessr
+
+A quiet scripture quiz built with Phoenix LiveView. Read five randomly selected
+Book of Mormon verses, guess their book and chapter, and discover how close you
+came. Scripture content comes from [Standard Works Corpus](https://standardworkscorpus.org).
+
+The rewrite's goals and first milestone are in [SCOPE.md](SCOPE.md).
+
+## Develop with Nix
+
+With flakes enabled, run from this repository:
+
+```sh
+nix run .#dev
+```
+
+Open <http://localhost:4000>. This command supplies all tools, fetches locked Mix
+dependencies, starts a local PostgreSQL instance, applies migrations, builds the
+browser assets, and starts Phoenix. Database files and tool caches live in
+`.nix/`, which is ignored by Git. Stopping the command stops the database if the
+command started it. Existing data is retained.
+
+`nix develop` opens a shell with Elixir 1.19, Erlang, Hex, Rebar, PostgreSQL,
+esbuild, and formatting/build tools. There is no separate Node/npm installation
+or frontend dependency set. The Phoenix clients ship with the locked Hex packages.
+
+Elixir modules reload during development. After changing JavaScript, run
+`mix assets.build` in another `nix develop` shell; refresh after CSS changes.
+Use `PORT` to change the HTTP port. `PGPORT`, `PGHOST`, and `SCRIPGUESSR_PGDATA`
+can change the local PostgreSQL port, Unix socket directory, and data directory.
+The database listens only on its Unix socket. If a checkout path is too long for
+a Unix socket, set `PGHOST` to a short, private directory.
+
+The flake declares x86_64 Linux, aarch64 Linux, and Apple Silicon macOS development
+environments. Initial verification was performed on aarch64 Linux.
+
+## Verify
+
+```sh
+nix run .#test             # PostgreSQL-backed tests; no live corpus requests
+nix fmt                   # Format Elixir, HEEx, and Nix after fetching Mix deps
+nix flake check           # Sandboxed tests, formatting, and production build
+nix build                 # Production release at ./result
+nix run .#smoke            # Separately check the real corpus API; needs network
+```
+
+The development and test commands fetch dependencies automatically. For a fresh
+checkout where you only want to format, first run `nix develop -c mix deps.get`.
+CI uses the same flake checks and build. The real corpus smoke test is deliberately
+outside CI's offline checks.
+
+Nix pins nixpkgs through the nixexprs channel input and uses flake-parts. Mix
+packages are fixed-output Nix dependencies. The test HTML parser's native source
+is separately pinned so checks do not download native binaries during compilation.
+After changing `mix.lock`, update the dependency hash in `nix/package.nix`:
+replace it with `pkgs.lib.fakeHash`, run `nix build .#deps`, and use the reported
+hash. Do not commit build outputs or corpus payloads.
+
+## Architecture
+
+- `Scripguessr.Corpus` owns upstream SQL and converts responses to application data.
+- `Scripguessr.Corpus.Cache` serializes preparation and caches the verse pool and
+  chapter metadata for 15 minutes. It retries once if a release changes mid-fetch.
+- `Scripguessr.Quizzes.Rules` implements scoring and progression without I/O.
+- `Scripguessr.Quizzes` stores immutable prepared prompts and accepted guesses in
+  PostgreSQL, using row locks to protect progression across tabs.
+- `ScripguessrWeb.QuizLive` renders the quiz and final summary.
+
+Only numbered, nonempty verses from the Book of Mormon (2013) edition are eligible.
+Five distinct references are sampled locally and their text fetched in one batch.
+A prepared quiz includes the corpus release and chapter order needed to score
+without another upstream request. Text is reconstructed from ordered corpus
+words; no editorial changes are made. A guessed chapter earns
+`max(0, 1000 - 22 * chapter_distance)` points, up to 5,000 per quiz.
+
+Quizzes belong to an anonymous browser identity in a signed, HttpOnly, SameSite
+cookie, valid for 30 days and Secure over production HTTPS. Keep the browser
+cookie and quiz URL to resume. Clearing the cookie loses access; the URL alone
+does not authorize access. There are no accounts or recovery links yet. Quiz
+rows currently remain in PostgreSQL until explicitly removed by an operator.
+
+The Atlas is deferred. Its future categories and passage membership will come
+from corpus data rather than application annotation lists.
+
+## Deploy
+
+See [DEPLOYING.md](DEPLOYING.md) for the NixOS module, runtime secrets, HTTPS,
+health checks, and upgrade procedure.
+
+## Scripture attribution
+
+Scripture data is provided by [Standard Works Corpus](https://standardworkscorpus.org),
+licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
+Preserve its [source credits](https://github.com/mikaelweiss/standard-works-corpus/blob/main/CREDITS.md)
+when redistributing data. Attribution and credits are linked in the application.
