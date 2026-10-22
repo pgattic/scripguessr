@@ -6,6 +6,7 @@ defmodule Scripguessr.Application do
       Scripguessr.Repo,
       {Phoenix.PubSub, name: Scripguessr.PubSub},
       Scripguessr.Corpus.Cache,
+      Scripguessr.Atlas.Cache,
       ScripguessrWeb.Endpoint
     ]
 

@@ -111,6 +111,10 @@
             mix deps.get
             mix run --no-start scripts/smoke.exs
           '';
+          apps.atlas-smoke = command "scripguessr-atlas-smoke" ''
+            mix deps.get
+            mix run --no-start scripts/atlas_smoke.exs
+          '';
           devShells.default = pkgs.mkShell {
             packages = tools;
             shellHook = environment;

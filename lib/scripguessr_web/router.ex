@@ -19,5 +19,6 @@ defmodule ScripguessrWeb.Router do
     pipe_through :browser
     live "/", QuizLive, :home
     live "/quiz/:id", QuizLive, :quiz
+    live "/atlas", AtlasLive, :index
   end
 end

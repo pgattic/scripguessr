@@ -160,15 +160,26 @@ Docker and non-Nix deployment workflows are outside this milestone.
 ## Deferred work
 
 Accounts, leaderboards, custom study sets, review history, other scripture
-works, adjustable round counts, difficulty settings, and Atlas implementation
+works, adjustable round counts, and difficulty settings
 are outside the first milestone. Capture discoveries without adding these
 features to the release gate.
 
-For the future Atlas, derive available categories, entities, relationships,
-and passage membership from Standard Works Corpus. Do not recreate the old
-hardcoded category and annotation lists. Layout and interaction behavior may
-be application-specific, but missing content coverage belongs in the corpus.
-Discover the actual upstream taxonomy before deciding the Atlas navigation.
+## Standalone Atlas milestone
+
+Build the Atlas as a separate study tool with no quiz integration, highlighted
+chapter practice, or study-set creation. Retain the original compact book flow:
+whole books in balanced columns, five-column grids, and 33px chapter tiles.
+
+Discover categories, entities, and passage membership from Standard Works Corpus.
+Use its entity-type hierarchy and reference, speech, and scene-setting annotations
+to highlight chapters. Provide readable entry descriptions, search, overlapping
+selections, and a chapter reader that explains the evidence. Preserve selections
+and open chapters in shareable URLs. Cache runtime data and handle upstream
+failures and release changes without affecting the separate quiz feature.
+
+Keep missing annotation coverage in the corpus, with no application-owned
+category or chapter annotation lists. Research findings and design decisions
+are documented in [ATLAS.md](ATLAS.md).
 
 ## Lessons to retain
 

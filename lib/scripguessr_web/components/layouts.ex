@@ -27,7 +27,10 @@ defmodule ScripguessrWeb.Layouts do
       <header class="site-header">
         <a href="/" class="wordmark" aria-label="ScripGuessr home"><span class="brand-mark">S</span>
         ScripGuessr</a>
-        <a href="/" class="home-link">Home</a>
+        <nav class="site-nav" aria-label="Main navigation">
+          <a href="/" class="home-link">Quiz</a>
+          <a href="/atlas" class="home-link">Atlas</a>
+        </nav>
       </header>
       <div
         id="connection-status"

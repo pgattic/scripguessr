@@ -1,0 +1,268 @@
+<section class="atlas-page">
+  <div class="atlas-page-heading">
+    <h1>Book of Mormon Atlas</h1><span :if={@catalog} class="muted">{length(@catalog.chapters)} chapters</span>
+  </div>
+  <div :if={!@catalog} class="panel atlas-empty" role="status">
+    <p :if={!@catalog_error}>Loading the Atlas…</p>
+    <p :if={@catalog_error} role="alert">{@catalog_error}</p>
+    <button :if={@catalog_error} id="atlas-retry" class="button" phx-click="retry-catalog">Try again</button>
+  </div>
+  <div :if={@catalog} class="atlas-layout">
+    <section
+      class="panel atlas-map-panel"
+      aria-label="Chapter map"
+      aria-busy={to_string(@loading)}
+    >
+      <div class="atlas-map-tools">
+        <button
+          id="atlas-open-filters"
+          class="button secondary atlas-mobile-only"
+          phx-click="open-filters"
+        >Explore <span :if={@selected != []}>({length(@selected)})</span></button>
+        <span class="muted">{if @selected == [],
+          do: "Choose an entry to highlight its chapters.",
+          else: "#{coverage(@layers)} chapters highlighted"}</span>
+        <span :if={@loading} class="muted" role="status">Loading…</span>
+      </div>
+      <div :if={@error} class="error" role="alert">
+        {@error} <button class="text-button" phx-click="retry-selection">Retry</button>
+        <button class="text-button" phx-click="reload-corpus">Reload Atlas</button>
+      </div>
+      <div id="atlas-books" class="atlas-books">
+        <section :for={book <- @catalog.books} class="atlas-book-row" aria-label={book.name}>
+          <h2 class="atlas-book-name">{book.name}</h2>
+          <div class="atlas-chapters">
+            <%!-- Each complete book stays in one flowing column, as in the original Atlas. --%>
+            <button
+              :for={chapter <- book.chapters}
+              class={[
+                "atlas-chapter",
+                Model.hits(@layers, {book.name, chapter.chapter}) != [] && "highlighted",
+                @chapter == {book.name, chapter.chapter} && "selected"
+              ]}
+              phx-click="open-chapter"
+              phx-value-book={book.name}
+              phx-value-chapter={chapter.chapter}
+              aria-label={"#{book.name} #{chapter.chapter}"}
+              title={
+                Enum.map_join(
+                  Model.hits(@layers, {book.name, chapter.chapter}),
+                  ", ",
+                  & &1.entry.name
+                )
+              }
+            >
+              {chapter.chapter}
+              <span class="atlas-hit-bands" aria-hidden="true"><b
+                :for={hit <- Model.hits(@layers, {book.name, chapter.chapter})}
+                style={swatch(hit.entry)}
+              ></b></span>
+              <span
+                :if={length(Model.hits(@layers, {book.name, chapter.chapter})) > 1}
+                class="atlas-overlap-count"
+                aria-hidden="true"
+              >{length(Model.hits(@layers, {book.name, chapter.chapter}))}</span>
+            </button>
+          </div>
+        </section>
+      </div>
+    </section>
+    <div :if={@drawer} class="atlas-filter-backdrop" phx-click="close-filters" aria-hidden="true">
+    </div>
+    <aside
+      id="atlas-sidebar"
+      class={["atlas-sidebar", @drawer && "mobile-open"]}
+      aria-label="Atlas filters"
+    >
+      <section
+        class="panel atlas-layers-panel"
+        id="atlas-filters"
+        phx-hook="AtlasFilters"
+        data-open={to_string(@drawer)}
+      >
+        <div class="atlas-browser-tools">
+          <div class="picker-header">
+            <h2>Explore</h2><div class="atlas-filter-actions">
+              <button :if={@selected != []} class="text-button" id="atlas-clear" phx-click="clear">Clear</button><button
+                class="text-button atlas-mobile-only"
+                id="atlas-close-filters"
+                phx-click="close-filters"
+              >Done</button>
+            </div>
+          </div>
+          <p :if={@notice} class="muted" role="status">{@notice}</p>
+          <div :if={@selected != []} id="atlas-selected" class="atlas-selected">
+            <button
+              :for={key <- @selected}
+              class="atlas-selected-entry"
+              phx-click="toggle"
+              phx-value-key={key}
+              title={@catalog.by_key[key].description}
+              aria-label={"Remove #{@catalog.by_key[key].name}: #{@catalog.by_key[key].description}"}
+            >
+              <span class="atlas-swatch" style={swatch(@catalog.by_key[key])}></span><span><strong>{@catalog.by_key[
+                key
+              ].name}</strong><small>{@catalog.by_key[key].description}</small></span><span aria-hidden="true">×</span>
+            </button>
+          </div>
+          <form id="atlas-search" phx-change="search" role="search">
+            <label class="sr-only" for="atlas-search-input">Search Atlas entries</label><input
+              id="atlas-search-input"
+              type="search"
+              name="q"
+              value={@search}
+              placeholder="Find a topic, person, or place"
+              phx-debounce="200"
+              autocomplete="off"
+            />
+          </form>
+        </div>
+        <div id="atlas-categories">
+          <p :if={@groups == []} class="muted">No matching entries.</p>
+          <section :for={group <- @groups} class="atlas-category">
+            <button
+              class="atlas-category-toggle"
+              phx-click="category"
+              phx-value-category={group.name}
+              aria-expanded={to_string(MapSet.member?(@expanded, group.name))}
+              aria-controls={"atlas-category-#{URI.encode_www_form(group.name)}"}
+            >
+              <span>{category_label(group.name)} <small>{length(group.entries)}</small></span><span aria-hidden="true">{if MapSet.member?(
+                                                                                                                             @expanded,
+                                                                                                                             group.name
+                                                                                                                           ),
+                                                                                                                           do:
+                                                                                                                             "−",
+                                                                                                                           else:
+                                                                                                                             "+"}</span>
+            </button>
+            <div
+              :if={MapSet.member?(@expanded, group.name)}
+              id={"atlas-category-#{URI.encode_www_form(group.name)}"}
+              class="atlas-category-entries"
+            >
+              <button
+                :for={entry <- Enum.take(group.entries, Map.get(@limits, group.name, 12))}
+                class={["atlas-entry", entry.key in @selected && "active"]}
+                phx-click="toggle"
+                phx-value-key={entry.key}
+                aria-pressed={to_string(entry.key in @selected)}
+              >
+                <span class="atlas-check" aria-hidden="true">{if entry.key in @selected, do: "✓"}</span><span><strong>{entry.name}</strong><small>{entry.description}</small><span
+                  :if={entry.type != entry.category}
+                  class="atlas-entry-type"
+                >{entry.type}</span></span>
+              </button>
+              <button
+                :if={length(group.entries) > Map.get(@limits, group.name, 12)}
+                class="text-button atlas-more"
+                phx-click="more"
+                phx-value-category={group.name}
+              >Show more ({length(group.entries) - Map.get(@limits, group.name, 12)} remaining)</button>
+            </div>
+          </section>
+        </div>
+        <details class="atlas-help">
+          <summary>About highlights</summary><p>
+            Highlights follow references, speakers and narrators, and scene locations recorded in the corpus. Select several entries to compare them; colored bands show overlaps. An unmarked chapter may still be relevant.
+          </p>
+        </details>
+      </section>
+    </aside>
+  </div>
+</section>
+
+<div
+  :if={@chapter}
+  id="atlas-reader"
+  class="atlas-reader-backdrop"
+  phx-hook="AtlasReader"
+  data-chapter={inspect(@chapter)}
+  data-ready={to_string(!is_nil(@reader))}
+  phx-window-keydown="close-chapter"
+  phx-key="Escape"
+>
+  <.focus_wrap
+    id="atlas-reader-dialog"
+    class="atlas-reader-dialog panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="atlas-reader-title"
+    phx-click-away="close-chapter"
+  >
+    <header class="atlas-reader-header">
+      <h2 id="atlas-reader-title">{elem(@chapter, 0)} {elem(@chapter, 1)}</h2><div class="reader-actions">
+        <button
+          :if={@reader && @chapter_hits != []}
+          class="text-button"
+          phx-click={JS.dispatch("atlas:first-match", to: "#atlas-reader")}
+        >First match ↓</button><button
+          id="atlas-reader-close"
+          class="crumb"
+          phx-click="close-chapter"
+          aria-label="Close chapter"
+        >×</button>
+      </div>
+    </header>
+    <div class="atlas-reader-scroll">
+      <div :if={@chapter_hits != []} id="atlas-evidence" class="atlas-evidence">
+        <details :for={hit <- @chapter_hits} class="atlas-evidence-entry" open>
+          <summary>
+            <span class="atlas-swatch" style={swatch(hit.entry)}></span><strong>{hit.entry.name}</strong>
+          </summary>
+          <p>{hit.entry.description}</p>
+          <div
+            :for={kind <- ~w(mention speech setting)}
+            :if={!is_nil(hit.ranges[kind])}
+            class="atlas-evidence-range"
+          >
+            <span>{kind_label(kind)}</span><span>{ranges_label(hit.ranges[kind])}</span>
+          </div>
+        </details>
+      </div>
+      <p :if={@selected != [] && @chapter_hits == [] && !@loading} class="atlas-reader-note muted">
+        No recorded matches for the selected entries in this chapter.
+      </p>
+      <p :if={is_nil(@reader) && !@reader_error} class="atlas-reader-note muted" role="status">
+        Loading chapter…
+      </p>
+      <div :if={@reader_error} class="error" role="alert">
+        {@reader_error}
+        <button class="text-button" phx-click="retry-selection">Retry</button><button
+          class="text-button"
+          phx-click="reload-corpus"
+        >Reload Atlas</button>
+      </div>
+      <article :if={@reader} class="atlas-reading" aria-label="Chapter text">
+        <details
+          :for={verse <- @reader}
+          :if={verse["verse"] == 0}
+          class={["atlas-reading-heading", Model.verse_hits(@chapter_hits, 0) != [] && "matched"]}
+          open={Model.verse_hits(@chapter_hits, 0) != []}
+        >
+          <summary>Chapter heading</summary><p>{verse["text"]}</p>
+        </details>
+        <p
+          :for={verse <- @reader}
+          :if={verse["verse"] > 0}
+          class={[
+            "atlas-reading-verse",
+            Model.verse_hits(@chapter_hits, verse["verse"]) != [] && "matched"
+          ]}
+          data-verse={verse["verse"]}
+          title={
+            Enum.map_join(Model.verse_hits(@chapter_hits, verse["verse"]), ", ", & &1.entry.name)
+          }
+        >
+          <sup>{verse["verse"]}</sup><span>{verse[
+            "text"
+          ]}</span>
+          <span class="atlas-verse-bands" aria-hidden="true"><b
+            :for={hit <- Model.verse_hits(@chapter_hits, verse["verse"])}
+            style={swatch(hit.entry)}
+          ></b></span>
+        </p>
+      </article>
+    </div>
+  </.focus_wrap>
+</div>

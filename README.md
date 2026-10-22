@@ -42,6 +42,7 @@ nix fmt                   # Format Elixir, HEEx, and Nix after fetching Mix deps
 nix flake check           # Sandboxed tests, formatting, and production build
 nix build                 # Production release at ./result
 nix run .#smoke            # Separately check the real corpus API; needs network
+nix run .#atlas-smoke      # Check real Atlas categories, highlights, and reading
 ```
 
 The development and test commands fetch dependencies automatically. For a fresh
@@ -79,8 +80,26 @@ cookie and quiz URL to resume. Clearing the cookie loses access; the URL alone
 does not authorize access. There are no accounts or recovery links yet. Quiz
 rows currently remain in PostgreSQL until explicitly removed by an operator.
 
-The Atlas is deferred. Its future categories and passage membership will come
-from corpus data rather than application annotation lists.
+The standalone [Atlas](http://localhost:4000/atlas) is available from the main
+navigation. Search for topics, people, places, and other corpus entries, select
+up to eight to compare their chapters, and click a chapter to read it. Descriptions
+distinguish people and places with the same name. Colored bands mark overlaps;
+the chapter reader explains each match as a reference, speech, or scene setting.
+The Atlas has no quiz or study-set actions.
+
+Categories follow the corpus entity-type hierarchy. Whole-book columns and
+five-column chapter grids retain the original Atlas geometry. The current
+corpus edition includes three front-matter sections, so its map has 18 books
+and 242 chapter units. No chapter counts, category lists, or annotations are
+vendored. Selection and reader URLs are shareable and restore on refresh.
+
+`Scripguessr.Corpus.Atlas` owns the queries, `Scripguessr.Atlas.Model` expands
+passage ranges across chapters, and `Scripguessr.Atlas.Cache` independently
+caches catalog, evidence, and chapter text for 15 minutes with a 160-entry limit.
+Cache keys include the release, and mixed-release results require reloading.
+URL identities use entry type, name, and description rather than numeric IDs;
+changed or removed entries are reported rather than silently matched elsewhere.
+See [ATLAS.md](ATLAS.md) for the data investigation and design decisions.
 
 ## Deploy
 

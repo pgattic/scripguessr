@@ -23,6 +23,14 @@ defmodule Scripguessr.Corpus.Fake do
   end
 
   defp response(sql, state) do
+    if String.contains?(sql, "atlas:") do
+      Scripguessr.AtlasFixture.response(sql, state)
+    else
+      quiz_response(sql, state)
+    end
+  end
+
+  defp quiz_response(sql, state) do
     is_text = String.contains?(sql, "group_concat")
 
     cond do
