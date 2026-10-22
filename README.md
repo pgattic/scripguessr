@@ -1,6 +1,6 @@
 # ScripGuessr
 
-A quiet scripture quiz built with Phoenix LiveView. Read five randomly selected
+A quiet scripture game built with Phoenix LiveView. Read five randomly selected
 Book of Mormon verses, guess their book and chapter, and discover how close you
 came. Scripture content comes from [Standard Works Corpus](https://standardworkscorpus.org).
 
@@ -62,29 +62,29 @@ hash. Do not commit build outputs or corpus payloads.
 - `Scripguessr.Corpus` owns upstream SQL and converts responses to application data.
 - `Scripguessr.Corpus.Cache` serializes preparation and caches the verse pool and
   chapter metadata for 15 minutes. It retries once if a release changes mid-fetch.
-- `Scripguessr.Quizzes.Rules` implements scoring and progression without I/O.
-- `Scripguessr.Quizzes` stores immutable prepared prompts and accepted guesses in
+- `Scripguessr.Games.Rules` implements scoring and progression without I/O.
+- `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
-- `ScripguessrWeb.QuizLive` renders the quiz and final summary.
+- `ScripguessrWeb.GameLive` renders the game and final summary.
 - `Scripguessr.Accounts` manages username/password accounts, private recovery
   codes, and expiring, revocable sessions.
 
 Only numbered, nonempty verses from the Book of Mormon (2013) edition are eligible.
 Five distinct references are sampled locally and their text fetched in one batch.
-A prepared quiz includes the corpus release and chapter order needed to score
+A prepared game includes the corpus release and chapter order needed to score
 without another upstream request. Text is reconstructed from ordered corpus
 words; no editorial changes are made. A guessed chapter earns
-`max(0, 1000 - 22 * chapter_distance)` points, up to 5,000 per quiz.
+`max(0, 1000 - 22 * chapter_distance)` points, up to 5,000 per game.
 
 After submitting a guess, use **Read chapter** to read the answer in context with
-the quizzed verse highlighted. Chapters are also available from the final results.
-Reading fetches the chapter on demand and checks the quiz's saved corpus release;
+the selected verse highlighted. Chapters are also available from the final results.
+Reading fetches the chapter on demand and checks the game's saved corpus release;
 upstream failures do not affect scoring or progression.
 
-Quizzes belong to an anonymous browser identity in a signed, HttpOnly, SameSite
+Games belong to an anonymous browser identity in a signed, HttpOnly, SameSite
 cookie, valid for 30 days and Secure over production HTTPS. Keep the browser
-cookie and quiz URL to resume anonymously. Clearing the cookie loses anonymous
-access; the URL alone does not authorize access. Quiz rows currently remain in
+cookie and game URL to resume anonymously. Clearing the cookie loses anonymous
+access; the URL alone does not authorize access. Game rows currently remain in
 PostgreSQL until explicitly removed by an operator.
 
 ## Accounts
@@ -95,10 +95,10 @@ registration in your password manager. If you forget your password, **Forgot
 password?** accepts that code and lets you choose a new password. Recovery
 replaces the code and signs out existing sessions.
 
-The account page lists saved quizzes, with **Resume** for unfinished games and
-**Review** for completed games. New quizzes started while signed in are saved
+The account page lists saved games, with **Resume** for unfinished games and
+**Review** for completed games. New games started while signed in are saved
 automatically. **Add to my account** explicitly attaches this browser's earlier
-anonymous quizzes. Attached quizzes require that account even on the original
+anonymous games. Attached games require that account even on the original
 browser after signing out. Anonymous play remains available.
 
 Sessions last 30 days. Development and production use the same account flow,
@@ -111,7 +111,7 @@ navigation. Search for topics, people, places, and other corpus entries, select
 up to eight to compare their chapters, and click a chapter to read it. Descriptions
 distinguish people and places with the same name. Colored bands mark overlaps;
 the chapter reader explains each match as a reference, speech, or scene setting.
-The Atlas has no quiz or study-set actions.
+The Atlas has no game or study-set actions.
 
 Categories follow the corpus entity-type hierarchy. Whole-book columns and
 five-column chapter grids retain the original Atlas geometry. The current

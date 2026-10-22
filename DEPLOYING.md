@@ -3,7 +3,7 @@
 The flake exports `nixosModules.default` and a production Phoenix release as
 `packages.<system>.default`. The release contains Erlang and compiled assets;
 production does not need Mix, a compiler, Node, or an upstream corpus download
-at build time. Runtime access to the corpus API is required to prepare new quizzes.
+at build time. Runtime access to the corpus API is required to prepare new games.
 
 ## Host configuration
 
@@ -22,7 +22,7 @@ the module into your server's NixOS configuration:
         {
           services.scripguessr = {
             enable = true;
-            hostName = "quiz.example.com";
+            hostName = "game.example.com";
             environmentFile = "/var/lib/secrets/scripguessr.env";
           };
           security.acme = {
@@ -83,8 +83,8 @@ normal `nixos-rebuild switch` workflow. This repository does not assume an SSH
 host or modify any machine configuration automatically.
 
 The systemd service runs `Scripguessr.Release.migrate` before starting Phoenix.
-Migration failure prevents startup. Application restarts retain quiz snapshots
-and accepted guesses in PostgreSQL. Prepared quizzes can finish without a
+Migration failure prevents startup. Application restarts retain game snapshots
+and accepted guesses in PostgreSQL. Prepared games can finish without a
 working corpus API.
 
 ## Health and operations
@@ -104,11 +104,11 @@ curl --fail -H 'X-Forwarded-Proto: https' http://127.0.0.1:4000/readyz
 Back up the `scripguessr` PostgreSQL database and the runtime secret before
 upgrades. NixOS rollback restores the application package, not database changes;
 review migrations for compatibility before rolling back. No automatic retention
-or quiz deletion job is included in this milestone.
+or game deletion job is included in this milestone.
 
-After initial deployment, run a real five-round quiz through the HTTPS hostname,
+After initial deployment, run a real five-round game through the HTTPS hostname,
 refresh mid-round, and restart the service to confirm resumption. This live-host
 verification is separate from the local and sandboxed checks.
-Also register an account, save its recovery code, attach an anonymous quiz, sign
+Also register an account, save its recovery code, attach an anonymous game, sign
 out, and sign in from a second browser to verify saved history. Check that recovery
 with the saved code replaces the password and issues a new code.

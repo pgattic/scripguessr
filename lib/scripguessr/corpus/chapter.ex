@@ -1,5 +1,5 @@
 defmodule Scripguessr.Corpus.Chapter do
-  @moduledoc "Chapter text shared by the quiz and Atlas, checked against the requested corpus release."
+  @moduledoc "Chapter text shared by the game and Atlas, checked against the requested corpus release."
   alias Scripguessr.Corpus
 
   def read(book, number, release) when is_binary(book) and is_integer(number) and number > 0 do

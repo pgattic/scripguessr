@@ -74,7 +74,7 @@
         {
           packages.default = packages.release;
           packages.deps = packages.deps;
-          checks.quiz = packages.tests;
+          checks.game = packages.tests;
           checks.release = packages.release;
           checks.nix-format = pkgs.runCommand "nix-format" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
             cd ${src}

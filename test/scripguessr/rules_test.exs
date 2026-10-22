@@ -1,6 +1,6 @@
-defmodule Scripguessr.Quizzes.RulesTest do
+defmodule Scripguessr.Games.RulesTest do
   use ExUnit.Case, async: true
-  alias Scripguessr.Quizzes.Rules
+  alias Scripguessr.Games.Rules
 
   defp snapshot do
     chapters =

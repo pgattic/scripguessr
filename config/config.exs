@@ -10,7 +10,7 @@ config :scripguessr, ScripguessrWeb.Endpoint,
   url: [host: "localhost"],
   render_errors: [formats: [html: ScripguessrWeb.ErrorHTML], layout: false],
   pubsub_server: Scripguessr.PubSub,
-  live_view: [signing_salt: "quiz-live-v1"]
+  live_view: [signing_salt: "game-live-v1"]
 
 config :pbkdf2_elixir, rounds: 600_000
 

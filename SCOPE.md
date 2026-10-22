@@ -21,7 +21,7 @@ verses, backed by the corpus API.
 
 The player can:
 
-1. Start a five-round quiz without creating an account.
+1. Start a five-round game without creating an account.
 2. Read one verse at a time without seeing its reference.
 3. Guess its book and chapter.
 4. Submit the guess and see the correct reference, score, and comparison.
@@ -34,12 +34,12 @@ more elaborate difficulty and prompt-quality filters are deferred.
 
 ## Product and presentation
 
-Use Phoenix LiveView for the quiz. Preserve the useful rhythm of the existing
-quiz: a focused prompt, clear reference selection, deliberate submission, and
+Use Phoenix LiveView for the game. Preserve the useful rhythm of the existing
+game: a focused prompt, clear reference selection, deliberate submission, and
 an understandable answer reveal.
 
 Explore a new visual direction during implementation. Matching the Rust app's
-layout or styling is not required. Make the quiz usable on mobile and desktop,
+layout or styling is not required. Make the game usable on mobile and desktop,
 with keyboard-accessible controls, visible focus, and clear loading and error
 states. Keep purely visual interactions responsive without unnecessary server
 round trips.
@@ -48,12 +48,12 @@ round trips.
 
 - **Corpus integration:** upstream queries, response decoding, reference
   normalization, metadata, and caching.
-- **Quiz behavior:** verse selection, guessing, scoring, progression, and
+- **Game behavior:** verse selection, guessing, scoring, progression, and
   persisted sessions.
 - **Presentation:** LiveViews and components that expose those behaviors.
 
 Keep upstream SQL and corpus response formats inside the corpus integration.
-Quiz rules should be testable without a network connection or a running
+Game rules should be testable without a network connection or a running
 LiveView. Do not introduce a second frontend application or retain the Rust
 backend.
 
@@ -73,7 +73,7 @@ checkout always matches production.
   metadata and text used to prepare a session belong to a consistent release;
   retry preparation if a release changes between requests.
 - Persist the five prompts, answer references, and metadata needed for scoring.
-  Once prepared, a quiz must be playable through completion without further
+  Once prepared, a game must be playable through completion without further
   corpus requests, including during an upstream outage.
 - Keep corpus content out of source control and build inputs. Runtime caches
   and session snapshots are allowed; they are not a second maintained corpus.
@@ -81,7 +81,7 @@ checkout always matches production.
   the data license.
 
 If session preparation fails, show a useful retry state. Do not expose a partial
-quiz as a successfully prepared session.
+game as a successfully prepared session.
 
 ## Scoring and session persistence
 
@@ -91,14 +91,14 @@ canonical Book of Mormon book/chapter order, including across book boundaries.
 The maximum session score is 5,000 points. Freeze the relevant chapter ordering
 for a prepared session so corpus updates do not change its scoring.
 
-Use PostgreSQL for durable quiz state and an anonymous browser session to
+Use PostgreSQL for durable game state and an anonymous browser session to
 authorize access. No account is required. A refresh or application restart
 must preserve prepared verses, submitted guesses, scores, and current progress.
 Repeated submissions must not change an accepted guess or count it twice.
 
 Send only the current prompt and information the player is allowed to see.
 Keep unrevealed answers server-side, and verify session ownership for reads and
-mutations. Sharing a quiz URL must not grant access to someone else's session.
+mutations. Sharing a game URL must not grant access to someone else's session.
 
 ## Nix-first workflow
 
@@ -129,7 +129,7 @@ Docker and non-Nix deployment workflows are outside this milestone.
 
 ## Acceptance criteria
 
-- A deployed HTTPS URL serves the complete five-round quiz.
+- A deployed HTTPS URL serves the complete five-round game.
 - The running application obtains its verse pool and text from the corpus API,
   with no bundled scripture dataset.
 - Five distinct eligible verses are prepared, and guessing and answer reveals
@@ -138,8 +138,8 @@ Docker and non-Nix deployment workflows are outside this milestone.
   the final summary agrees with the accepted round results.
 - Refreshing and restarting the application preserve the same session.
 - Prepared sessions finish while the corpus API is unavailable; failed new
-  session preparation offers retry without creating a broken quiz.
-- Another browser session cannot read or modify the quiz using its URL alone.
+  session preparation offers retry without creating a broken game.
+- Another browser session cannot read or modify the game using its URL alone.
 - The documented Nix development, checks, build, and NixOS deployment workflows
   work without manually installed language or database tools.
 - Automated checks cover selection invariants, scoring, ownership, persistence,
@@ -149,11 +149,11 @@ Docker and non-Nix deployment workflows are outside this milestone.
 ## Delivery sequence
 
 1. Establish the flake, Phoenix skeleton, production release, and NixOS module;
-   deploy the skeleton before investing in quiz features.
+   deploy the skeleton before investing in game features.
 2. Implement the corpus interface and verify real reference/text queries,
    release handling, and caching.
-3. Implement persisted session preparation and independently tested quiz rules.
-4. Build the LiveView quiz, answer reveal, and final summary.
+3. Implement persisted session preparation and independently tested game rules.
+4. Build the LiveView game, answer reveal, and final summary.
 5. Verify the deployed experience, persistence, and upstream failure behavior;
    finish operational documentation.
 
@@ -166,7 +166,7 @@ features to the release gate.
 
 ## Standalone Atlas milestone
 
-Build the Atlas as a separate study tool with no quiz integration, highlighted
+Build the Atlas as a separate study tool with no game integration, highlighted
 chapter practice, or study-set creation. Retain the original compact book flow:
 whole books in balanced columns, five-column grids, and 33px chapter tiles.
 
@@ -175,7 +175,7 @@ Use its entity-type hierarchy and reference, speech, and scene-setting annotatio
 to highlight chapters. Provide readable entry descriptions, search, overlapping
 selections, and a chapter reader that explains the evidence. Preserve selections
 and open chapters in shareable URLs. Cache runtime data and handle upstream
-failures and release changes without affecting the separate quiz feature.
+failures and release changes without affecting the separate game feature.
 
 Keep missing annotation coverage in the corpus, with no application-owned
 category or chapter annotation lists. Research findings and design decisions
@@ -184,8 +184,8 @@ are documented in [ATLAS.md](ATLAS.md).
 ## Accounts milestone
 
 The subsequent accounts milestone adds optional username/password registration
-and sign-in, sign-out, offline recovery codes, paginated quiz history, cross-device
-resumption, and explicit attachment of this browser's anonymous quizzes. New quizzes
+and sign-in, sign-out, offline recovery codes, paginated game history, cross-device
+resumption, and explicit attachment of this browser's anonymous games. New games
 belong to the signed-in account. Anonymous play remains available. Accounts require
 no email delivery service. Legacy Rust data migration is not a release requirement;
 see [ACCOUNTS.md](ACCOUNTS.md) for the implemented boundaries and access model.

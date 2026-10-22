@@ -24,7 +24,7 @@ witness testimonies. Book order and chapter numbers are read from the edition.
 
 ## Interface
 
-The Atlas is a separate study feature at `/atlas`. It has no dependency on quiz
+The Atlas is a separate study feature at `/atlas`. It has no dependency on game
 rules, account ownership, or study-set generation. The only shared application
 boundary is the corpus HTTP client and site navigation.
 

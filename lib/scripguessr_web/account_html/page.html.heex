@@ -98,48 +98,48 @@
   </div>
   <div :if={@unclaimed > 0} class="panel account-claim">
     <div>
-      <h2>Keep this browser’s quizzes</h2>
+      <h2>Keep this browser’s games</h2>
       <p class="muted">
-        Add {@unclaimed} {if @unclaimed == 1, do: "quiz", else: "quizzes"} to your account to access {if @unclaimed ==
-                                                                                                           1,
-                                                                                                         do:
-                                                                                                           "it",
-                                                                                                         else:
-                                                                                                           "them"} on other devices.
+        Add {@unclaimed} {if @unclaimed == 1, do: "game", else: "games"} to your account to access {if @unclaimed ==
+                                                                                                         1,
+                                                                                                       do:
+                                                                                                         "it",
+                                                                                                       else:
+                                                                                                         "them"} on other devices.
       </p>
     </div>
-    <.form for={%{}} action="/account/claim-quizzes" id="claim-quizzes-form">
+    <.form for={%{}} action="/account/claim-games" id="claim-games-form">
       <button class="button">Add to my account</button>
     </.form>
   </div>
-  <h2>Quiz history</h2>
-  <div :if={@quizzes == []} class="panel account-empty">
+  <h2>Game history</h2>
+  <div :if={@games == []} class="panel account-empty">
     <p class="muted">
-      {if @page_number == 1, do: "Your saved quizzes will appear here.", else: "No more quizzes."}
+      {if @page_number == 1, do: "Your saved games will appear here.", else: "No more games."}
     </p>
-    <a href="/" class="button">Start a quiz →</a>
+    <a href="/" class="button">Start a game →</a>
   </div>
-  <div :if={@quizzes != []} id="quiz-history" class="quiz-history">
-    <a :for={quiz <- @quizzes} href={"/quiz/#{quiz.id}"} class="panel history-row">
+  <div :if={@games != []} id="game-history" class="game-history">
+    <a :for={game <- @games} href={"/game/#{game.id}"} class="panel history-row">
       <div>
-        <strong>{if quiz.snapshot["finished"], do: "Completed quiz", else: "Quiz in progress"}</strong>
-        <span class="muted"><time datetime={DateTime.to_iso8601(quiz.inserted_at)}>{Calendar.strftime(
-          quiz.inserted_at,
+        <strong>{if game.snapshot["finished"], do: "Completed game", else: "Game in progress"}</strong>
+        <span class="muted"><time datetime={DateTime.to_iso8601(game.inserted_at)}>{Calendar.strftime(
+          game.inserted_at,
           "%b %-d, %Y"
         )}</time>
-        · {Enum.count(quiz.snapshot["rounds"], & &1["guess"])} / 5 answered</span>
+        · {Enum.count(game.snapshot["rounds"], & &1["guess"])} / 5 answered</span>
       </div>
       <div class="history-score">
-        <strong>{Rules.total(quiz.snapshot)}</strong><span class="muted">{if quiz.snapshot[
+        <strong>{Rules.total(game.snapshot)}</strong><span class="muted">{if game.snapshot[
                                                                                "finished"
                                                                              ],
                                                                              do: "/ 5,000",
                                                                              else: "pts"}</span>
       </div>
-      <span class="text-button">{if quiz.snapshot["finished"], do: "Review", else: "Resume"} →</span>
+      <span class="text-button">{if game.snapshot["finished"], do: "Review", else: "Resume"} →</span>
     </a>
   </div>
-  <nav :if={@more || @page_number > 1} class="history-pages" aria-label="Quiz history pages">
+  <nav :if={@more || @page_number > 1} class="history-pages" aria-label="Game history pages">
     <a :if={@page_number > 1} href={"/account?page=#{@page_number - 1}"} class="crumb">← Newer</a>
     <a :if={@more} href={"/account?page=#{@page_number + 1}"} class="crumb">Older →</a>
   </nav>

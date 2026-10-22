@@ -2,7 +2,7 @@
 
 Accounts use a username and password. There is no mail server, email provider,
 external identity provider, or separate development authentication flow.
-Anonymous quiz play and the standalone Atlas remain available without signing in.
+Anonymous game play and the standalone Atlas remain available without signing in.
 
 ## Credentials and recovery
 
@@ -30,24 +30,24 @@ If both password and recovery code are lost, there is no automated recovery.
 Username changes, account deletion, and administrative recovery are outside this
 milestone.
 
-## Sessions and quiz ownership
+## Sessions and game ownership
 
 Sessions are random 256-bit tokens stored as SHA-256 digests. They expire after
 30 days and can be revoked independently. Sign-in renews the browser session and
-CSRF token, retaining only anonymous browser identity so earlier quizzes can be
+CSRF token, retaining only anonymous browser identity so earlier games can be
 attached deliberately. Sign-out revokes the current session and disconnects its
 LiveViews; other devices stay signed in. Recovery disconnects every previous
 session. Signed-in LiveViews also check session validity before processing events.
 
-Signed-in quizzes have a nullable account foreign key alongside the original
-anonymous owner digest. Account-owned quizzes require their account; the old
-anonymous cookie grants no fallback access after sign-out. Anonymous quizzes
+Signed-in games have a nullable account foreign key alongside the original
+anonymous owner digest. Account-owned games require their account; the old
+anonymous cookie grants no fallback access after sign-out. Anonymous games
 remain available in their originating browser.
 
-The explicit claim action atomically updates only quizzes whose account is still
+The explicit claim action atomically updates only games whose account is still
 null and whose owner digest matches this browser. Request parameters cannot choose
 another browser or destination account. History lists only the current account's
-quizzes, newest first, in pages of 20.
+games, newest first, in pages of 20.
 
 All account mutations use CSRF-protected POST requests. Pages use
 `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Passwords, password

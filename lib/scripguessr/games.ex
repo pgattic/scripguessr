@@ -1,18 +1,18 @@
-defmodule Scripguessr.Quizzes do
+defmodule Scripguessr.Games do
   import Ecto.Query
   alias Scripguessr.{Repo, Corpus.Cache}
-  alias Scripguessr.Quizzes.{Quiz, Rules}
+  alias Scripguessr.Games.{Game, Rules}
 
   def create(owner, user_id \\ nil) when is_binary(owner) do
     with {:ok, snapshot} <- Cache.prepare() do
-      %Quiz{owner_hash: owner_hash(owner), user_id: user_id, snapshot: snapshot} |> Repo.insert()
+      %Game{owner_hash: owner_hash(owner), user_id: user_id, snapshot: snapshot} |> Repo.insert()
     end
   end
 
   def fetch(id, owner, user_id \\ nil) do
     with {:ok, uuid} <- Ecto.UUID.cast(id),
-         %Quiz{} = quiz <- Repo.one(owned(uuid, owner, user_id)) do
-      {:ok, quiz}
+         %Game{} = game <- Repo.one(owned(uuid, owner, user_id)) do
+      {:ok, game}
     else
       _ -> {:error, :not_found}
     end
@@ -31,10 +31,10 @@ defmodule Scripguessr.Quizzes do
           nil ->
             Repo.rollback(:not_found)
 
-          quiz ->
-            case update.(quiz.snapshot) do
+          game ->
+            case update.(game.snapshot) do
               {:ok, snapshot} ->
-                quiz |> Ecto.Changeset.change(snapshot: snapshot) |> Repo.update!()
+                game |> Ecto.Changeset.change(snapshot: snapshot) |> Repo.update!()
 
               {:error, reason} ->
                 Repo.rollback(reason)
@@ -47,7 +47,7 @@ defmodule Scripguessr.Quizzes do
   end
 
   def history(user_id, page \\ 1) do
-    from(q in Quiz,
+    from(q in Game,
       where: q.user_id == ^user_id,
       order_by: [desc: q.inserted_at, desc: q.id],
       limit: 21,
@@ -60,20 +60,20 @@ defmodule Scripguessr.Quizzes do
     do: Repo.aggregate(unclaimed(owner), :count)
 
   def claim(owner, user_id) when is_binary(user_id) do
-    # A single conditional UPDATE prevents two accounts claiming the same quiz.
+    # A single conditional UPDATE prevents two accounts claiming the same game.
     {count, _} = Repo.update_all(unclaimed(owner), set: [user_id: user_id])
     count
   end
 
   defp unclaimed(owner),
-    do: from(q in Quiz, where: is_nil(q.user_id) and q.owner_hash == ^owner_hash(owner))
+    do: from(q in Game, where: is_nil(q.user_id) and q.owner_hash == ^owner_hash(owner))
 
   defp owned(id, owner, nil),
     do: from(q in unclaimed(owner), where: q.id == ^id)
 
   defp owned(id, owner, user_id),
     do:
-      from(q in Quiz,
+      from(q in Game,
         where:
           q.id == ^id and
             (q.user_id == ^user_id or (is_nil(q.user_id) and q.owner_hash == ^owner_hash(owner)))

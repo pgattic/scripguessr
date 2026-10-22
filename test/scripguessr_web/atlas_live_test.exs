@@ -10,7 +10,7 @@ defmodule ScripguessrWeb.AtlasLiveTest do
     :ok
   end
 
-  test "Atlas discovers categories and keeps study separate from quizzes" do
+  test "Atlas discovers categories and keeps study separate from games" do
     {:ok, view, _} = live(build_conn(), "/atlas")
     html = render_async(view)
     assert html =~ "Book of Mormon Atlas"
@@ -18,7 +18,7 @@ defmodule ScripguessrWeb.AtlasLiveTest do
     assert has_element?(view, ".atlas-category-toggle", "Places")
     assert has_element?(view, ".atlas-chapter[aria-label='Jacob 1']")
     refute html =~ "Study highlighted"
-    refute has_element?(view, "#start-quiz")
+    refute has_element?(view, "#start-game")
   end
 
   test "search distinguishes namesakes; selections highlight speech and overlapping chapters" do

@@ -1,6 +1,6 @@
 defmodule ScripguessrWeb.AccountHTML do
   use ScripguessrWeb, :html
-  alias Scripguessr.Quizzes.Rules
+  alias Scripguessr.Games.Rules
   defp form_action(:sign_in), do: "/account/sign-in"
   defp form_action(:register), do: "/account/register"
   defp form_action(:recover), do: "/account/recover"

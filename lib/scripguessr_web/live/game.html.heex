@@ -1,22 +1,22 @@
 <section :if={@unavailable} class="empty-state panel">
-  <h1>Quiz unavailable</h1>
-  <p>Open it in the browser where you started, or start a new quiz.</p>
+  <h1>Game unavailable</h1>
+  <p>Open it in the browser where you started, or start a new game.</p>
   <a class="button" href="/">Home</a>
 </section>
 
-<section :if={!@quiz && !@unavailable} class="welcome">
+<section :if={!@game && !@unavailable} class="welcome">
   <div class="intro-copy">
     <span class="pill">Book of Mormon · 5 rounds</span>
     <h1>How well do you<br />know the verses?</h1>
     <p class="lede">Read a verse. Guess its book and chapter.</p>
     <button
-      id="start-quiz"
+      id="start-game"
       class="button"
       phx-click="start"
       disabled={@preparing}
       phx-disable-with="Loading…"
     >
-      {if @preparing, do: "Loading…", else: "Start quiz"}
+      {if @preparing, do: "Loading…", else: "Start game"}
       <span aria-hidden="true">→</span>
     </button>
     <p :if={@error} role="alert" class="error">{@error}</p>
@@ -28,7 +28,7 @@
   </aside>
 </section>
 
-<section :if={@quiz && !@snapshot["finished"]} class="quiz-page">
+<section :if={@game && !@snapshot["finished"]} class="game-page">
   <div class="progress-header">
     <span>Round <strong>{@snapshot["current"] + 1}</strong> / 5</span>
     <span><strong>{Rules.total(@snapshot)}</strong> pts</span>
@@ -36,14 +36,14 @@
   <div
     class="progress-track"
     role="progressbar"
-    aria-label="Quiz progress"
+    aria-label="Game progress"
     aria-valuemin="0"
     aria-valuemax="5"
     aria-valuenow={Enum.count(@snapshot["rounds"], & &1["guess"])}
   >
     <span :for={round <- @snapshot["rounds"]} class={if round["guess"], do: "filled"}></span>
   </div>
-  <div class="quiz-layout">
+  <div class="game-layout">
     <article class="panel verse-panel">
       <div class="verse-label">
         <span>Book of Mormon</span><span :if={@round["guess"]}>{reference(@round)}</span>
@@ -132,7 +132,7 @@
         </div>
         <button
           id="read-chapter"
-          class="text-button quiz-read-chapter"
+          class="text-button game-read-chapter"
           phx-click="read-chapter"
           phx-value-round={@snapshot["current"]}
         >Read chapter</button>
@@ -148,7 +148,7 @@
   </div>
 </section>
 
-<section :if={@quiz && @snapshot["finished"]} class="summary-page">
+<section :if={@game && @snapshot["finished"]} class="summary-page">
   <div class="summary-heading">
     <div>
       <p class="eyebrow">5 rounds complete</p><h1>Final score</h1>
@@ -165,7 +165,7 @@
           "guess"
         ]["book"]} {round["guess"]["chapter"]} · {distance_label(round["guess"]["distance"])}</span>
         <button
-          class="text-button quiz-read-chapter"
+          class="text-button game-read-chapter"
           phx-click="read-chapter"
           phx-value-round={index}
         >Read chapter</button>
@@ -177,7 +177,7 @@
 
 <div
   :if={@reading}
-  id="quiz-reader"
+  id="game-reader"
   class="atlas-reader-backdrop"
   phx-hook="AtlasReader"
   data-ready={to_string(!is_nil(@reader))}
@@ -186,23 +186,23 @@
   phx-key="Escape"
 >
   <.focus_wrap
-    id="quiz-reader-dialog"
+    id="game-reader-dialog"
     class="atlas-reader-dialog panel"
     role="dialog"
     aria-modal="true"
-    aria-labelledby="quiz-reader-title"
+    aria-labelledby="game-reader-title"
     phx-click-away="close-chapter"
   >
     <header class="atlas-reader-header">
-      <h2 id="quiz-reader-title">{@reading["book"]} {@reading["chapter"]}</h2>
+      <h2 id="game-reader-title">{@reading["book"]} {@reading["chapter"]}</h2>
       <div class="reader-actions">
         <button
           :if={@reader}
           class="text-button"
-          phx-click={JS.dispatch("atlas:first-match", to: "#quiz-reader")}
+          phx-click={JS.dispatch("atlas:first-match", to: "#game-reader")}
         >Verse {@reading["verse"]} ↓</button>
         <button
-          id="quiz-reader-close"
+          id="game-reader-close"
           data-reader-close
           class="crumb"
           phx-click="close-chapter"

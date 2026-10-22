@@ -28,7 +28,7 @@ defmodule ScripguessrWeb.Layouts do
         <a href="/" class="wordmark" aria-label="ScripGuessr home"><span class="brand-mark">S</span>
         ScripGuessr</a>
         <nav class="site-nav" aria-label="Main navigation">
-          <a href="/" class="home-link">Quiz</a>
+          <a href="/" class="home-link">Game</a>
           <a href="/atlas" class="home-link">Atlas</a>
           <a href={if @current_user, do: "/account", else: "/account/sign-in"} class="home-link">
             {if @current_user, do: "Account", else: "Sign in"}

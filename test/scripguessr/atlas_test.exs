@@ -10,7 +10,7 @@ defmodule Scripguessr.AtlasTest do
     :ok
   end
 
-  test "caches catalog, selected layers, and chapter text independently of quiz data" do
+  test "caches catalog, selected layers, and chapter text independently of game data" do
     {:ok, catalog} = Cache.catalog()
     assert {:ok, [layer]} = Cache.layers(catalog, [Fixture.key(1)])
     assert map_size(layer.coverage) == 2

@@ -263,7 +263,7 @@ footer {
   color: var(--accent);
 }
 
-.quiz-page {
+.game-page {
   margin: 0 auto 45px;
 }
 
@@ -296,7 +296,7 @@ footer {
   background: var(--accent);
 }
 
-.quiz-layout {
+.game-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(320px, 420px);
   gap: 18px;
@@ -487,7 +487,7 @@ footer {
   font-size: .9rem;
 }
 
-.quiz-read-chapter {
+.game-read-chapter {
   display: block;
   margin-top: 12px;
   min-height: 36px;
@@ -514,7 +514,7 @@ footer {
 .account-claim p { margin: 0; font-size: .85rem; line-height: 1.6; }
 .account-claim button { white-space: nowrap; }
 .account-empty { padding: 24px; }
-.quiz-history { display: grid; gap: 12px; }
+.game-history { display: grid; gap: 12px; }
 .history-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 24px; padding: 20px; text-decoration: none; color: var(--text); }
 .history-row:hover { border-color: var(--accent); }
 .history-row>div { display: grid; gap: 7px; }
@@ -676,7 +676,7 @@ footer {
   .art-book span:after {
     inset: 20px 12px;
   }
-  .quiz-layout {
+  .game-layout {
     grid-template-columns: 1fr;
   }
   .verse-panel {

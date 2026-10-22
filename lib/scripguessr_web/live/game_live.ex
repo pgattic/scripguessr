@@ -1,14 +1,14 @@
-defmodule ScripguessrWeb.QuizLive do
+defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
-  alias Scripguessr.Quizzes
-  alias Scripguessr.Quizzes.Rules
+  alias Scripguessr.Games
+  alias Scripguessr.Games.Rules
 
   @impl true
   def mount(_params, session, socket) do
     {:ok,
      assign(socket,
        owner: session["owner"],
-       quiz: nil,
+       game: nil,
        unavailable: false,
        preparing: false,
        error: nil,
@@ -25,11 +25,11 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_params(params, _uri, socket) do
     case params do
       %{"id" => id} ->
-        case Quizzes.fetch(id, socket.assigns.owner, user_id(socket)) do
-          {:ok, quiz} ->
+        case Games.fetch(id, socket.assigns.owner, user_id(socket)) do
+          {:ok, game} ->
             {:noreply,
              assign(socket,
-               quiz: quiz,
+               game: game,
                unavailable: false,
                error: nil,
                book: "",
@@ -38,11 +38,11 @@ defmodule ScripguessrWeb.QuizLive do
              )}
 
           {:error, _} ->
-            {:noreply, assign(socket, quiz: nil, unavailable: true)}
+            {:noreply, assign(socket, game: nil, unavailable: true)}
         end
 
       _ ->
-        {:noreply, assign(socket, quiz: nil, unavailable: false)}
+        {:noreply, assign(socket, game: nil, unavailable: false)}
     end
   end
 
@@ -56,11 +56,11 @@ defmodule ScripguessrWeb.QuizLive do
     {:noreply,
      socket
      |> assign(preparing: true, error: nil)
-     |> start_async(:prepare, fn -> Quizzes.create(owner, user_id) end)}
+     |> start_async(:prepare, fn -> Games.create(owner, user_id) end)}
   end
 
   def handle_event("choose-book", %{"book" => book}, socket) do
-    if editable?(socket) and book in books(socket.assigns.quiz.snapshot) do
+    if editable?(socket) and book in books(socket.assigns.game.snapshot) do
       {:noreply, assign(socket, book: book, chapter: "", step: :chapter, error: nil)}
     else
       {:noreply, socket}
@@ -70,7 +70,7 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_event("choose-chapter", %{"chapter" => chapter}, socket) do
     if editable?(socket) and
          chapter in Enum.map(
-           chapters(socket.assigns.quiz.snapshot, socket.assigns.book),
+           chapters(socket.assigns.game.snapshot, socket.assigns.book),
            &to_string/1
          ) do
       {:noreply, assign(socket, chapter: chapter, step: :ready, error: nil)}
@@ -100,23 +100,23 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_event(
         "guess",
         %{"guess" => %{"book" => book, "chapter" => chapter, "round" => index}},
-        %{assigns: %{quiz: %{id: id}}} = socket
+        %{assigns: %{game: %{id: id}}} = socket
       )
       when is_binary(index) do
     with {index, ""} <- Integer.parse(index) do
       update(
         socket,
-        Quizzes.submit(id, socket.assigns.owner, index, book, chapter, user_id(socket))
+        Games.submit(id, socket.assigns.owner, index, book, chapter, user_id(socket))
       )
     else
       _ -> {:noreply, assign(socket, error: "Choose a valid book and chapter.")}
     end
   end
 
-  def handle_event("advance", %{"round" => index}, %{assigns: %{quiz: %{id: id}}} = socket)
+  def handle_event("advance", %{"round" => index}, %{assigns: %{game: %{id: id}}} = socket)
       when is_binary(index) do
     with {index, ""} <- Integer.parse(index) do
-      update(socket, Quizzes.advance(id, socket.assigns.owner, index, user_id(socket)))
+      update(socket, Games.advance(id, socket.assigns.owner, index, user_id(socket)))
     else
       _ -> {:noreply, socket}
     end
@@ -125,7 +125,7 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_event(
         "read-chapter",
         %{"round" => index},
-        %{assigns: %{quiz: %{snapshot: snapshot}}} = socket
+        %{assigns: %{game: %{snapshot: snapshot}}} = socket
       )
       when is_binary(index) do
     with {index, ""} when index >= 0 <- Integer.parse(index),
@@ -145,8 +145,8 @@ defmodule ScripguessrWeb.QuizLive do
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   @impl true
-  def handle_async(:prepare, {:ok, {:ok, quiz}}, socket) do
-    {:noreply, socket |> assign(preparing: false) |> push_navigate(to: "/quiz/#{quiz.id}")}
+  def handle_async(:prepare, {:ok, {:ok, game}}, socket) do
+    {:noreply, socket |> assign(preparing: false) |> push_navigate(to: "/game/#{game.id}")}
   end
 
   def handle_async(:prepare, _result, socket) do
@@ -165,14 +165,14 @@ defmodule ScripguessrWeb.QuizLive do
       {:noreply,
        assign(socket,
          reader_error:
-           "The corpus has changed since this quiz. This chapter is unavailable for this session."
+           "The corpus has changed since this game. This chapter is unavailable for this session."
        )}
 
   def handle_async(:chapter, _result, socket),
     do: {:noreply, assign(socket, reader_error: "Couldn’t load this chapter. Try again.")}
 
   defp load_chapter(socket, round) do
-    release = socket.assigns.quiz.snapshot["release"]
+    release = socket.assigns.game.snapshot["release"]
 
     socket
     |> cancel_async(:chapter)
@@ -188,25 +188,25 @@ defmodule ScripguessrWeb.QuizLive do
     |> assign(reading: nil, reader: nil, reader_error: nil)
   end
 
-  defp update(socket, {:ok, quiz}),
+  defp update(socket, {:ok, game}),
     do:
       {:noreply,
-       assign(close_reader(socket), quiz: quiz, book: "", chapter: "", step: :book, error: nil)}
+       assign(close_reader(socket), game: game, book: "", chapter: "", step: :book, error: nil)}
 
   defp update(socket, {:error, :invalid_guess}),
     do: {:noreply, assign(socket, error: "Choose a valid book and chapter.")}
 
   defp update(socket, {:error, _}) do
-    case Quizzes.fetch(socket.assigns.quiz.id, socket.assigns.owner, user_id(socket)) do
-      {:ok, quiz} ->
+    case Games.fetch(socket.assigns.game.id, socket.assigns.owner, user_id(socket)) do
+      {:ok, game} ->
         {:noreply,
          assign(socket,
-           quiz: quiz,
+           game: game,
            error: "This round changed in another tab. Your saved progress is shown below."
          )}
 
       _ ->
-        {:noreply, assign(socket, quiz: nil, unavailable: true)}
+        {:noreply, assign(socket, game: nil, unavailable: true)}
     end
   end
 
@@ -218,7 +218,7 @@ defmodule ScripguessrWeb.QuizLive do
   defp chapters(snapshot, book),
     do: snapshot["chapters"] |> Enum.filter(&(&1["book"] == book)) |> Enum.map(& &1["chapter"])
 
-  defp editable?(%{assigns: %{quiz: %{snapshot: snapshot}}}) do
+  defp editable?(%{assigns: %{game: %{snapshot: snapshot}}}) do
     !snapshot["finished"] and is_nil(Enum.at(snapshot["rounds"], snapshot["current"])["guess"])
   end
 
@@ -230,7 +230,7 @@ defmodule ScripguessrWeb.QuizLive do
 
   @impl true
   def render(assigns) do
-    snapshot = if assigns.quiz, do: assigns.quiz.snapshot
+    snapshot = if assigns.game, do: assigns.game.snapshot
 
     assigns =
       assign(assigns,
@@ -238,8 +238,8 @@ defmodule ScripguessrWeb.QuizLive do
         round: if(snapshot, do: Enum.at(snapshot["rounds"], snapshot["current"]))
       )
 
-    quiz(assigns)
+    game(assigns)
   end
 
-  embed_templates "quiz.html"
+  embed_templates "game.html"
 end

@@ -1,7 +1,7 @@
 defmodule ScripguessrWeb.AccountController do
   use Phoenix.Controller, formats: [:html]
   import Plug.Conn
-  alias Scripguessr.{Accounts, Quizzes}
+  alias Scripguessr.{Accounts, Games}
   alias ScripguessrWeb.Auth
 
   plug :require_user when action in [:show, :claim]
@@ -102,24 +102,24 @@ defmodule ScripguessrWeb.AccountController do
         _ -> 1
       end
 
-    quizzes = Quizzes.history(conn.assigns.current_user.id, page_number)
+    games = Games.history(conn.assigns.current_user.id, page_number)
 
     page(conn,
       mode: :account,
-      quizzes: Enum.take(quizzes, 20),
+      games: Enum.take(games, 20),
       page_number: page_number,
-      more: length(quizzes) > 20,
-      unclaimed: Quizzes.unclaimed_count(get_session(conn, :owner))
+      more: length(games) > 20,
+      unclaimed: Games.unclaimed_count(get_session(conn, :owner))
     )
   end
 
   def claim(conn, _) do
-    count = Quizzes.claim(get_session(conn, :owner), conn.assigns.current_user.id)
+    count = Games.claim(get_session(conn, :owner), conn.assigns.current_user.id)
 
     conn
     |> put_flash(
       :info,
-      "#{count} #{if count == 1, do: "quiz", else: "quizzes"} added to your account."
+      "#{count} #{if count == 1, do: "game", else: "games"} added to your account."
     )
     |> redirect(to: "/account")
   end

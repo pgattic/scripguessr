@@ -1,4 +1,4 @@
-defmodule Scripguessr.Quizzes.Rules do
+defmodule Scripguessr.Games.Rules do
   @moduledoc "Pure rules operating on a frozen session snapshot."
   def submit(snapshot, index, book, chapter) do
     current = snapshot["current"]

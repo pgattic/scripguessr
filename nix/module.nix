@@ -50,7 +50,7 @@ in
       ];
     };
     systemd.services.scripguessr = {
-      description = "ScripGuessr Phoenix quiz";
+      description = "ScripGuessr Phoenix game";
       wantedBy = [ "multi-user.target" ];
       after = [
         "network.target"

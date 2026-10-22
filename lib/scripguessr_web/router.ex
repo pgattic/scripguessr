@@ -26,11 +26,11 @@ defmodule ScripguessrWeb.Router do
     post "/account/recover", AccountController, :recover
     post "/account/sign-out", AccountController, :sign_out
     get "/account", AccountController, :show
-    post "/account/claim-quizzes", AccountController, :claim
+    post "/account/claim-games", AccountController, :claim
 
     live_session :public, on_mount: [{ScripguessrWeb.Auth, :current_user}] do
-      live "/", QuizLive, :home
-      live "/quiz/:id", QuizLive, :quiz
+      live "/", GameLive, :home
+      live "/game/:id", GameLive, :game
       live "/atlas", AtlasLive, :index
     end
   end

@@ -26,10 +26,10 @@ defmodule Scripguessr.Repo.Migrations.AddAccounts do
     create index(:user_tokens, [:user_id, :context])
     create index(:user_tokens, [:expires_at])
 
-    alter table(:quizzes) do
+    alter table(:games) do
       add :user_id, references(:users, type: :binary_id, on_delete: :delete_all)
     end
 
-    create index(:quizzes, [:user_id, :inserted_at])
+    create index(:games, [:user_id, :inserted_at])
   end
 end
