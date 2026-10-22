@@ -39,6 +39,12 @@ defmodule ScripguessrWeb.QuizLiveTest do
 
     assert render(view) =~ "Final score"
     assert render(view) =~ "5000"
+    view |> element(".round-list button[phx-value-round='0']") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#quiz-reader-title", "#{first["book"]} #{first["chapter"]}")
+    assert has_element?(view, "#quiz-reader .matched[data-verse='#{first["verse"]}']")
+    view |> element("#quiz-reader-close") |> render_click()
+    assert render(view) =~ "Final score"
     {:ok, _view, html} = live(conn("owner"), "/quiz/#{quiz.id}")
     assert html =~ "Final score"
   end
@@ -106,5 +112,71 @@ defmodule ScripguessrWeb.QuizLiveTest do
   test "health endpoints distinguish readiness" do
     assert build_conn() |> get("/healthz") |> response(200) == "ok"
     assert build_conn() |> get("/readyz") |> response(200) == "ready"
+  end
+
+  test "chapter reading is restricted to submitted rounds and uses the actual answer" do
+    {:ok, quiz} = Scripguessr.Quizzes.create("owner")
+    {:ok, view, _} = live(conn("owner"), "/quiz/#{quiz.id}")
+    first = hd(quiz.snapshot["rounds"])
+    calls = Scripguessr.Corpus.Fake.calls()
+    refute has_element?(view, "#read-chapter")
+
+    for index <- ["0", "1", "-1", "100", "invalid", nil] do
+      render_click(view, "read-chapter", %{"round" => index})
+      refute has_element?(view, "#quiz-reader")
+    end
+
+    assert Scripguessr.Corpus.Fake.calls() == calls
+    view |> element("#book-grid button", "2 Nephi") |> render_click()
+    view |> element("#chapter-grid button[phx-value-chapter='1']") |> render_click()
+    view |> form("#guess-form") |> render_submit()
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#quiz-reader-title", "#{first["book"]} #{first["chapter"]}")
+
+    assert has_element?(
+             view,
+             "#quiz-reader .matched[data-verse='#{first["verse"]}'][aria-current='true']"
+           )
+
+    assert has_element?(view, "#quiz-reader [data-verse='3']", "Invented study passage 3.")
+    assert has_element?(view, "[role=progressbar][aria-valuenow='1']")
+    sql = List.last(Scripguessr.Corpus.Fake.calls())
+    assert sql =~ "b.name='#{first["book"]}' and c.number=#{first["chapter"]}"
+    view |> element("#quiz-reader-close") |> render_click()
+    refute has_element?(view, "#quiz-reader")
+    assert has_element?(view, "#answer-reveal", "2 Nephi 1")
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    view |> element("#next-round") |> render_click()
+    refute has_element?(view, "#quiz-reader")
+    refute has_element?(view, "#read-chapter")
+    assert has_element?(view, "#book-grid")
+    assert has_element?(view, "[role=progressbar][aria-valuenow='1']")
+  end
+
+  test "chapter loading can fail and retry without changing the saved quiz" do
+    {:ok, quiz} = Scripguessr.Quizzes.create("owner")
+    {:ok, quiz} = Scripguessr.Quizzes.submit(quiz.id, "owner", 0, "1 Nephi", "1")
+    {:ok, view, _} = live(conn("owner"), "/quiz/#{quiz.id}")
+    Scripguessr.Corpus.Fake.reset(:down)
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#quiz-reader [role=alert]", "Couldn’t load this chapter")
+    Scripguessr.Corpus.Fake.reset()
+    view |> element("#quiz-reader button[phx-click='retry-chapter']") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#quiz-reader .atlas-reading")
+    assert {:ok, saved} = Scripguessr.Quizzes.fetch(quiz.id, "owner")
+    assert saved.snapshot == quiz.snapshot
+    view |> element("#quiz-reader-close") |> render_click()
+    Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "new-release"})
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#quiz-reader [role=alert]", "corpus has changed")
+    refute has_element?(view, "#quiz-reader .atlas-reading")
+    view |> element("#quiz-reader-close") |> render_click()
+    view |> element("#next-round") |> render_click()
+    assert has_element?(view, "#book-grid")
   end
 end

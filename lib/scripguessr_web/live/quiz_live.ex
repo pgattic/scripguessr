@@ -14,7 +14,10 @@ defmodule ScripguessrWeb.QuizLive do
        error: nil,
        book: "",
        chapter: "",
-       step: :book
+       step: :book,
+       reading: nil,
+       reader: nil,
+       reader_error: nil
      )}
   end
 
@@ -118,6 +121,26 @@ defmodule ScripguessrWeb.QuizLive do
     end
   end
 
+  def handle_event(
+        "read-chapter",
+        %{"round" => index},
+        %{assigns: %{quiz: %{snapshot: snapshot}}} = socket
+      )
+      when is_binary(index) do
+    with {index, ""} when index >= 0 <- Integer.parse(index),
+         %{"guess" => guess} = round when not is_nil(guess) <- Enum.at(snapshot["rounds"], index) do
+      {:noreply, load_chapter(socket, round)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("close-chapter", _, socket), do: {:noreply, close_reader(socket)}
+
+  def handle_event("retry-chapter", _, %{assigns: %{reading: round}} = socket)
+      when not is_nil(round),
+      do: {:noreply, load_chapter(socket, round)}
+
   def handle_event(_event, _params, socket), do: {:noreply, socket}
 
   @impl true
@@ -133,8 +156,41 @@ defmodule ScripguessrWeb.QuizLive do
      )}
   end
 
+  def handle_async(:chapter, {:ok, {:ok, verses}}, socket),
+    do: {:noreply, assign(socket, reader: verses, reader_error: nil)}
+
+  def handle_async(:chapter, {:ok, {:error, :release_changed}}, socket),
+    do:
+      {:noreply,
+       assign(socket,
+         reader_error:
+           "The corpus has changed since this quiz. This chapter is unavailable for this session."
+       )}
+
+  def handle_async(:chapter, _result, socket),
+    do: {:noreply, assign(socket, reader_error: "Couldn’t load this chapter. Try again.")}
+
+  defp load_chapter(socket, round) do
+    release = socket.assigns.quiz.snapshot["release"]
+
+    socket
+    |> cancel_async(:chapter)
+    |> assign(reading: round, reader: nil, reader_error: nil)
+    |> start_async(:chapter, fn ->
+      Scripguessr.Corpus.Chapter.read(round["book"], round["chapter"], release)
+    end)
+  end
+
+  defp close_reader(socket) do
+    socket
+    |> cancel_async(:chapter)
+    |> assign(reading: nil, reader: nil, reader_error: nil)
+  end
+
   defp update(socket, {:ok, quiz}),
-    do: {:noreply, assign(socket, quiz: quiz, book: "", chapter: "", step: :book, error: nil)}
+    do:
+      {:noreply,
+       assign(close_reader(socket), quiz: quiz, book: "", chapter: "", step: :book, error: nil)}
 
   defp update(socket, {:error, :invalid_guess}),
     do: {:noreply, assign(socket, error: "Choose a valid book and chapter.")}

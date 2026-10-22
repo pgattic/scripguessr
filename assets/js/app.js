@@ -22,13 +22,19 @@ const AtlasReader = {
     this.previousFocus = document.activeElement
     this.previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    this.el.querySelector("#atlas-reader-close").focus()
+    this.el.querySelector("[data-reader-close],#atlas-reader-close").focus()
     this.onMatch = () => {
       const match = this.el.querySelector(".atlas-reading-verse.matched,.atlas-reading-heading.matched")
       const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"
       if (match) match.scrollIntoView({behavior, block: "center"})
     }
     this.el.addEventListener("atlas:first-match", this.onMatch)
+    this.updated()
+  },
+  updated() {
+    const ready = this.el.dataset.ready === "true"
+    if (ready && !this.ready && this.el.dataset.autoScroll === "true") this.onMatch()
+    this.ready = ready
   },
   destroyed() {
     document.body.style.overflow = this.previousOverflow

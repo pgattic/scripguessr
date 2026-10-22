@@ -29,25 +29,11 @@ defmodule Scripguessr.Corpus.Atlas do
 
   def chapter(catalog, book, number) do
     if Model.chapter(catalog, book, number) do
-      with {:ok, response} <- Corpus.query(chapter_sql(book, number)),
-           true <- response.release == catalog.release || {:error, :release_changed},
-           false <- response.truncated,
-           true <- response.rows != [] and Enum.all?(response.rows, &valid_verse?/1),
-           true <- Enum.uniq_by(response.rows, & &1["verse"]) == response.rows do
-        {:ok, response.rows}
-      else
-        {:error, _} = error -> error
-        _ -> {:error, :invalid_chapter}
-      end
+      Scripguessr.Corpus.Chapter.read(book, number, catalog.release)
     else
       {:error, :unknown_chapter}
     end
   end
-
-  defp valid_verse?(%{"verse" => number, "text" => text}),
-    do: is_integer(number) and number >= 0 and is_binary(text) and String.trim(text) != ""
-
-  defp valid_verse?(_), do: false
 
   defp pages(sql, release, page \\ 0, acc \\ [])
   defp pages(_sql, _release, page, _acc) when page >= @max_pages, do: {:error, :too_many_pages}
@@ -120,17 +106,6 @@ defmodule Scripguessr.Corpus.Atlas do
     where e.name='#{Corpus.edition()}' and lc.edition_id=fc.edition_id and fw.sequence<=lw.sequence
     order by a.kind,fb.name,fc.number,first_verse,lb.name,lc.number,last_verse
     limit #{@page_size} offset #{offset}
-    """
-  end
-
-  defp chapter_sql(book, number) do
-    """
-    /* atlas:reader */
-    select coalesce(v.number,0) as verse,group_concat(w.before || w.text || w.after,'' order by w.position) as text
-    from verse v join word w on w.verse_id=v.id join chapter c on c.id=v.chapter_id
-    join book b on b.id=c.book_id join edition e on e.id=c.edition_id
-    where e.name='#{Corpus.edition()}' and b.name='#{String.replace(book, "'", "''")}' and c.number=#{number}
-    group by v.id order by v.number
     """
   end
 end

@@ -74,6 +74,11 @@ without another upstream request. Text is reconstructed from ordered corpus
 words; no editorial changes are made. A guessed chapter earns
 `max(0, 1000 - 22 * chapter_distance)` points, up to 5,000 per quiz.
 
+After submitting a guess, use **Read chapter** to read the answer in context with
+the quizzed verse highlighted. Chapters are also available from the final results.
+Reading fetches the chapter on demand and checks the quiz's saved corpus release;
+upstream failures do not affect scoring or progression.
+
 Quizzes belong to an anonymous browser identity in a signed, HttpOnly, SameSite
 cookie, valid for 30 days and Secure over production HTTPS. Keep the browser
 cookie and quiz URL to resume. Clearing the cookie loses access; the URL alone

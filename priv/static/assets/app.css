@@ -487,6 +487,12 @@ footer {
   font-size: .9rem;
 }
 
+.quiz-read-chapter {
+  display: block;
+  margin-top: 12px;
+  min-height: 36px;
+}
+
 .summary-page {
   max-width: 850px;
   margin: 0 auto 45px;
