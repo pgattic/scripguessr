@@ -105,7 +105,7 @@
               ].name}</strong><small>{@catalog.by_key[key].description}</small></span><span aria-hidden="true">×</span>
             </button>
           </div>
-          <form id="atlas-search" phx-change="search" role="search">
+          <form id="atlas-search" phx-change="search" phx-submit="search" role="search">
             <label class="sr-only" for="atlas-search-input">Search Atlas entries</label><input
               id="atlas-search-input"
               type="search"

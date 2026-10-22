@@ -24,7 +24,7 @@ defmodule ScripguessrWeb.AtlasLiveTest do
   test "search distinguishes namesakes; selections highlight speech and overlapping chapters" do
     {:ok, view, _} = live(build_conn(), "/atlas")
     render_async(view)
-    view |> form("#atlas-search", q: "Nephi") |> render_change()
+    view |> form("#atlas-search", q: "Nephi") |> render_submit()
     assert has_element?(view, ".atlas-entry", "Founder of the Nephite people.")
     assert has_element?(view, ".atlas-entry", "A later prophet descended from Nephi.")
     view |> element(".atlas-category-toggle[phx-value-category='Person']") |> render_click()
