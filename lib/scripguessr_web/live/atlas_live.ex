@@ -1,5 +1,8 @@
 defmodule ScripguessrWeb.AtlasLive do
   use ScripguessrWeb, :live_view
+  alias Scripguessr.SavedVerses
+  alias ScripguessrWeb.SavedVerseComponents
+  import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.Atlas.{Cache, Model}
   @max_layers 8
 
@@ -22,7 +25,8 @@ defmodule ScripguessrWeb.AtlasLive do
        drawer: false,
        chapter: nil,
        reader: nil,
-       reader_error: nil
+       reader_error: nil,
+       saved_verses: SavedVerses.keys(socket.assigns.current_user)
      )}
   end
 
@@ -108,6 +112,18 @@ defmodule ScripguessrWeb.AtlasLive do
 
       chapter ->
         {:noreply, socket |> assign(drawer: false) |> navigate(socket.assigns.selected, chapter)}
+    end
+  end
+
+  def handle_event("save-verse", %{"verse" => value}, socket) when is_binary(value) do
+    with {number, ""} when number > 0 <- Integer.parse(value),
+         {book, chapter} <- socket.assigns.chapter,
+         verses when is_list(verses) <- socket.assigns.reader,
+         verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
+      verse = Map.merge(verse, %{"book" => book, "chapter" => chapter})
+      {:noreply, SavedVerseComponents.toggle(socket, verse, socket.assigns.catalog.release)}
+    else
+      _ -> {:noreply, socket}
     end
   end
 

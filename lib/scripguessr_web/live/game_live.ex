@@ -1,5 +1,8 @@
 defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
+  alias Scripguessr.SavedVerses
+  alias ScripguessrWeb.SavedVerseComponents
+  import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Games, Progression}
   import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
@@ -20,7 +23,8 @@ defmodule ScripguessrWeb.GameLive do
        reader: nil,
        reader_error: nil,
        progress: nil,
-       reward: nil
+       reward: nil,
+       saved_verses: SavedVerses.keys(socket.assigns.current_user)
      )}
   end
 
@@ -136,6 +140,32 @@ defmodule ScripguessrWeb.GameLive do
     with {index, ""} when index >= 0 <- Integer.parse(index),
          %{"guess" => guess} = round when not is_nil(guess) <- Enum.at(snapshot["rounds"], index) do
       {:noreply, load_chapter(socket, round)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("save-verse", %{"source" => "round", "index" => value}, socket)
+      when is_binary(value) do
+    with {index, ""} when index >= 0 <- Integer.parse(value),
+         %{snapshot: snapshot} <- socket.assigns.game,
+         %{"guess" => guess} = verse when not is_nil(guess) <- Enum.at(snapshot["rounds"], index) do
+      {:noreply, SavedVerseComponents.toggle(socket, verse, snapshot["release"])}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("save-verse", %{"source" => "reader", "verse" => value}, socket)
+      when is_binary(value) do
+    with {number, ""} when number > 0 <- Integer.parse(value),
+         reading when not is_nil(reading) <- socket.assigns.reading,
+         verses when is_list(verses) <- socket.assigns.reader,
+         verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
+      verse = Map.merge(verse, Map.take(reading, ["book", "chapter"]))
+
+      {:noreply,
+       SavedVerseComponents.toggle(socket, verse, socket.assigns.game.snapshot["release"])}
     else
       _ -> {:noreply, socket}
     end

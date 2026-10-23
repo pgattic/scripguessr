@@ -254,9 +254,18 @@
             Enum.map_join(Model.verse_hits(@chapter_hits, verse["verse"]), ", ", & &1.entry.name)
           }
         >
-          <sup>{verse["verse"]}</sup><span>{verse[
-            "text"
-          ]}</span>
+          <sup>{verse["verse"]}</sup><span>
+            {verse[
+              "text"
+            ]}
+          </span>
+          <.save_button
+            verse={
+              Map.merge(verse, %{"book" => elem(@chapter, 0), "chapter" => elem(@chapter, 1)})
+            }
+            saved={@saved_verses}
+            user={@current_user}
+          />
           <span class="atlas-verse-bands" aria-hidden="true"><b
             :for={hit <- Model.verse_hits(@chapter_hits, verse["verse"])}
             style={swatch(hit.entry)}

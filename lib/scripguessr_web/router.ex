@@ -32,6 +32,7 @@ defmodule ScripguessrWeb.Router do
       live "/", GameLive, :home
       live "/game/:id", GameLive, :game
       live "/atlas", AtlasLive, :index
+      live "/saved-verses", SavedVersesLive, :index
     end
   end
 end

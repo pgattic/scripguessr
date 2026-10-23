@@ -147,3 +147,8 @@ Scripture data is provided by [Standard Works Corpus](https://standardworkscorpu
 licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 Preserve its [source credits](https://github.com/mikaelweiss/standard-works-corpus/blob/main/CREDITS.md)
 when redistributing data. Attribution and credits are linked in the application.
+
+Signed-in readers can save verses from revealed game answers or chapter readers.
+**Saved verses** in the navigation lists them newest first, with links to read each
+chapter in the Atlas. Saves are private and retain their corpus text and release
+so they remain readable during API outages.

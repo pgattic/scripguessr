@@ -136,6 +136,13 @@
           phx-click="read-chapter"
           phx-value-round={@snapshot["current"]}
         >Read chapter</button>
+        <.save_button
+          verse={@round}
+          saved={@saved_verses}
+          user={@current_user}
+          source="round"
+          index={@snapshot["current"]}
+        />
         <button
           id="next-round"
           class="button full-width"
@@ -190,6 +197,13 @@
           phx-click="read-chapter"
           phx-value-round={index}
         >Read chapter</button>
+        <.save_button
+          verse={round}
+          saved={@saved_verses}
+          user={@current_user}
+          source="round"
+          index={index}
+        />
       </div>
       <strong>{round["guess"]["points"]}<small>pts</small></strong>
     </article>
@@ -250,6 +264,11 @@
           aria-current={if verse["verse"] == @reading["verse"], do: "true"}
         >
           <sup>{verse["verse"]}</sup><span>{verse["text"]}</span>
+          <.save_button
+            verse={Map.merge(verse, Map.take(@reading, ["book", "chapter"]))}
+            saved={@saved_verses}
+            user={@current_user}
+          />
         </p>
       </article>
     </div>

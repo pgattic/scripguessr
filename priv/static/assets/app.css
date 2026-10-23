@@ -814,3 +814,21 @@ footer {
 .atlas-reading-heading p { font-family: Georgia,'Times New Roman',serif; font-size: 1rem; margin: 10px 0 0; }
 .atlas-reading-heading.matched { background: var(--accent-soft); }
 .atlas-layers-panel { background: var(--raised); }
+
+/* Saved verses */
+.saved-page { max-width: 780px; margin: 0 auto; }
+.saved-list { display: grid; gap: 16px; }
+.saved-card, .saved-empty { padding: 24px; }
+.saved-card-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.saved-card-heading > a { font-weight: 700; }
+.saved-text { font-family: Georgia, serif; font-size: 1.15rem; line-height: 1.75; margin-bottom: 0; }
+.save-verse { font: .8rem/1.5 system-ui, sans-serif; margin: 8px 0; }
+.atlas-reading-verse:has(.reader-save-verse) { grid-template-columns: 22px minmax(0,1fr) 4px 30px; }
+.atlas-reading-verse:has(.reader-save-verse) > .atlas-verse-bands { grid-column: 3; grid-row: 1; }
+.reader-save-verse { grid-column: 4; grid-row: 1; align-self: start; display: flex; justify-content: center; padding: 6px; margin: 0; border-radius: 4px; }
+.reader-save-verse:hover, .reader-save-verse:focus-visible { background: var(--accent-soft); }
+.save-verse[aria-pressed="true"] { color: var(--accent); }
+@media (max-width: 600px) {
+  .site-header { flex-wrap: wrap; gap: 16px; }
+  .site-nav { flex-wrap: wrap; gap: 16px; }
+}
