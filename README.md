@@ -66,6 +66,8 @@ hash. Do not commit build outputs or corpus payloads.
 - `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
 - `ScripguessrWeb.GameLive` renders the game and final summary.
+- `Scripguessr.Progression` stores one XP reward per completed account game and
+  derives lifetime XP and level progress from those rewards.
 - `Scripguessr.Accounts` manages username/password accounts, private recovery
   codes, and expiring, revocable sessions.
 
@@ -105,6 +107,13 @@ Sessions last 30 days. Development and production use the same account flow,
 without an email provider or development mailbox. Deployment requires only the
 application secret described in [DEPLOYING.md](DEPLOYING.md). Authentication
 behavior and limits are described in [ACCOUNTS.md](ACCOUNTS.md).
+
+Completed games earn **100 XP plus an accuracy bonus of up to 100 XP** (one XP
+per 50 game points). Account and results pages show your level and progress to
+the next one. Level 2 starts at 500 XP, level 3 at 1,500 XP, and level 4 at
+3,000 XP; each level takes 500 more XP than the previous one. Existing completed
+account games count, and completed anonymous games earn their XP when attached
+to an account. Refreshing, resuming, or attaching again never awards extra XP.
 
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
 navigation. Search for topics, people, places, and other corpus entries, select

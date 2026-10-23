@@ -1,5 +1,6 @@
 defmodule ScripguessrWeb.AccountHTML do
   use ScripguessrWeb, :html
+  import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
   defp form_action(:sign_in), do: "/account/sign-in"
   defp form_action(:register), do: "/account/register"

@@ -1,6 +1,6 @@
 defmodule Scripguessr.Games do
   import Ecto.Query
-  alias Scripguessr.{Repo, Corpus.Cache}
+  alias Scripguessr.{Repo, Corpus.Cache, Progression}
   alias Scripguessr.Games.{Game, Rules}
 
   def create(owner, user_id \\ nil) when is_binary(owner) do
@@ -34,7 +34,9 @@ defmodule Scripguessr.Games do
           game ->
             case update.(game.snapshot) do
               {:ok, snapshot} ->
-                game |> Ecto.Changeset.change(snapshot: snapshot) |> Repo.update!()
+                game = game |> Ecto.Changeset.change(snapshot: snapshot) |> Repo.update!()
+                Progression.award(game)
+                game
 
               {:error, reason} ->
                 Repo.rollback(reason)
@@ -60,8 +62,17 @@ defmodule Scripguessr.Games do
     do: Repo.aggregate(unclaimed(owner), :count)
 
   def claim(owner, user_id) when is_binary(user_id) do
-    # A single conditional UPDATE prevents two accounts claiming the same game.
-    {count, _} = Repo.update_all(unclaimed(owner), set: [user_id: user_id])
+    {:ok, count} =
+      Repo.transaction(fn ->
+        # Claim and credit completed games in the same transaction. Concurrent claims
+        # recheck the null owner, and the reward primary key prevents duplicate XP.
+        {count, games} =
+          Repo.update_all(from(g in unclaimed(owner), select: g), set: [user_id: user_id])
+
+        Enum.each(games, &Progression.award/1)
+        count
+      end)
+
     count
   end
 

@@ -523,7 +523,22 @@ footer {
 .history-pages { display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px; }
 .history-pages a { text-decoration: none; }
 .account-flash { max-width: 850px; margin: 0 auto 20px; padding: 16px 22px; }
+.xp-account { padding: 22px; margin-bottom: 24px; }
+.xp-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
+.xp-heading strong { font-size: 1.2rem; }
+.xp-heading .muted, .xp-next, .xp-breakdown, .xp-help { font-size: .8rem; }
+.xp-track { height: 9px; border: 1px solid var(--border-soft); background: var(--raised); border-radius: 999px; overflow: hidden; }
+.xp-track span { display: block; height: 100%; background: var(--accent); border-radius: inherit; }
+.xp-next { margin: 10px 0 0; }
+.xp-help { margin-top: 16px; }
+.xp-help summary { cursor: pointer; }
+.xp-help p { margin-bottom: 0; line-height: 1.6; }
+.xp-summary { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; padding: 24px; margin-bottom: 24px; }
+.xp-earned { font-size: 1.5rem; color: var(--accent); }
+.xp-breakdown { margin: 8px 0 0; }
+.xp-summary .text-button { display: inline-block; margin-top: 12px; }
 @media (max-width: 600px) {
+  .xp-summary { grid-template-columns: 1fr; padding: 20px; gap: 20px; }
   .account-card { padding: 22px; }
   .account-claim { flex-direction: column; align-items: stretch; }
   .account-claim button { width: 100%; }

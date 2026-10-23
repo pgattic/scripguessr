@@ -157,6 +157,27 @@
   <div class="final-score panel">
     <strong>{Rules.total(@snapshot)}</strong><span>/ 5,000</span>
   </div>
+  <div :if={@reward || @xp_reward} id="game-xp-reward" class="panel xp-summary">
+    <div>
+      <strong class="xp-earned">
+        {if @reward, do: "+", else: ""}{Progression.Rules.total_reward(@reward || @xp_reward)} XP{if !@reward,
+          do: " available"}
+      </strong>
+      <p class="muted xp-breakdown">
+        {(@reward || @xp_reward).completion_xp} completion · {(@reward || @xp_reward).accuracy_xp} accuracy
+      </p>
+      <a
+        :if={!@reward}
+        href={if @current_user, do: "/account", else: "/account/register"}
+        class="text-button"
+      >
+        {if @current_user,
+          do: "Save this game’s XP to your account →",
+          else: "Create an account to save your XP →"}
+      </a>
+    </div>
+    <.level_progress :if={@reward && @progress} id="game-xp-progress" progress={@progress} />
+  </div>
   <div class="round-list">
     <article :for={{round, index} <- Enum.with_index(@snapshot["rounds"])} class="panel">
       <span class="round-number">{index + 1}</span>

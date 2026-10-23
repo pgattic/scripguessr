@@ -57,6 +57,30 @@ The single account migration creates only the current username/password schema.
 Disposable development databases that applied earlier account migrations need to
 be recreated to receive the consolidated schema.
 
+## XP and levels
+
+A completed five-round game earns 100 completion XP plus one accuracy XP per
+50 score points, rounded down: 100–200 XP in total. Unfinished games earn no XP.
+Accounts start at level 1 with zero XP. Reaching level `L` requires
+`250 × L × (L − 1)` total XP: level 2 at 500, level 3 at 1,500, and level 4 at
+3,000. Each successive level costs 500 more XP than the preceding level. Levels
+reflect accumulated play and are separate from any future competitive rating.
+
+The `game_rewards` table has the game ID as its primary key, enforcing a single
+reward per game. Completion and its award commit together. Claiming anonymous
+games and their completed-game rewards also commit together. Concurrent claims
+cannot transfer an already-owned game or credit it to two accounts. Total XP is
+the sum of stored reward amounts; there is no separate mutable account counter.
+Award amounts are immutable, so later reward tuning does not rewrite earned XP.
+
+Previously completed account games without an award are credited when their
+owner next views account or completed-game progression. Missing awards are
+processed in a stable order, and duplicate insertions are ignored. Anonymous
+results show XP as available to save until the game is attached to an account.
+
+The existing account migration includes reward storage. The local development
+database has been updated in place; fresh installs create it automatically.
+
 ## Limits and deployment
 
 Registration, sign-in, and recovery share a bounded per-node limiter allowing ten

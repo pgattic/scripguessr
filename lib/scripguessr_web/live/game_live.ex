@@ -1,6 +1,7 @@
 defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
-  alias Scripguessr.Games
+  alias Scripguessr.{Games, Progression}
+  import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
 
   @impl true
@@ -17,7 +18,9 @@ defmodule ScripguessrWeb.GameLive do
        step: :book,
        reading: nil,
        reader: nil,
-       reader_error: nil
+       reader_error: nil,
+       progress: nil,
+       reward: nil
      )}
   end
 
@@ -28,14 +31,16 @@ defmodule ScripguessrWeb.GameLive do
         case Games.fetch(id, socket.assigns.owner, user_id(socket)) do
           {:ok, game} ->
             {:noreply,
-             assign(socket,
+             socket
+             |> assign(
                game: game,
                unavailable: false,
                error: nil,
                book: "",
                chapter: "",
                step: :book
-             )}
+             )
+             |> assign_progress(game)}
 
           {:error, _} ->
             {:noreply, assign(socket, game: nil, unavailable: true)}
@@ -191,7 +196,10 @@ defmodule ScripguessrWeb.GameLive do
   defp update(socket, {:ok, game}),
     do:
       {:noreply,
-       assign(close_reader(socket), game: game, book: "", chapter: "", step: :book, error: nil)}
+       socket
+       |> close_reader()
+       |> assign(game: game, book: "", chapter: "", step: :book, error: nil)
+       |> assign_progress(game)}
 
   defp update(socket, {:error, :invalid_guess}),
     do: {:noreply, assign(socket, error: "Choose a valid book and chapter.")}
@@ -200,13 +208,24 @@ defmodule ScripguessrWeb.GameLive do
     case Games.fetch(socket.assigns.game.id, socket.assigns.owner, user_id(socket)) do
       {:ok, game} ->
         {:noreply,
-         assign(socket,
+         socket
+         |> assign(
            game: game,
            error: "This round changed in another tab. Your saved progress is shown below."
-         )}
+         )
+         |> assign_progress(game)}
 
       _ ->
         {:noreply, assign(socket, game: nil, unavailable: true)}
+    end
+  end
+
+  defp assign_progress(socket, game) do
+    if game.snapshot["finished"] and socket.assigns.current_user do
+      progress = Progression.for_user(socket.assigns.current_user.id)
+      assign(socket, progress: progress, reward: Progression.for_game(game.id))
+    else
+      assign(socket, progress: nil, reward: nil)
     end
   end
 
@@ -235,6 +254,7 @@ defmodule ScripguessrWeb.GameLive do
     assigns =
       assign(assigns,
         snapshot: snapshot,
+        xp_reward: Progression.Rules.reward(snapshot),
         round: if(snapshot, do: Enum.at(snapshot["rounds"], snapshot["current"]))
       )
 

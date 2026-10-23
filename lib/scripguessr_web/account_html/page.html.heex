@@ -96,6 +96,15 @@
       <button class="crumb">Sign out</button>
     </.form>
   </div>
+  <div class="panel xp-account">
+    <.level_progress id="account-xp" progress={@progress} />
+    <details class="xp-help muted">
+      <summary>How XP works</summary>
+      <p>
+        100 XP for finishing a game, plus up to 100 XP for accuracy. Completed games count once.
+      </p>
+    </details>
+  </div>
   <div :if={@unclaimed > 0} class="panel account-claim">
     <div>
       <h2>Keep this browser’s games</h2>

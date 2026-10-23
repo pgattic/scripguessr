@@ -190,6 +190,14 @@ belong to the signed-in account. Anonymous play remains available. Accounts requ
 no email delivery service. Legacy Rust data migration is not a release requirement;
 see [ACCOUNTS.md](ACCOUNTS.md) for the implemented boundaries and access model.
 
+## XP and levels milestone
+
+The XP milestone adds 100 completion XP plus up to 100 accuracy XP per finished
+game, account levels with increasing thresholds, progress on account and result
+pages, and a single stored award per game. Existing completed account games and
+claimed anonymous games count. XP is separate from competitive rankings; daily
+challenges, leaderboards, and multiplayer remain future work.
+
 ## Lessons to retain
 
 - Prefer a single documented Nix workflow over manually coordinated toolchains.

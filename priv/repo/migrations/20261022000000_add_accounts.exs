@@ -31,5 +31,21 @@ defmodule Scripguessr.Repo.Migrations.AddAccounts do
     end
 
     create index(:games, [:user_id, :inserted_at])
+
+    create table(:game_rewards, primary_key: false) do
+      add :game_id, references(:games, type: :binary_id, on_delete: :delete_all),
+        primary_key: true
+
+      add :user_id, references(:users, type: :binary_id, on_delete: :delete_all), null: false
+      add :completion_xp, :integer, null: false
+      add :accuracy_xp, :integer, null: false
+      timestamps(type: :utc_datetime_usec, updated_at: false)
+    end
+
+    create index(:game_rewards, [:user_id])
+
+    create constraint(:game_rewards, :nonnegative_xp,
+             check: "completion_xp >= 0 AND accuracy_xp >= 0"
+           )
   end
 end
