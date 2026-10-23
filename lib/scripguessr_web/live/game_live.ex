@@ -1,7 +1,6 @@
 defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
   alias Scripguessr.SavedVerses
-  alias ScripguessrWeb.SavedVerseComponents
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Games, Progression}
   import ScripguessrWeb.ProgressionComponents
@@ -24,7 +23,8 @@ defmodule ScripguessrWeb.GameLive do
        reader_error: nil,
        progress: nil,
        reward: nil,
-       saved_verses: SavedVerses.keys(socket.assigns.current_user)
+       saved_verses: SavedVerses.keys(socket.assigns.current_user),
+       save_error: nil
      )}
   end
 
@@ -150,7 +150,7 @@ defmodule ScripguessrWeb.GameLive do
     with {index, ""} when index >= 0 <- Integer.parse(value),
          %{snapshot: snapshot} <- socket.assigns.game,
          %{"guess" => guess} = verse when not is_nil(guess) <- Enum.at(snapshot["rounds"], index) do
-      {:noreply, SavedVerseComponents.toggle(socket, verse, snapshot["release"])}
+      {:noreply, save_verse(socket, verse, snapshot["release"])}
     else
       _ -> {:noreply, socket}
     end
@@ -164,8 +164,7 @@ defmodule ScripguessrWeb.GameLive do
          verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
       verse = Map.merge(verse, Map.take(reading, ["book", "chapter"]))
 
-      {:noreply,
-       SavedVerseComponents.toggle(socket, verse, socket.assigns.game.snapshot["release"])}
+      {:noreply, save_verse(socket, verse, socket.assigns.game.snapshot["release"])}
     else
       _ -> {:noreply, socket}
     end
@@ -276,6 +275,32 @@ defmodule ScripguessrWeb.GameLive do
   defp distance_label(0), do: "Exact chapter"
   defp distance_label(1), do: "Off by 1 chapter"
   defp distance_label(n), do: "Off by #{n} chapters"
+
+  defp save_verse(socket, verse, release) do
+    if user = socket.assigns.current_user do
+      key = SavedVerses.key(verse)
+      saved? = !MapSet.member?(socket.assigns.saved_verses, key)
+
+      case SavedVerses.set_saved(user.id, verse, release, saved?) do
+        {:ok, true} ->
+          assign(socket,
+            saved_verses: MapSet.put(socket.assigns.saved_verses, key),
+            save_error: nil
+          )
+
+        {:ok, false} ->
+          assign(socket,
+            saved_verses: MapSet.delete(socket.assigns.saved_verses, key),
+            save_error: nil
+          )
+
+        {:error, _} ->
+          assign(socket, :save_error, "Couldn’t update this saved verse. Please try again.")
+      end
+    else
+      socket
+    end
+  end
 
   @impl true
   def render(assigns) do

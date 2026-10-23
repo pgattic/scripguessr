@@ -205,6 +205,7 @@
       </div>
     </header>
     <div class="atlas-reader-scroll">
+      <p :if={@save_error} role="alert" class="error">{@save_error}</p>
       <div :if={@chapter_hits != []} id="atlas-evidence" class="atlas-evidence">
         <details :for={hit <- @chapter_hits} class="atlas-evidence-entry" open>
           <summary>

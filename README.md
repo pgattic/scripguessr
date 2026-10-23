@@ -111,8 +111,8 @@ behavior and limits are described in [ACCOUNTS.md](ACCOUNTS.md).
 Completed games earn **100 XP plus an accuracy bonus of up to 100 XP** (one XP
 per 50 game points). Account and results pages show your level and progress to
 the next one. Level 2 starts at 500 XP, level 3 at 1,500 XP, and level 4 at
-3,000 XP; each level takes 500 more XP than the previous one. Existing completed
-account games count, and completed anonymous games earn their XP when attached
+3,000 XP; each level takes 500 more XP than the previous one. Completed anonymous
+games earn their XP when attached
 to an account. Refreshing, resuming, or attaching again never awards extra XP.
 
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
@@ -149,6 +149,6 @@ Preserve its [source credits](https://github.com/mikaelweiss/standard-works-corp
 when redistributing data. Attribution and credits are linked in the application.
 
 Signed-in readers can save verses from revealed game answers or chapter readers.
-**Saved verses** in the navigation lists them newest first, with links to read each
+**Saved verses** in the navigation lists them newest first in pages of 20, with links to read each
 chapter in the Atlas. Saves are private and retain their corpus text and release
 so they remain readable during API outages.

@@ -53,10 +53,6 @@ All account mutations use CSRF-protected POST requests. Pages use
 `Cache-Control: no-store` and `Referrer-Policy: no-referrer`. Passwords, password
 confirmations, recovery codes, and tokens are filtered from Phoenix parameter logs.
 
-The single account migration creates only the current username/password schema.
-Disposable development databases that applied earlier account migrations need to
-be recreated to receive the consolidated schema.
-
 ## XP and levels
 
 A completed five-round game earns 100 completion XP plus one accuracy XP per
@@ -73,13 +69,16 @@ cannot transfer an already-owned game or credit it to two accounts. Total XP is
 the sum of stored reward amounts; there is no separate mutable account counter.
 Award amounts are immutable, so later reward tuning does not rewrite earned XP.
 
-Previously completed account games without an award are credited when their
-owner next views account or completed-game progression. Missing awards are
-processed in a stable order, and duplicate insertions are ignored. Anonymous
-results show XP as available to save until the game is attached to an account.
+Progression reads only aggregate stored rewards; they never create awards or scan
+game snapshots. Anonymous results show XP as available to save until the game is
+attached to an account.
 
-The existing account migration includes reward storage. The local development
-database has been updated in place; fresh installs create it automatically.
+## Saved verses
+
+Saved verses are private to their account. Each edition/book/chapter/verse can be
+saved once. The stored text and corpus release preserve the passage independently
+of API availability. The list uses pages of 20, newest first; bookmark state loads
+only references and updates the changed reference after each successful action.
 
 ## Limits and deployment
 

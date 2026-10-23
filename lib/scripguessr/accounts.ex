@@ -63,7 +63,7 @@ defmodule Scripguessr.Accounts do
         Repo.transaction(fn ->
           user = Repo.one!(from u in User, where: u.id == ^user.id, lock: "FOR UPDATE")
 
-          if is_nil(user.recovery_hash) or !Plug.Crypto.secure_compare(hash, user.recovery_hash),
+          if !Plug.Crypto.secure_compare(hash, user.recovery_hash),
             do: Repo.rollback(:invalid_recovery)
 
           password = Ecto.Changeset.get_change(changeset, :password)
@@ -105,7 +105,7 @@ defmodule Scripguessr.Accounts do
 
   def user_for_session(raw) do
     with {:ok, hash} <- token_hash(raw),
-         %User{hashed_password: password} = user when not is_nil(password) <-
+         %User{} = user <-
            Repo.one(
              from t in valid_tokens(hash, "session"),
                join: u in User,

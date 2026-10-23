@@ -42,22 +42,4 @@ defmodule ScripguessrWeb.SavedVerseComponents do
     <a :if={!@user && @source == "round"} class="text-button save-verse" href="/account/sign-in">Sign in to save</a>
     """
   end
-
-  def toggle(socket, verse, release) do
-    user = socket.assigns.current_user
-
-    if user && verse do
-      key = SavedVerses.key(verse)
-
-      if MapSet.member?(socket.assigns.saved_verses, key) do
-        :ok = SavedVerses.remove(user.id, key)
-      else
-        {:ok, _} = SavedVerses.save(user.id, verse, release)
-      end
-
-      assign(socket, :saved_verses, SavedVerses.keys(user))
-    else
-      socket
-    end
-  end
 end

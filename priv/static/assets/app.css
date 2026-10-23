@@ -832,3 +832,5 @@ footer {
   .site-header { flex-wrap: wrap; gap: 16px; }
   .site-nav { flex-wrap: wrap; gap: 16px; }
 }
+
+.saved-pagination { display: flex; justify-content: space-between; gap: 16px; margin-top: 24px; }

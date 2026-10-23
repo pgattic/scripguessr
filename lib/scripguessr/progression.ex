@@ -28,27 +28,12 @@ defmodule Scripguessr.Progression do
   def for_game(game_id), do: Repo.get(Reward, game_id)
 
   def for_user(user_id) do
-    {:ok, xp} =
-      Repo.transaction(fn ->
-        # Credit older completed games lazily. Reward amounts are stored once,
-        # so future tuning cannot silently rewrite already-earned XP.
-        missing =
-          from g in Game,
-            left_join: r in Reward,
-            on: r.game_id == g.id,
-            where: g.user_id == ^user_id and is_nil(r.game_id),
-            where: fragment("?->>'finished' = 'true'", g.snapshot),
-            order_by: g.id,
-            select: g
-
-        missing |> Repo.all() |> Enum.each(&award/1)
-
-        Repo.one(
-          from r in Reward,
-            where: r.user_id == ^user_id,
-            select: coalesce(sum(r.completion_xp + r.accuracy_xp), 0)
-        )
-      end)
+    xp =
+      Repo.one(
+        from r in Reward,
+          where: r.user_id == ^user_id,
+          select: coalesce(sum(r.completion_xp + r.accuracy_xp), 0)
+      )
 
     Rules.progress(xp)
   end

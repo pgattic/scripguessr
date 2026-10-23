@@ -67,15 +67,15 @@ defmodule Scripguessr.ProgressionTest do
     assert progress.remaining == 900
   end
 
-  test "existing completed games are credited on first viewing progression" do
+  test "reading progression does not create or repair rewards" do
     {user, _} = account("reader")
-    {:ok, anonymous} = Games.create("guest")
-    finished = finish_game(anonymous, "guest")
-    # Simulates a completed account game saved before XP was introduced.
-    finished |> Ecto.Changeset.change(user_id: user.id) |> Repo.update!()
-    refute Progression.for_game(finished.id)
-    assert Progression.for_user(user.id).xp == 200
-    assert Progression.for_user(user.id).xp == 200
-    assert Repo.aggregate(Reward, :count) == 1
+    {:ok, game} = Games.create("owner", user.id)
+    finish_game(game, "owner", user.id)
+    reward = Progression.for_game(game.id)
+    Repo.delete!(reward)
+
+    assert Progression.for_user(user.id).xp == 0
+    refute Progression.for_game(game.id)
+    assert Repo.aggregate(Reward, :count) == 0
   end
 end

@@ -1,7 +1,6 @@
 defmodule ScripguessrWeb.AtlasLive do
   use ScripguessrWeb, :live_view
   alias Scripguessr.SavedVerses
-  alias ScripguessrWeb.SavedVerseComponents
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.Atlas.{Cache, Model}
   @max_layers 8
@@ -26,7 +25,8 @@ defmodule ScripguessrWeb.AtlasLive do
        chapter: nil,
        reader: nil,
        reader_error: nil,
-       saved_verses: SavedVerses.keys(socket.assigns.current_user)
+       saved_verses: SavedVerses.keys(socket.assigns.current_user),
+       save_error: nil
      )}
   end
 
@@ -121,7 +121,7 @@ defmodule ScripguessrWeb.AtlasLive do
          verses when is_list(verses) <- socket.assigns.reader,
          verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
       verse = Map.merge(verse, %{"book" => book, "chapter" => chapter})
-      {:noreply, SavedVerseComponents.toggle(socket, verse, socket.assigns.catalog.release)}
+      {:noreply, save_verse(socket, verse, socket.assigns.catalog.release)}
     else
       _ -> {:noreply, socket}
     end
@@ -317,6 +317,32 @@ defmodule ScripguessrWeb.AtlasLive do
         {0, last} -> "heading–#{last}"
         {first, last} -> "#{first}–#{last}"
       end)
+
+  defp save_verse(socket, verse, release) do
+    if user = socket.assigns.current_user do
+      key = SavedVerses.key(verse)
+      saved? = !MapSet.member?(socket.assigns.saved_verses, key)
+
+      case SavedVerses.set_saved(user.id, verse, release, saved?) do
+        {:ok, true} ->
+          assign(socket,
+            saved_verses: MapSet.put(socket.assigns.saved_verses, key),
+            save_error: nil
+          )
+
+        {:ok, false} ->
+          assign(socket,
+            saved_verses: MapSet.delete(socket.assigns.saved_verses, key),
+            save_error: nil
+          )
+
+        {:error, _} ->
+          assign(socket, :save_error, "Couldn’t update this saved verse. Please try again.")
+      end
+    else
+      socket
+    end
+  end
 
   @impl true
   def render(assigns) do
