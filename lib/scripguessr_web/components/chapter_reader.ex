@@ -17,6 +17,14 @@ defmodule ScripguessrWeb.ChapterReader do
   slot :error_actions
 
   def chapter_reader(assigns) do
+    lanes =
+      assigns.marks
+      |> Enum.flat_map(fn {number, marks} -> if number > 0, do: marks, else: [] end)
+      |> Enum.uniq_by(& &1.key)
+      |> Enum.sort_by(& &1.key)
+
+    assigns = assign(assigns, :lanes, lanes)
+
     ~H"""
     <div
       :if={@chapter}
@@ -66,7 +74,12 @@ defmodule ScripguessrWeb.ChapterReader do
             {@error} <button class="text-button" phx-click={@retry_event}>Retry</button>
             {render_slot(@error_actions)}
           </div>
-          <article :if={@verses} class="atlas-reading" aria-label="Chapter text">
+          <article
+            :if={@verses}
+            class="atlas-reading"
+            aria-label="Chapter text"
+            style={"--reader-band-width: #{max(4, length(@lanes) * 4 - 1)}px"}
+          >
             <details
               :for={verse <- @verses}
               :if={verse["verse"] == 0}
@@ -80,7 +93,11 @@ defmodule ScripguessrWeb.ChapterReader do
               :if={verse["verse"] > 0}
               class={[
                 "atlas-reading-verse",
-                (verse["verse"] == @target || Map.has_key?(@marks, verse["verse"])) && "matched"
+                highlighted?(@marks, @target, verse["verse"]) && "matched",
+                highlighted?(@marks, @target, verse["verse"]) &&
+                  highlighted?(@marks, @target, verse["verse"] - 1) && "highlight-joins-before",
+                highlighted?(@marks, @target, verse["verse"]) &&
+                  highlighted?(@marks, @target, verse["verse"] + 1) && "highlight-joins-after"
               ]}
               data-verse={verse["verse"]}
               aria-current={if verse["verse"] == @target, do: "true"}
@@ -94,10 +111,18 @@ defmodule ScripguessrWeb.ChapterReader do
                 saved={@saved}
                 user={@user}
               />
-              <span :if={map_size(@marks) > 0} class="atlas-verse-bands" aria-hidden="true">
+              <span :if={@lanes != []} class="atlas-verse-bands" aria-hidden="true">
                 <b
-                  :for={mark <- Map.get(@marks, verse["verse"], [])}
+                  :for={mark <- @lanes}
+                  class={[
+                    marked?(@marks, verse["verse"], mark.key) && "active",
+                    marked?(@marks, verse["verse"], mark.key) &&
+                      marked?(@marks, verse["verse"] - 1, mark.key) && "band-joins-before",
+                    marked?(@marks, verse["verse"], mark.key) &&
+                      marked?(@marks, verse["verse"] + 1, mark.key) && "band-joins-after"
+                  ]}
                   style={"--layer-color: #{mark.color}"}
+                  data-layer={mark.key}
                 ></b>
               </span>
             </p>
@@ -107,4 +132,10 @@ defmodule ScripguessrWeb.ChapterReader do
     </div>
     """
   end
+
+  defp highlighted?(marks, target, number),
+    do: number > 0 && (number == target || Map.has_key?(marks, number))
+
+  defp marked?(marks, number, key),
+    do: number > 0 && Enum.any?(Map.get(marks, number, []), &(&1.key == key))
 end

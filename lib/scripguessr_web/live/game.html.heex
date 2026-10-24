@@ -80,12 +80,16 @@
       <nav :if={@book != "" && !@round["guess"]} class="breadcrumbs" aria-label="Your guess">
         <button
           id="edit-book"
-          class={if @step == :chapter, do: "crumb current", else: "crumb"}
+          class={
+            if @step == :chapter || single_chapter?(@snapshot, @book),
+              do: "crumb current",
+              else: "crumb"
+          }
           phx-click="edit-book"
         >{@book}</button>
-        <span :if={@chapter != ""} aria-hidden="true">/</span>
+        <span :if={@chapter != "" && !single_chapter?(@snapshot, @book)} aria-hidden="true">/</span>
         <button
-          :if={@chapter != ""}
+          :if={@chapter != "" && !single_chapter?(@snapshot, @book)}
           id="edit-chapter"
           class={if @step == :ready, do: "crumb current", else: "crumb"}
           phx-click="edit-chapter"
@@ -181,7 +185,7 @@
       phx-click="start"
       disabled={@preparing}
       phx-disable-with="Loading…"
-    >{if @preparing, do: "Loading…", else: "Play again"}<span aria-hidden="true">→</span></button>
+    >{if @preparing, do: "Loading…", else: "New game"}<span aria-hidden="true">→</span></button>
   </div>
   <p :if={@error} role="alert" class="error">{@error}</p>
   <div class="final-score panel">

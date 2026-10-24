@@ -381,7 +381,10 @@ defmodule ScripguessrWeb.AtlasLive do
           into: %{},
           do:
             {verse["verse"],
-             Enum.map(matches, &%{label: &1.entry.name, color: color(&1.entry.key)})}
+             Enum.map(
+               matches,
+               &%{key: &1.entry.key, label: &1.entry.name, color: color(&1.entry.key)}
+             )}
 
     assigns =
       assign(assigns,

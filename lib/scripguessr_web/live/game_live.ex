@@ -77,7 +77,14 @@ defmodule ScripguessrWeb.GameLive do
 
   def handle_event("choose-book", %{"book" => book}, socket) do
     if editable?(socket) and book in books(socket.assigns.game.snapshot) do
-      {:noreply, assign(socket, book: book, chapter: "", step: :chapter, error: nil)}
+      case chapters(socket.assigns.game.snapshot, book) do
+        [chapter] ->
+          {:noreply,
+           assign(socket, book: book, chapter: to_string(chapter), step: :ready, error: nil)}
+
+        _ ->
+          {:noreply, assign(socket, book: book, chapter: "", step: :chapter, error: nil)}
+      end
     else
       {:noreply, socket}
     end
@@ -96,9 +103,16 @@ defmodule ScripguessrWeb.GameLive do
   end
 
   def handle_event("edit-book", _, socket) do
-    if editable?(socket) and socket.assigns.book != "",
-      do: {:noreply, assign(socket, step: :chapter)},
-      else: {:noreply, socket}
+    if editable?(socket) and socket.assigns.book != "" do
+      step =
+        if single_chapter?(socket.assigns.game.snapshot, socket.assigns.book),
+          do: :ready,
+          else: :chapter
+
+      {:noreply, assign(socket, step: step)}
+    else
+      {:noreply, socket}
+    end
   end
 
   def handle_event("edit-chapter", _, socket) do
@@ -277,6 +291,8 @@ defmodule ScripguessrWeb.GameLive do
 
   defp chapters(snapshot, book),
     do: snapshot["chapters"] |> Enum.filter(&(&1["book"] == book)) |> Enum.map(& &1["chapter"])
+
+  defp single_chapter?(snapshot, book), do: match?([_], chapters(snapshot, book))
 
   defp editable?(%{assigns: %{game: %{snapshot: snapshot}}}) do
     !snapshot["finished"] and is_nil(Enum.at(snapshot["rounds"], snapshot["current"])["guess"])

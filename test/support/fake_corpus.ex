@@ -84,7 +84,7 @@ defmodule Scripguessr.Corpus.Fake do
 
       true ->
         chapters =
-          for {book, count} <- [{"1 Nephi", 22}, {"2 Nephi", 33}],
+          for {book, count} <- [{"1 Nephi", 22}, {"2 Nephi", 33}, {"Omni", 1}],
               chapter <- 1..count,
               do: %{"book" => book, "chapter" => chapter}
 

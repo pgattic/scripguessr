@@ -56,6 +56,29 @@ defmodule ScripguessrWeb.GameLiveTest do
     refute html =~ hd(game.snapshot["rounds"])["text"]
   end
 
+  test "single-chapter books skip chapter selection without submitting the guess" do
+    {:ok, game} = Scripguessr.Games.create("owner")
+    {:ok, view, _} = live(conn("owner"), "/game/#{game.id}")
+    view |> element("#book-grid button", "Omni") |> render_click()
+    assert has_element?(view, "#guess-form .ready", "Omni 1")
+    refute has_element?(view, "#chapter-grid")
+    refute has_element?(view, "#edit-chapter")
+    refute has_element?(view, "#answer-reveal")
+    view |> element("#edit-book") |> render_click()
+    assert has_element?(view, "#guess-form .ready", "Omni 1")
+    refute has_element?(view, "#chapter-grid")
+    view |> element("#clear-guess") |> render_click()
+    view |> element("#book-grid button", "2 Nephi") |> render_click()
+    assert has_element?(view, "#chapter-grid")
+    view |> element("#clear-guess") |> render_click()
+    view |> element("#book-grid button", "Omni") |> render_click()
+    view |> form("#guess-form") |> render_submit()
+    assert has_element?(view, "#answer-reveal", "Omni 1")
+    {:ok, saved} = Scripguessr.Games.fetch(game.id, "owner")
+    assert hd(saved.snapshot["rounds"])["guess"]["chapter"] == 1
+    assert hd(saved.snapshot["rounds"])["guess"]["book"] == "Omni"
+  end
+
   test "breadcrumbs let the player revise a selection before submitting" do
     {:ok, game} = Scripguessr.Games.create("owner")
     {:ok, view, _} = live(conn("owner"), "/game/#{game.id}")
