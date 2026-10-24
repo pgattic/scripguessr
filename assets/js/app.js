@@ -105,6 +105,49 @@ const AtlasFilters = {
     document.removeEventListener("keydown", this.onKey)
   }
 }
+// Native disclosures work on controller pages and LiveViews alike.
+document.addEventListener("click", event => {
+  document.querySelectorAll(".account-menu[open]").forEach(menu => {
+    if (!menu.contains(event.target)) menu.open = false
+  })
+})
+document.addEventListener("keydown", event => {
+  if (event.key !== "Escape") return
+  document.querySelectorAll(".account-menu[open]").forEach(menu => {
+    menu.open = false
+    menu.querySelector("summary").focus()
+    event.preventDefault()
+  })
+})
+
+const meterStates = new WeakMap()
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)")
+function animateMeters() {
+  document.querySelectorAll("[data-meter]").forEach(meter => {
+    const bar = meter.querySelector("[data-meter-fill]")
+    if (!bar) return
+    const value = Math.max(0, Math.min(100, Number(meter.dataset.meter) || 0))
+    const stage = meter.dataset.meterStage
+    const previous = meterStates.get(meter)
+    if (previous?.value === value && previous.stage === stage && previous.bar === bar) return
+    let from = previous?.stage === stage && previous.bar === bar ? previous.value : 0
+    if (previous?.animation?.playState === "running" && previous.stage === stage && previous.bar === bar) {
+      from = 100 * bar.getBoundingClientRect().width / Math.max(1, meter.clientWidth)
+    }
+    previous?.animation?.cancel()
+    const animation = reducedMotion.matches || from === value ? null : bar.animate(
+      [{width: `${from}%`}, {width: `${value}%`}],
+      {duration: 650, easing: "cubic-bezier(.2,.7,.2,1)"}
+    )
+    meterStates.set(meter, {value, stage, bar, animation})
+  })
+}
+reducedMotion.addEventListener("change", () => {
+  if (reducedMotion.matches) document.querySelectorAll("[data-meter]").forEach(meter => meterStates.get(meter)?.animation?.cancel())
+})
+document.addEventListener("phx:update", animateMeters)
+animateMeters()
+
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
   hooks: {PickerFocus, ChapterReader, AtlasFilters}

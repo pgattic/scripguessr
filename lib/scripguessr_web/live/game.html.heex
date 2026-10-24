@@ -7,18 +7,28 @@
 <section :if={!@game && !@unavailable} class="welcome">
   <div class="intro-copy">
     <span class="pill">Book of Mormon · 5 rounds</span>
-    <h1>How well do you<br />know the verses?</h1>
+    <h1>How well do you<br /> know the verses?</h1>
     <p class="lede">Read a verse. Guess its book and chapter.</p>
-    <button
-      id="start-game"
-      class="button"
-      phx-click="start"
-      disabled={@preparing}
-      phx-disable-with="Loading…"
-    >
-      {if @preparing, do: "Loading…", else: "Start game"}
-      <span aria-hidden="true">→</span>
-    </button>
+    <div class="welcome-actions">
+      <a :if={@resume_game} id="resume-game" class="button" href={"/game/#{@resume_game.id}"}>
+        Continue game <span aria-hidden="true">→</span>
+      </a>
+      <button
+        id="start-game"
+        class={if @resume_game, do: "button secondary", else: "button"}
+        phx-click="start"
+        disabled={@preparing}
+        phx-disable-with="Loading…"
+      >
+        {if @preparing, do: "Loading…", else: if(@resume_game, do: "New game", else: "Start game")}
+        <span aria-hidden="true">→</span>
+      </button>
+    </div>
+    <p :if={@resume_game} class="resume-hint muted">
+      Round {@resume_game.current + 1} of 5
+    </p>
+    <a href="/atlas" class="welcome-study text-button">Explore the Atlas
+    <span aria-hidden="true">↗</span></a>
     <p :if={@error} role="alert" class="error">{@error}</p>
   </div>
   <aside class="intro-art" aria-hidden="true">
@@ -120,8 +130,13 @@
         <p :if={@save_error} role="alert" class="error">{@save_error}</p>
         <p class="score">{@round["guess"]["points"]}<span> / 1,000</span></p>
         <p class="distance">{distance_label(@round["guess"]["distance"])}</p>
-        <div class="score-meter" aria-hidden="true">
-          <span style={"width: #{@round["guess"]["points"] / 10}%"}></span>
+        <div
+          class="score-meter"
+          aria-hidden="true"
+          data-meter={@round["guess"]["points"] / 10}
+          data-meter-stage={@snapshot["current"]}
+        >
+          <span data-meter-fill style={"width: #{@round["guess"]["points"] / 10}%"}></span>
         </div>
         <div class="result-grid">
           <div><span class="muted">Actual</span><strong>{reference(@round)}</strong></div>
@@ -160,8 +175,15 @@
   <div class="summary-heading">
     <div>
       <p class="eyebrow">5 rounds complete</p><h1>Final score</h1>
-    </div><a href="/" class="button">Play again <span aria-hidden="true">→</span></a>
+    </div><button
+      id="play-again"
+      class="button"
+      phx-click="start"
+      disabled={@preparing}
+      phx-disable-with="Loading…"
+    >{if @preparing, do: "Loading…", else: "Play again"}<span aria-hidden="true">→</span></button>
   </div>
+  <p :if={@error} role="alert" class="error">{@error}</p>
   <div class="final-score panel">
     <strong>{Rules.total(@snapshot)}</strong><span>/ 5,000</span>
   </div>

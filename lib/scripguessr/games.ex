@@ -58,6 +58,25 @@ defmodule Scripguessr.Games do
     |> Repo.all()
   end
 
+  def latest_unfinished(owner, user_id \\ nil) do
+    accessible =
+      if user_id do
+        from g in Game,
+          where:
+            g.user_id == ^user_id or (is_nil(g.user_id) and g.owner_hash == ^owner_hash(owner))
+      else
+        unclaimed(owner)
+      end
+
+    Repo.one(
+      from g in accessible,
+        where: fragment("?->>'finished' = 'false'", g.snapshot),
+        order_by: [desc: g.updated_at, desc: g.id],
+        limit: 1,
+        select: %{id: g.id, current: fragment("(?->>'current')::integer", g.snapshot)}
+    )
+  end
+
   def unclaimed_count(owner),
     do: Repo.aggregate(unclaimed(owner), :count)
 

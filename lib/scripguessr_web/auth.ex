@@ -1,7 +1,7 @@
 defmodule ScripguessrWeb.Auth do
   import Plug.Conn
   import Phoenix.Controller
-  alias Scripguessr.Accounts
+  alias Scripguessr.{Accounts, Progression}
 
   def init(opts), do: opts
 
@@ -14,8 +14,12 @@ defmodule ScripguessrWeb.Auth do
         conn
       end
 
+    user = Accounts.user_for_session(get_session(conn, :account_token))
+
     conn
-    |> assign(:current_user, Accounts.user_for_session(get_session(conn, :account_token)))
+    |> assign(:current_user, user)
+    |> assign(:current_progress, progress(user))
+    |> assign(:active_section, section(conn.request_path))
     |> put_resp_header("cache-control", "no-store")
     |> put_resp_header("referrer-policy", "no-referrer")
   end
@@ -38,6 +42,7 @@ defmodule ScripguessrWeb.Auth do
     |> put_session(:account_token, token)
     |> put_session(:live_socket_id, Accounts.session_topic(token))
     |> assign(:current_user, user)
+    |> assign(:current_progress, progress(user))
   end
 
   def log_out(conn) do
@@ -50,7 +55,18 @@ defmodule ScripguessrWeb.Auth do
   def on_mount(:current_user, _params, session, socket) do
     token = session["account_token"]
     user = Accounts.user_for_session(token)
-    socket = Phoenix.Component.assign(socket, :current_user, user)
+
+    socket =
+      Phoenix.Component.assign(socket,
+        current_user: user,
+        current_progress: progress(user),
+        active_section: nil
+      )
+
+    socket =
+      Phoenix.LiveView.attach_hook(socket, :navigation, :handle_params, fn _, uri, socket ->
+        {:cont, Phoenix.Component.assign(socket, :active_section, section(URI.parse(uri).path))}
+      end)
 
     # LiveViews can remain open past expiry or revocation. Recheck protected events,
     # including events submitted by a stale tab after another tab signs out.
@@ -69,4 +85,12 @@ defmodule ScripguessrWeb.Auth do
 
     {:cont, socket}
   end
+
+  defp progress(nil), do: nil
+  defp progress(user), do: Progression.for_user(user.id)
+  defp section("/"), do: :play
+  defp section("/game/" <> _), do: :play
+  defp section("/atlas"), do: :atlas
+  defp section("/saved-verses"), do: :saved
+  defp section(_), do: :account
 end

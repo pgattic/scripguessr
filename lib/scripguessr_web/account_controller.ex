@@ -1,7 +1,7 @@
 defmodule ScripguessrWeb.AccountController do
   use Phoenix.Controller, formats: [:html]
   import Plug.Conn
-  alias Scripguessr.{Accounts, Games, Progression}
+  alias Scripguessr.{Accounts, Games}
   alias ScripguessrWeb.Auth
 
   plug :require_user when action in [:show, :claim]
@@ -106,7 +106,7 @@ defmodule ScripguessrWeb.AccountController do
 
     page(conn,
       mode: :account,
-      progress: Progression.for_user(conn.assigns.current_user.id),
+      progress: conn.assigns.current_progress,
       games: Enum.take(games, 20),
       page_number: page_number,
       more: length(games) > 20,

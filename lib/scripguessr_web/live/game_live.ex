@@ -13,6 +13,7 @@ defmodule ScripguessrWeb.GameLive do
      assign(socket,
        owner: session["owner"],
        game: nil,
+       resume_game: nil,
        unavailable: false,
        preparing: false,
        error: nil,
@@ -52,7 +53,12 @@ defmodule ScripguessrWeb.GameLive do
         end
 
       _ ->
-        {:noreply, assign(socket, game: nil, unavailable: false)}
+        {:noreply,
+         assign(socket,
+           game: nil,
+           unavailable: false,
+           resume_game: Games.latest_unfinished(socket.assigns.owner, user_id(socket))
+         )}
     end
   end
 
@@ -253,7 +259,12 @@ defmodule ScripguessrWeb.GameLive do
   defp assign_progress(socket, game) do
     if game.snapshot["finished"] and socket.assigns.current_user do
       progress = Progression.for_user(socket.assigns.current_user.id)
-      assign(socket, progress: progress, reward: Progression.for_game(game.id))
+
+      assign(socket,
+        progress: progress,
+        current_progress: progress,
+        reward: Progression.for_game(game.id)
+      )
     else
       assign(socket, progress: nil, reward: nil)
     end

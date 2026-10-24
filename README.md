@@ -158,6 +158,13 @@ Preserve its [source credits](https://github.com/mikaelweiss/standard-works-corp
 when redistributing data. Attribution and credits are linked in the application.
 
 Signed-in readers can save verses from revealed game answers or chapter readers.
-**Saved verses** in the navigation lists them newest first in pages of 20, with links to read each
-chapter in the Atlas. Saves are private and retain their corpus text and release
+**Saved verses**, available from the account menu and the account-page tabs,
+lists them newest first in pages of 20, with links to read each chapter in the Atlas. Saves are private and retain their corpus text and release
 so they remain readable during API outages.
+
+The main navigation separates **Play** and **Atlas**. The account tag shows the
+username, level, and lifetime XP, and opens account, saved-verse, and sign-out
+actions. The landing page offers the most recently active unfinished game that
+the current browser or account can access. **Play again** starts directly from
+the results page. Bar fills and brief surface transitions respect the browser’s
+reduced-motion preference. The header and favicon use the same SVG asset.

@@ -21,6 +21,7 @@ defmodule ScripguessrWeb.ProgressionTest do
     {:ok, game} = Games.create("owner", user.id)
     {:ok, view, _} = live(browser("owner", token), "/game/#{game.id}")
     refute has_element?(view, "#game-xp-reward")
+    assert has_element?(view, "#user-tag", "400 XP")
 
     for round <- game.snapshot["rounds"] do
       view |> element("#book-grid button", round["book"]) |> render_click()
@@ -38,6 +39,8 @@ defmodule ScripguessrWeb.ProgressionTest do
     assert has_element?(view, "#game-xp-progress", "Level 2")
     assert has_element?(view, "#game-xp-progress", "600 XP total")
     assert has_element?(view, "#game-xp-progress", "900 XP to level 3")
+    assert has_element?(view, "#user-tag", "600 XP")
+    assert has_element?(view, "#user-tag", "Level 2")
 
     assert has_element?(
              view,

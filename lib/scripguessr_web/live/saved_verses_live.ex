@@ -1,5 +1,6 @@
 defmodule ScripguessrWeb.SavedVersesLive do
   use ScripguessrWeb, :live_view
+  import ScripguessrWeb.Layouts, only: [personal_nav: 1]
   alias Scripguessr.SavedVerses
 
   @impl true
@@ -46,6 +47,7 @@ defmodule ScripguessrWeb.SavedVersesLive do
     ~H"""
     <section class="saved-page">
       <h1>Saved verses</h1>
+      <.personal_nav active={:saved} />
       <div :if={@saved_page.entries == [] && @saved_page.number == 1} class="panel saved-empty">
         <p>No saved verses yet.</p>
         <p class="muted">Save a verse after a round or while reading a chapter.</p>

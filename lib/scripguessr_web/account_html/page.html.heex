@@ -92,10 +92,8 @@
     <div>
       <h1>Your account</h1><p class="muted">{@current_user.username}</p>
     </div>
-    <.form for={%{}} action="/account/sign-out" id="sign-out-form">
-      <button class="crumb">Sign out</button>
-    </.form>
   </div>
+  <.personal_nav active={:account} />
   <div class="panel xp-account">
     <.level_progress id="account-xp" progress={@progress} />
     <details class="xp-help muted">

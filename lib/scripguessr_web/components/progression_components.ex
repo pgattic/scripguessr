@@ -12,6 +12,8 @@ defmodule ScripguessrWeb.ProgressionComponents do
       </div>
       <div
         class="xp-track"
+        data-meter={@progress.percent}
+        data-meter-stage={@progress.level}
         role="progressbar"
         aria-label={"Progress toward level #{@progress.level + 1}"}
         aria-valuemin="0"
@@ -19,7 +21,7 @@ defmodule ScripguessrWeb.ProgressionComponents do
         aria-valuenow={@progress.earned}
         aria-valuetext={"#{@progress.earned} of #{@progress.needed} XP toward level #{@progress.level + 1}"}
       >
-        <span style={"width: #{@progress.percent}%"}></span>
+        <span data-meter-fill style={"width: #{@progress.percent}%"}></span>
       </div>
       <p class="muted xp-next">{@progress.remaining} XP to level {@progress.level + 1}</p>
     </div>
