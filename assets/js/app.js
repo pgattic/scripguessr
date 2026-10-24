@@ -186,6 +186,29 @@ const CopyText = {
   destroyed() { this.el.removeEventListener("click", this.copy) }
 }
 
+const MatchCountdown = {
+  mounted() {
+    this.sync()
+    this.timer = setInterval(() => this.renderTime(), 250)
+  },
+  updated() { this.sync() },
+  sync() {
+    const key = `${this.el.dataset.deadline}/${this.el.dataset.serverNow}`
+    if (key === this.key) return
+    this.key = key
+    // Start from server time so an inaccurate device clock cannot skew the display.
+    this.remaining = Date.parse(this.el.dataset.deadline) - Date.parse(this.el.dataset.serverNow)
+    this.started = performance.now()
+    this.renderTime()
+  },
+  renderTime() {
+    const seconds = Math.max(0, Math.ceil((this.remaining - (performance.now() - this.started)) / 1000))
+    const text = `${seconds}s`
+    if (this.el.textContent !== text) this.el.textContent = text
+  },
+  destroyed() { clearInterval(this.timer) }
+}
+
 const MatchRound = {
   mounted() { this.phase = this.el.dataset.phase; this.round = this.el.dataset.round },
   updated() {
@@ -206,7 +229,7 @@ const MatchRound = {
 
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, MatchRound}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, MatchRound, MatchCountdown}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket

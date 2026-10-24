@@ -180,6 +180,10 @@
       <span>{if @room.status == "round", do: "Time remaining", else: "Round complete"}</span><strong
         :if={@room.status == "round"}
         id="match-countdown"
+        phx-hook="MatchCountdown"
+        phx-update="ignore"
+        data-deadline={DateTime.to_iso8601(@room.deadline)}
+        data-server-now={DateTime.to_iso8601(@now)}
         role="timer"
         aria-label="Seconds remaining"
       >{seconds_left(@room, @now)}s</strong>

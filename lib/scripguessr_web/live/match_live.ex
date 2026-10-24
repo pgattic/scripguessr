@@ -6,16 +6,18 @@ defmodule ScripguessrWeb.MatchLive do
 
   @impl true
   def mount(_, session, socket) do
-    if connected?(socket), do: Process.send_after(self(), :tick, 1000)
-
     socket =
       if socket.assigns.current_user do
         token = session["account_token"]
 
-        attach_hook(socket, :match_session, :handle_info, fn _, socket ->
-          if Scripguessr.Accounts.user_for_session(token),
-            do: {:cont, socket},
-            else: {:halt, redirect(socket, to: "/account/sign-in")}
+        attach_hook(socket, :match_session, :handle_info, fn
+          {:match_updated, _}, socket ->
+            if Scripguessr.Accounts.user_for_session(token),
+              do: {:cont, socket},
+              else: {:halt, redirect(socket, to: "/account/sign-in")}
+
+          _, socket ->
+            {:cont, socket}
         end)
       else
         socket
@@ -177,11 +179,6 @@ defmodule ScripguessrWeb.MatchLive do
        assign(socket, preparing: false, error: "We couldn’t load the verses. Please try again.")}
 
   @impl true
-  def handle_info(:tick, socket) do
-    Process.send_after(self(), :tick, 1000)
-    {:noreply, socket |> assign(now: DateTime.utc_now()) |> refresh_if_due()}
-  end
-
   def handle_info({:match_updated, id}, socket) do
     if socket.assigns.room && socket.assigns.room.id == id,
       do: {:noreply, refresh(socket)},
@@ -190,12 +187,6 @@ defmodule ScripguessrWeb.MatchLive do
 
   def handle_info(%Phoenix.Socket.Broadcast{event: "presence_diff"}, socket),
     do: {:noreply, assign_online(socket)}
-
-  defp refresh_if_due(%{assigns: %{room: %{deadline: %DateTime{} = deadline}}} = socket) do
-    if DateTime.compare(deadline, socket.assigns.now) != :gt, do: refresh(socket), else: socket
-  end
-
-  defp refresh_if_due(socket), do: socket
 
   defp refresh(%{assigns: %{code: nil}} = socket), do: socket
 
@@ -280,7 +271,11 @@ defmodule ScripguessrWeb.MatchLive do
         URI.encode_query(%{return_to: if(code, do: "/matches/#{code}", else: "/matches")})
 
   defp seconds_left(room, now),
-    do: if(room.deadline, do: max(0, DateTime.diff(room.deadline, now)), else: 0)
+    do:
+      if(room.deadline,
+        do: max(0, ceil(DateTime.diff(room.deadline, now, :millisecond) / 1000)),
+        else: 0
+      )
 
   defp own_player(room, user_id), do: Enum.find(room.players, &(&1.user_id == user_id))
 

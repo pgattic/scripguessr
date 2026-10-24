@@ -163,8 +163,37 @@ defmodule ScripguessrWeb.MatchLiveTest do
     {code, [{_host, token}, _], _} = started_match()
     {:ok, view, _} = live(browser(token), "/matches/#{code}")
     Accounts.revoke_session(token)
-    send(view.pid, :tick)
+    id = Repo.get_by!(Match, code: code).id
+    send(view.pid, {:match_updated, id})
     assert_redirect(view, "/account/sign-in")
+  end
+
+  test "idle room lists and active matches do not poll the database per viewer" do
+    {code, [{_host, token}, _], _} = started_match()
+    {:ok, hub, _} = live(browser(token), "/matches")
+    {:ok, room, _} = live(browser(token), "/matches/#{code}")
+    # Flush initial presence updates before measuring steady-state activity.
+    render(room)
+    id = "match-idle-#{System.unique_integer([:positive])}"
+    viewers = [hub.pid, room.pid]
+
+    :ok =
+      :telemetry.attach(
+        id,
+        [:scripguessr, :repo, :query],
+        &__MODULE__.record_viewer_query/4,
+        {self(), viewers}
+      )
+
+    on_exit(fn -> :telemetry.detach(id) end)
+    refute_receive {:viewer_query, _}, 1_250
+    assert has_element?(room, "#match-countdown[phx-hook=MatchCountdown][data-deadline]")
+    render_click(room, "clear-guess")
+    assert_receive {:viewer_query, _}
+  end
+
+  def record_viewer_query(_event, _measurements, metadata, {test_pid, viewers}) do
+    if self() in viewers, do: send(test_pid, {:viewer_query, metadata.query})
   end
 
   test "registration preserves an invite destination without skipping the recovery code" do

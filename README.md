@@ -190,6 +190,10 @@ round closes into its reveal, so reconnecting or restarting cannot grant extra
 guessing time or skip over results. Reveals have no deadline; only the host can
 advance them. Reconnects and submissions also settle elapsed round deadlines.
 Phoenix PubSub updates connected players and Presence supplies online indicators.
+The displayed countdown runs in the browser from a server-provided deadline and
+clock reading; open pages do not poll sessions or re-render every second.
+Session validity is still checked on player actions and before pushed match
+content. The account menu keeps its open state across LiveView updates.
 The current deployment uses one Phoenix instance; multiple application nodes
 would also need a configured distributed PubSub cluster.
 

@@ -39,7 +39,12 @@ defmodule ScripguessrWeb.Layouts do
             aria-current={if @active_section == :leaderboard, do: "page"}
           >Leaderboard</a>
         </nav>
-        <details :if={@current_user} id="account-menu" class="account-menu">
+        <details
+          :if={@current_user}
+          id="account-menu"
+          class="account-menu"
+          phx-mounted={Phoenix.LiveView.JS.ignore_attributes("open")}
+        >
           <summary
             id="user-tag"
             class="user-tag"
