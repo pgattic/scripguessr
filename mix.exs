@@ -36,6 +36,7 @@ defmodule Scripguessr.MixProject do
       {:postgrex, "~> 0.21"},
       {:bandit, "~> 1.5"},
       {:jason, "~> 1.4"},
+      {:eqrcode, "~> 0.2.1"},
       {:req, "~> 0.7"},
       {:pbkdf2_elixir, "~> 2.3"},
       {:lazy_html, ">= 0.1.0", only: :test}

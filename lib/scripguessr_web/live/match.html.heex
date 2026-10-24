@@ -174,7 +174,7 @@
       <input
         id="match-invite"
         type="text"
-        value={ScripguessrWeb.Endpoint.url() <> "/matches/" <> @room.code}
+        value={invite_url(@room)}
         readonly
       /><button
         type="button"
@@ -184,6 +184,14 @@
         data-copy-target="match-invite"
         data-copy-status="match-copy-status"
       >Copy link</button>
+      <button
+        id="show-match-qr"
+        type="button"
+        class="text-button"
+        phx-click="show-invite"
+        aria-haspopup="dialog"
+        aria-controls="match-invite-dialog"
+      >QR code</button>
     </div>
     <span id="match-copy-status" role="status" class="muted"></span>
     <div class="welcome-actions">
@@ -358,3 +366,34 @@
   user={@current_user}
   saved={@saved_verses}
 />
+
+<dialog
+  :if={@invite_qr}
+  id="match-invite-dialog"
+  class="invite-qr-dialog panel"
+  phx-hook="InviteQR"
+  phx-mounted={Phoenix.LiveView.JS.ignore_attributes("open")}
+  aria-labelledby="match-invite-title"
+  aria-modal="true"
+>
+  <header class="invite-qr-heading">
+    <h2 id="match-invite-title">Scan to join</h2>
+    <button
+      id="close-match-qr"
+      type="button"
+      class="crumb"
+      phx-click="close-invite"
+      aria-label="Close invite"
+      autofocus
+    >×</button>
+  </header>
+  <img
+    id="match-invite-qr"
+    class="invite-qr-image"
+    src={@invite_qr}
+    alt="QR code for this match’s invite link"
+    width="288"
+    height="288"
+  />
+  <a class="invite-qr-link" href={invite_url(@room)}>{invite_url(@room)}</a>
+</dialog>

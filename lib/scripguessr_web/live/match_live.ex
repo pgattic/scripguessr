@@ -34,6 +34,7 @@ defmodule ScripguessrWeb.MatchLive do
            session["owner"]
          ),
        guest_name: "",
+       invite_qr: nil,
        room: nil,
        code: nil,
        unavailable: false,
@@ -57,7 +58,7 @@ defmodule ScripguessrWeb.MatchLive do
 
   @impl true
   def handle_params(params, _, socket) do
-    socket = socket |> detach() |> close_reader()
+    socket = socket |> detach() |> close_reader() |> assign(invite_qr: nil)
 
     case params do
       %{"code" => code} ->
@@ -187,6 +188,19 @@ defmodule ScripguessrWeb.MatchLive do
     end
   end
 
+  def handle_event("show-invite", _, socket) do
+    socket = refresh(socket)
+
+    if socket.assigns.room && socket.assigns.room.joined? && socket.assigns.room.status == "lobby" do
+      qr = invite_url(socket.assigns.room) |> EQRCode.encode(:m) |> EQRCode.svg()
+      {:noreply, assign(socket, invite_qr: "data:image/svg+xml;base64," <> Base.encode64(qr))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_event("close-invite", _, socket), do: {:noreply, assign(socket, invite_qr: nil)}
+
   def handle_event("read-chapter", %{"round" => value}, socket) when is_binary(value) do
     case Integer.parse(value) do
       {index, ""} when index in 0..4 -> {:noreply, open_chapter(socket, index)}
@@ -285,7 +299,7 @@ defmodule ScripguessrWeb.MatchLive do
 
         socket =
           if old && (old.round != room.round or old.status != room.status),
-            do: socket |> reset_picker() |> close_reader(),
+            do: socket |> reset_picker() |> close_reader() |> assign(invite_qr: nil),
             else: socket
 
         socket
@@ -294,7 +308,7 @@ defmodule ScripguessrWeb.MatchLive do
         |> assign_online()
 
       _ ->
-        socket |> close_reader() |> assign(room: nil, unavailable: true)
+        socket |> close_reader() |> assign(room: nil, unavailable: true, invite_qr: nil)
     end
   end
 
@@ -430,6 +444,8 @@ defmodule ScripguessrWeb.MatchLive do
         !socket.assigns.room.own_guess
 
   defp reset_picker(socket), do: assign(socket, book: "", chapter: "", step: :book, error: nil)
+
+  defp invite_url(room), do: ScripguessrWeb.Endpoint.url() <> "/matches/" <> room.code
 
   defp sign_in_path(code),
     do:

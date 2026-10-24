@@ -365,6 +365,50 @@ defmodule ScripguessrWeb.MatchLiveTest do
     assert has_element?(signed_in, "#leave-match", "Cancel room")
   end
 
+  test "players can show an invite QR, and starting the match closes open dialogs" do
+    {code, [{host, token}, _]} = match_lobby()
+    owner = guest_owner()
+    guest = Scripguessr.Matches.Identity.new(nil, owner)
+    {:ok, _} = Matches.join(code, guest, "Avery")
+    {:ok, host_view, _} = live(browser(token), "/matches/#{code}")
+    {:ok, guest_view, _} = live(browser(nil, owner), "/matches/#{code}")
+    {:ok, outsider, _} = live(browser(nil, guest_owner()), "/matches/#{code}")
+    refute has_element?(outsider, "#show-match-qr")
+    render_click(outsider, "show-invite")
+    refute has_element?(outsider, "#match-invite-dialog")
+
+    for view <- [host_view, guest_view] do
+      refute has_element?(view, "#match-invite-dialog")
+      view |> element("#show-match-qr") |> render_click()
+      assert has_element?(view, "#match-invite-dialog[phx-hook=InviteQR]")
+
+      assert has_element?(
+               view,
+               "#match-invite-dialog a[href='#{ScripguessrWeb.Endpoint.url()}/matches/#{code}']"
+             )
+
+      html = view |> element("#match-invite-qr") |> render()
+      [_, encoded] = Regex.run(~r/src="data:image\/svg\+xml;base64,([^"]+)"/, html)
+      assert Base.decode64!(encoded) =~ "<svg"
+      view |> element("#close-match-qr") |> render_click()
+      refute has_element?(view, "#match-invite-dialog")
+      view |> element("#show-match-qr") |> render_click()
+    end
+
+    Matches.ready(code, host.id, true)
+    Matches.ready(code, guest, true)
+    assert has_element?(guest_view, "#match-invite-dialog")
+    assert {:ok, _} = Matches.start(code, host.id)
+
+    for view <- [host_view, guest_view] do
+      refute has_element?(view, "#match-invite-dialog")
+      refute has_element?(view, "#show-match-qr")
+      render_click(view, "show-invite")
+      refute has_element?(view, "#match-invite-dialog")
+      assert has_element?(view, "#book-grid")
+    end
+  end
+
   test "session revocation prevents further pushed match content" do
     {code, [{_host, token}, _], _} = started_match()
     {:ok, view, _} = live(browser(token), "/matches/#{code}")

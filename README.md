@@ -160,7 +160,9 @@ an account; the Atlas is independent of both modes.
 
 ## Friendly matches
 
-From Play, choose **Play with a friend**, create a room, and copy its invite link.
+From Play, choose **Play with a friend**, create a room, and copy its invite link or show its **QR code**
+for a friend to scan. QR codes are generated locally; no external service sees
+the invite link.
 Play signed in or enter a guest name—accounts are optional for creating and
 joining friendly matches. Both players mark themselves ready, and the host starts.
 Guests are labeled in the room and round results. Guest names are 1–32 characters

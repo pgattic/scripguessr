@@ -186,6 +186,31 @@ const CopyText = {
   destroyed() { this.el.removeEventListener("click", this.copy) }
 }
 
+const InviteQR = {
+  mounted() {
+    this.previousFocus = document.activeElement
+    this.previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    this.cancel = event => { event.preventDefault(); this.pushEvent("close-invite", {}) }
+    this.outside = event => {
+      const rect = this.el.getBoundingClientRect()
+      if (event.target === this.el && (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom)) {
+        this.pushEvent("close-invite", {})
+      }
+    }
+    this.el.addEventListener("cancel", this.cancel)
+    this.el.addEventListener("click", this.outside)
+    this.el.showModal()
+  },
+  destroyed() {
+    this.el.close()
+    document.body.style.overflow = this.previousOverflow
+    this.el.removeEventListener("cancel", this.cancel)
+    this.el.removeEventListener("click", this.outside)
+    if (this.previousFocus?.isConnected) this.previousFocus.focus({preventScroll: true})
+  }
+}
+
 const MatchCountdown = {
   mounted() {
     this.sync()
@@ -229,7 +254,7 @@ const MatchRound = {
 
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, MatchRound, MatchCountdown}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, InviteQR, MatchRound, MatchCountdown}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket
