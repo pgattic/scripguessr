@@ -172,107 +172,41 @@
   </div>
 </section>
 
-<div
-  :if={@chapter}
+<.chapter_reader
   id="atlas-reader"
-  class="atlas-reader-backdrop"
-  phx-hook="AtlasReader"
-  data-chapter={inspect(@chapter)}
-  data-ready={to_string(!is_nil(@reader))}
-  phx-window-keydown="close-chapter"
-  phx-key="Escape"
+  chapter={@chapter}
+  verses={@reader}
+  error={@reader_error}
+  save_error={@save_error}
+  user={@current_user}
+  saved={@saved_verses}
+  marks={@reader_marks}
+  retry_event="retry-chapter"
 >
-  <.focus_wrap
-    id="atlas-reader-dialog"
-    class="atlas-reader-dialog panel"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="atlas-reader-title"
-    phx-click-away="close-chapter"
-  >
-    <header class="atlas-reader-header">
-      <h2 id="atlas-reader-title">{elem(@chapter, 0)} {elem(@chapter, 1)}</h2><div class="reader-actions">
-        <button
-          :if={@reader && @chapter_hits != []}
-          class="text-button"
-          phx-click={JS.dispatch("atlas:first-match", to: "#atlas-reader")}
-        >First match ↓</button><button
-          id="atlas-reader-close"
-          class="crumb"
-          phx-click="close-chapter"
-          aria-label="Close chapter"
-        >×</button>
-      </div>
-    </header>
-    <div class="atlas-reader-scroll">
-      <p :if={@save_error} role="alert" class="error">{@save_error}</p>
-      <div :if={@chapter_hits != []} id="atlas-evidence" class="atlas-evidence">
-        <details :for={hit <- @chapter_hits} class="atlas-evidence-entry" open>
-          <summary>
-            <span class="atlas-swatch" style={swatch(hit.entry)}></span><strong>{hit.entry.name}</strong>
-          </summary>
-          <p>{hit.entry.description}</p>
-          <div
-            :for={kind <- ~w(mention speech setting)}
-            :if={!is_nil(hit.ranges[kind])}
-            class="atlas-evidence-range"
-          >
-            <span>{kind_label(kind)}</span><span>{ranges_label(hit.ranges[kind])}</span>
-          </div>
-        </details>
-      </div>
-      <p :if={@selected != [] && @chapter_hits == [] && !@loading} class="atlas-reader-note muted">
-        No recorded matches for the selected entries in this chapter.
-      </p>
-      <p :if={is_nil(@reader) && !@reader_error} class="atlas-reader-note muted" role="status">
-        Loading chapter…
-      </p>
-      <div :if={@reader_error} class="error" role="alert">
-        {@reader_error}
-        <button class="text-button" phx-click="retry-selection">Retry</button><button
-          class="text-button"
-          phx-click="reload-corpus"
-        >Reload Atlas</button>
-      </div>
-      <article :if={@reader} class="atlas-reading" aria-label="Chapter text">
-        <details
-          :for={verse <- @reader}
-          :if={verse["verse"] == 0}
-          class={["atlas-reading-heading", Model.verse_hits(@chapter_hits, 0) != [] && "matched"]}
-          open={Model.verse_hits(@chapter_hits, 0) != []}
+  <:before_text>
+    <div :if={@chapter_hits != []} id="atlas-evidence" class="atlas-evidence">
+      <details :for={hit <- @chapter_hits} class="atlas-evidence-entry" open>
+        <summary>
+          <span class="atlas-swatch" style={swatch(hit.entry)}></span><strong>{hit.entry.name}</strong>
+        </summary>
+        <p>{hit.entry.description}</p>
+        <div
+          :for={kind <- ~w(mention speech setting)}
+          :if={!is_nil(hit.ranges[kind])}
+          class="atlas-evidence-range"
         >
-          <summary>Chapter heading</summary><p>{verse["text"]}</p>
-        </details>
-        <p
-          :for={verse <- @reader}
-          :if={verse["verse"] > 0}
-          class={[
-            "atlas-reading-verse",
-            Model.verse_hits(@chapter_hits, verse["verse"]) != [] && "matched"
-          ]}
-          data-verse={verse["verse"]}
-          title={
-            Enum.map_join(Model.verse_hits(@chapter_hits, verse["verse"]), ", ", & &1.entry.name)
-          }
-        >
-          <sup>{verse["verse"]}</sup><span>
-            {verse[
-              "text"
-            ]}
-          </span>
-          <.save_button
-            verse={
-              Map.merge(verse, %{"book" => elem(@chapter, 0), "chapter" => elem(@chapter, 1)})
-            }
-            saved={@saved_verses}
-            user={@current_user}
-          />
-          <span class="atlas-verse-bands" aria-hidden="true"><b
-            :for={hit <- Model.verse_hits(@chapter_hits, verse["verse"])}
-            style={swatch(hit.entry)}
-          ></b></span>
-        </p>
-      </article>
+          <span>{kind_label(kind)}</span><span>{ranges_label(hit.ranges[kind])}</span>
+        </div>
+      </details>
     </div>
-  </.focus_wrap>
-</div>
+    <p
+      :if={@selected != [] && @chapter_hits == [] && !@loading && !@error}
+      class="atlas-reader-note muted"
+    >
+      No recorded matches for the selected entries in this chapter.
+    </p>
+  </:before_text>
+  <:error_actions>
+    <button class="text-button" phx-click="reload-corpus">Reload Atlas</button>
+  </:error_actions>
+</.chapter_reader>

@@ -1,41 +1,27 @@
 defmodule Scripguessr.Corpus.Cache do
-  @moduledoc "Single-flight metadata cache; no corpus request is needed to play prepared games."
-  use GenServer
+  @moduledoc "Shared game metadata with independent, bounded game preparation tasks."
   alias Scripguessr.Corpus
-  @ttl_ms :timer.minutes(15)
-  def start_link(opts), do: GenServer.start_link(__MODULE__, opts, name: __MODULE__)
-  def prepare, do: GenServer.call(__MODULE__, :prepare, :infinity)
-  def clear, do: GenServer.call(__MODULE__, :clear)
-  @impl true
-  def init(_), do: {:ok, nil}
-  @impl true
-  def handle_call(:clear, _from, _state), do: {:reply, :ok, nil}
+  alias Corpus.RequestCache
 
-  def handle_call(:prepare, _from, state) do
-    {reply, state} = prepare(state, 1)
-    {:reply, reply, state}
-  end
+  def child_spec(_),
+    do: %{id: __MODULE__, start: {RequestCache, :start_link, [[name: __MODULE__]]}}
 
-  defp prepare(state, retries) do
-    with {:ok, catalog, cached_at} <- catalog(state),
-         {:ok, snapshot} <- Corpus.prepare(catalog) do
-      {{:ok, snapshot}, {catalog, cached_at}}
+  def clear, do: RequestCache.clear(__MODULE__)
+  def prepare, do: prepare(1)
+
+  defp prepare(retries) do
+    with {:ok, catalog} <- RequestCache.fetch(__MODULE__, :catalog, &Corpus.catalog/0),
+         # Every game gets its own selection; only metadata requests are shared.
+         {:ok, snapshot} <-
+           RequestCache.fetch(__MODULE__, make_ref(), fn -> Corpus.prepare(catalog) end, ttl: 0) do
+      {:ok, snapshot}
     else
-      {:error, :release_changed} when retries > 0 -> prepare(nil, retries - 1)
-      {:error, reason} -> {{:error, reason}, nil}
-    end
-  end
+      {:error, :release_changed} when retries > 0 ->
+        RequestCache.invalidate(__MODULE__, :catalog)
+        prepare(retries - 1)
 
-  defp catalog({catalog, cached_at}) do
-    if System.monotonic_time(:millisecond) - cached_at < @ttl_ms,
-      do: {:ok, catalog, cached_at},
-      else: catalog(nil)
-  end
-
-  defp catalog(nil) do
-    case Corpus.catalog() do
-      {:ok, catalog} -> {:ok, catalog, System.monotonic_time(:millisecond)}
-      error -> error
+      error ->
+        error
     end
   end
 end

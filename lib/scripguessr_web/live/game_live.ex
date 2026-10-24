@@ -1,5 +1,6 @@
 defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
+  import ScripguessrWeb.ChapterReader, only: [chapter_reader: 1]
   alias Scripguessr.SavedVerses
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Games, Progression}

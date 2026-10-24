@@ -170,6 +170,7 @@ defmodule ScripguessrWeb.GameLiveTest do
     assert {:ok, saved} = Scripguessr.Games.fetch(game.id, "owner")
     assert saved.snapshot == game.snapshot
     view |> element("#game-reader-close") |> render_click()
+    Scripguessr.Corpus.Chapter.clear()
     Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "new-release"})
     view |> element("#read-chapter") |> render_click()
     render_async(view)

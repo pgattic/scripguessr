@@ -98,4 +98,70 @@ defmodule ScripguessrWeb.AtlasLiveTest do
     view |> element("#atlas-close-filters") |> render_click()
     refute has_element?(view, "#atlas-sidebar.mobile-open")
   end
+
+  test "a stalled highlight request does not block opening or switching chapters" do
+    {:ok, view, _} = live(build_conn(), "/atlas")
+    render_async(view)
+    Scripguessr.Corpus.Fake.block_next("atlas:layer", self())
+    render_click(view, "toggle", %{"key" => Fixture.key(1)})
+    assert_receive {:corpus_blocked, _, worker}
+    on_exit(fn -> Scripguessr.Atlas.Cache.clear() end)
+
+    render_click(view, "open-chapter", %{"book" => "1 Nephi", "chapter" => "1"})
+    eventually(fn -> has_element?(view, "#atlas-reader [data-verse='3']") end)
+    assert has_element?(view, "#atlas-reader-title", "1 Nephi 1")
+    render_click(view, "open-chapter", %{"book" => "1 Nephi", "chapter" => "2"})
+    eventually(fn -> has_element?(view, "#atlas-reader [data-verse='3']") end)
+    assert has_element?(view, "#atlas-reader-title", "1 Nephi 2")
+
+    send(worker, :release_corpus)
+    render_async(view)
+    assert has_element?(view, "#atlas-reader-title", "1 Nephi 2")
+    assert has_element?(view, "#atlas-reader .matched[data-verse='2']")
+  end
+
+  test "late chapter results cannot replace a newly opened chapter or reopen a closed reader" do
+    {:ok, view, _} = live(build_conn(), "/atlas")
+    render_async(view)
+    Scripguessr.Corpus.Fake.block_next("atlas:reader", self())
+    render_click(view, "open-chapter", %{"book" => "1 Nephi", "chapter" => "1"})
+    assert_receive {:corpus_blocked, _, worker}
+    on_exit(fn -> Scripguessr.Corpus.Chapter.clear() end)
+
+    render_click(view, "open-chapter", %{"book" => "1 Nephi", "chapter" => "2"})
+    render_async(view)
+    assert has_element?(view, "#atlas-reader-title", "1 Nephi 2")
+    view |> element("#atlas-reader-close") |> render_click()
+    send(worker, :release_corpus)
+
+    # Wait for that shared fetch to complete, even though its original LiveView task was cancelled.
+    assert {:ok, _} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1, "fixture-v1")
+    render_async(view)
+    refute has_element?(view, "#atlas-reader")
+  end
+
+  test "chapter text survives highlight changes and highlight failures have a separate error" do
+    {:ok, view, _} = live(build_conn(), "/atlas?book=1+Nephi&chapter=1")
+    render_async(view)
+    assert has_element?(view, "#atlas-reader [data-verse='3']")
+    Scripguessr.Corpus.Fake.reset(:atlas_bad_span)
+    render_click(view, "toggle", %{"key" => Fixture.key(1)})
+    assert has_element?(view, "#atlas-reader [data-verse='3']")
+    render_async(view)
+    assert has_element?(view, "#atlas-reader [data-verse='3']")
+    refute has_element?(view, "#atlas-reader [role=alert]")
+    refute render(view) =~ "No recorded matches"
+    assert has_element?(view, "[role=alert]", "Couldn’t load")
+    refute Enum.any?(Scripguessr.Corpus.Fake.calls(), &String.contains?(&1, "atlas:reader"))
+  end
+
+  defp eventually(check, attempts \\ 100)
+  defp eventually(check, 0), do: assert(check.())
+
+  defp eventually(check, attempts) do
+    unless check.() do
+      Process.sleep(10)
+      eventually(check, attempts - 1)
+    end
+  end
 end

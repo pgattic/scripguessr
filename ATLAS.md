@@ -63,11 +63,19 @@ including across books. Disjoint mentions remain disjoint; they do not turn the
 intervening verses into matches. Adjacent or overlapping ranges of the same
 kind are merged for display.
 
-An independent server cache keeps catalog, normalized coverage, and chapter
-text for 15 minutes. Detail caches have a combined 160-entry bound. Cached
-coverage can still be displayed during an outage, and failed requests have
-retry states. Every result must match the catalog release. A corpus update
-mid-request produces an explicit reload path instead of mixing editions.
+The Atlas cache keeps catalog and normalized coverage for 15 minutes with a
+160-entry bound. A separate 160-entry chapter cache is shared with game readers.
+Each cache runs at most four supervised fetches, admits at most 32 outstanding
+keys and 64 callers per key, and enforces a 60-second deadline including queue
+time. Identical requests share a fetch; cached hits remain available during slow
+requests. Failed requests are not cached and have retry states.
+
+Chapter text and highlights load independently. Changing filters keeps the open
+chapter visible, and switching or closing chapters cancels obsolete LiveView
+loads. Both views render the same chapter-reader component, with Atlas evidence
+and game answer highlighting supplied by their respective views. Every result
+must match the catalog release. A corpus update mid-request produces an explicit
+reload path instead of mixing editions.
 
 URLs carry semantic entry keys derived from type, name, and description, plus
 optional book/chapter state. Numeric entity IDs are used only to query against

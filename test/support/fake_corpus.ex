@@ -2,24 +2,55 @@ defmodule Scripguessr.Corpus.Fake do
   @behaviour Scripguessr.Corpus.Client
   def start_link,
     do:
-      Agent.start_link(fn -> %{mode: :normal, release: "fixture-v1", calls: []} end,
+      Agent.start_link(fn -> %{mode: :normal, release: "fixture-v1", calls: [], block: nil} end,
         name: __MODULE__
       )
 
   def reset(mode \\ :normal),
-    do: Agent.update(__MODULE__, fn _ -> %{mode: mode, release: "fixture-v1", calls: []} end)
+    do:
+      Agent.update(__MODULE__, fn _ ->
+        %{mode: mode, release: "fixture-v1", calls: [], block: nil}
+      end)
 
   def calls, do: Agent.get(__MODULE__, & &1.calls)
 
-  def query(sql) do
-    Agent.get_and_update(__MODULE__, fn state ->
-      state = %{state | calls: state.calls ++ [sql]}
+  def block_next(pattern, notify),
+    do: Agent.update(__MODULE__, &%{&1 | block: {pattern, notify}})
 
-      case state.mode do
-        :down -> {{:error, :unavailable}, state}
-        _ -> response(sql, state)
+  def query(sql) do
+    {result, notify} =
+      Agent.get_and_update(__MODULE__, fn state ->
+        state = %{state | calls: state.calls ++ [sql]}
+
+        {notify, state} =
+          case state.block do
+            {pattern, pid} ->
+              if String.contains?(sql, pattern),
+                do: {pid, %{state | block: nil}},
+                else: {nil, state}
+
+            nil ->
+              {nil, state}
+          end
+
+        {result, state} =
+          case state.mode do
+            :down -> {{:error, :unavailable}, state}
+            _ -> response(sql, state)
+          end
+
+        {{result, notify}, state}
+      end)
+
+    if notify do
+      send(notify, {:corpus_blocked, sql, self()})
+
+      receive do
+        :release_corpus -> :ok
       end
-    end)
+    end
+
+    result
   end
 
   defp response(sql, state) do

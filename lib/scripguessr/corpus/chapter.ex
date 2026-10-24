@@ -1,8 +1,18 @@
 defmodule Scripguessr.Corpus.Chapter do
   @moduledoc "Chapter text shared by the game and Atlas, checked against the requested corpus release."
   alias Scripguessr.Corpus
+  alias Corpus.RequestCache
+
+  def child_spec(_),
+    do: %{id: __MODULE__, start: {RequestCache, :start_link, [[name: __MODULE__]]}}
+
+  def clear, do: RequestCache.clear(__MODULE__)
 
   def read(book, number, release) when is_binary(book) and is_integer(number) and number > 0 do
+    RequestCache.fetch(__MODULE__, {release, book, number}, fn -> fetch(book, number, release) end)
+  end
+
+  defp fetch(book, number, release) do
     with {:ok, response} <- Corpus.query(chapter_sql(book, number)),
          true <- response.release == release || {:error, :release_changed},
          false <- response.truncated,

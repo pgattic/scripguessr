@@ -6,7 +6,9 @@ defmodule Scripguessr.Application do
       Scripguessr.Repo,
       Scripguessr.Accounts.RateLimit,
       {Phoenix.PubSub, name: Scripguessr.PubSub},
+      {Task.Supervisor, name: Scripguessr.Corpus.Tasks},
       Scripguessr.Corpus.Cache,
+      Scripguessr.Corpus.Chapter,
       Scripguessr.Atlas.Cache,
       ScripguessrWeb.Endpoint
     ]

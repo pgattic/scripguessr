@@ -7,6 +7,7 @@ defmodule Scripguessr.DataCase do
     Scripguessr.Corpus.Fake.reset()
     Scripguessr.Corpus.Cache.clear()
     Scripguessr.Accounts.RateLimit.clear()
+    Scripguessr.Corpus.Chapter.clear()
     :ok
   end
 end

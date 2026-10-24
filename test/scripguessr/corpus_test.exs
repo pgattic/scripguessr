@@ -43,4 +43,18 @@ defmodule Scripguessr.CorpusTest do
     Fake.reset(:down)
     assert {:error, :unavailable} = Cache.prepare()
   end
+
+  test "concurrent games share metadata but each fetches its own verse selection" do
+    games = for _ <- 1..6, do: Task.async(fn -> Cache.prepare() end)
+
+    snapshots =
+      Enum.map(games, fn task ->
+        {:ok, snapshot} = Task.await(task)
+        snapshot
+      end)
+
+    assert length(snapshots) == 6
+    assert Enum.count(Fake.calls(), &String.contains?(&1, "group_concat")) == 6
+    assert Enum.count(Fake.calls(), &String.contains?(&1, "exists")) == 1
+  end
 end

@@ -7,6 +7,7 @@ defmodule Scripguessr.AtlasTest do
   setup do
     Fake.reset()
     Cache.clear()
+    Scripguessr.Corpus.Chapter.clear()
     :ok
   end
 
@@ -52,5 +53,16 @@ defmodule Scripguessr.AtlasTest do
     assert {:error, :invalid_chapter} = Atlas.chapter(catalog, "1 Nephi", 1)
     assert {:error, :unknown_chapter} = Atlas.chapter(catalog, "1 Nephi", 999)
     assert {:error, :unknown_entry} = Atlas.layer(catalog, "not-an-entry")
+  end
+
+  test "chapter cache is shared with game readers and scoped to a release" do
+    {:ok, catalog} = Cache.catalog()
+    assert {:ok, verses} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1, catalog.release)
+    calls = Fake.calls()
+    Fake.reset(:down)
+    assert {:ok, ^verses} = Cache.chapter(catalog, "1 Nephi", 1)
+    assert Fake.calls() == []
+    assert {:error, :unavailable} = Cache.chapter(%{catalog | release: "another"}, "1 Nephi", 1)
+    assert length(calls) > 0
   end
 end

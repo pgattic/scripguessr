@@ -60,8 +60,15 @@ hash. Do not commit build outputs or corpus payloads.
 ## Architecture
 
 - `Scripguessr.Corpus` owns upstream SQL and converts responses to application data.
-- `Scripguessr.Corpus.Cache` serializes preparation and caches the verse pool and
-  chapter metadata for 15 minutes. It retries once if a release changes mid-fetch.
+- `Scripguessr.Corpus.Cache` shares verse-pool and book/chapter metadata for 15
+  minutes while preparing each game's selection independently. It retries once
+  if a release changes mid-fetch.
+- `Scripguessr.Corpus.RequestCache` runs fetches in supervised tasks with four
+  workers per cache, at most 32 outstanding keys and 64 callers per key, and a
+  60-second deadline including queue time. Identical requests share a fetch;
+  cached hits bypass waiting work. Failures are not cached.
+- `Scripguessr.Corpus.Chapter` shares release-checked chapter text between games
+  and the Atlas. Both use `ScripguessrWeb.ChapterReader` for the reader dialog.
 - `Scripguessr.Games.Rules` implements scoring and progression without I/O.
 - `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
@@ -130,8 +137,10 @@ vendored. Selection and reader URLs are shareable and restore on refresh.
 
 `Scripguessr.Corpus.Atlas` owns the queries, `Scripguessr.Atlas.Model` expands
 passage ranges across chapters, and `Scripguessr.Atlas.Cache` independently
-caches catalog, evidence, and chapter text for 15 minutes with a 160-entry limit.
-Cache keys include the release, and mixed-release results require reloading.
+caches catalog and evidence for 15 minutes with a 160-entry limit. A separate
+160-entry chapter cache serves both readers. Chapter text loads independently of
+highlights and stays visible when filters change. Detail cache keys include the
+release, and mixed-release results require reloading.
 URL identities use entry type, name, and description rather than numeric IDs;
 changed or removed entries are reported rather than silently matched elsewhere.
 See [ATLAS.md](ATLAS.md) for the data investigation and design decisions.

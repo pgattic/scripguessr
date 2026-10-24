@@ -211,68 +211,13 @@
   </div>
 </section>
 
-<div
-  :if={@reading}
+<.chapter_reader
   id="game-reader"
-  class="atlas-reader-backdrop"
-  phx-hook="AtlasReader"
-  data-ready={to_string(!is_nil(@reader))}
-  data-auto-scroll="true"
-  phx-window-keydown="close-chapter"
-  phx-key="Escape"
->
-  <.focus_wrap
-    id="game-reader-dialog"
-    class="atlas-reader-dialog panel"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="game-reader-title"
-    phx-click-away="close-chapter"
-  >
-    <header class="atlas-reader-header">
-      <h2 id="game-reader-title">{@reading["book"]} {@reading["chapter"]}</h2>
-      <div class="reader-actions">
-        <button
-          :if={@reader}
-          class="text-button"
-          phx-click={JS.dispatch("atlas:first-match", to: "#game-reader")}
-        >Verse {@reading["verse"]} ↓</button>
-        <button
-          id="game-reader-close"
-          data-reader-close
-          class="crumb"
-          phx-click="close-chapter"
-          aria-label="Close chapter"
-        >×</button>
-      </div>
-    </header>
-    <div class="atlas-reader-scroll">
-      <p :if={@save_error} role="alert" class="error">{@save_error}</p>
-      <p :if={is_nil(@reader) && !@reader_error} class="atlas-reader-note muted" role="status">
-        Loading chapter…
-      </p>
-      <div :if={@reader_error} class="error" role="alert">
-        {@reader_error} <button class="text-button" phx-click="retry-chapter">Retry</button>
-      </div>
-      <article :if={@reader} class="atlas-reading" aria-label="Chapter text">
-        <details :for={verse <- @reader} :if={verse["verse"] == 0} class="atlas-reading-heading">
-          <summary>Chapter heading</summary><p>{verse["text"]}</p>
-        </details>
-        <p
-          :for={verse <- @reader}
-          :if={verse["verse"] > 0}
-          class={["atlas-reading-verse", verse["verse"] == @reading["verse"] && "matched"]}
-          data-verse={verse["verse"]}
-          aria-current={if verse["verse"] == @reading["verse"], do: "true"}
-        >
-          <sup>{verse["verse"]}</sup><span>{verse["text"]}</span>
-          <.save_button
-            verse={Map.merge(verse, Map.take(@reading, ["book", "chapter"]))}
-            saved={@saved_verses}
-            user={@current_user}
-          />
-        </p>
-      </article>
-    </div>
-  </.focus_wrap>
-</div>
+  chapter={if @reading, do: {@reading["book"], @reading["chapter"]}}
+  target={if @reading, do: @reading["verse"]}
+  verses={@reader}
+  error={@reader_error}
+  save_error={@save_error}
+  user={@current_user}
+  saved={@saved_verses}
+/>

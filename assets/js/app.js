@@ -17,29 +17,37 @@ const PickerFocus = {
     }
   }
 }
-const AtlasReader = {
+const ChapterReader = {
   mounted() {
     this.previousFocus = document.activeElement
+    this.previousFocusId = this.previousFocus?.id
     this.previousOverflow = document.body.style.overflow
     document.body.style.overflow = "hidden"
-    this.el.querySelector("[data-reader-close],#atlas-reader-close").focus()
+    this.focusReader = () => {
+      if (!this.el.contains(document.activeElement)) {
+        this.el.querySelector("[data-reader-close]").focus({preventScroll: true})
+      }
+    }
+    this.focusReader()
     this.onMatch = () => {
       const match = this.el.querySelector(".atlas-reading-verse.matched,.atlas-reading-heading.matched")
       const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"
       if (match) match.scrollIntoView({behavior, block: "center"})
     }
-    this.el.addEventListener("atlas:first-match", this.onMatch)
+    this.el.addEventListener("chapter:first-match", this.onMatch)
     this.updated()
   },
   updated() {
     const ready = this.el.dataset.ready === "true"
     if (ready && !this.ready && this.el.dataset.autoScroll === "true") this.onMatch()
     this.ready = ready
+    this.focusReader()
   },
   destroyed() {
     document.body.style.overflow = this.previousOverflow
-    this.el.removeEventListener("atlas:first-match", this.onMatch)
-    if (this.previousFocus?.isConnected) this.previousFocus.focus({preventScroll: true})
+    this.el.removeEventListener("chapter:first-match", this.onMatch)
+    const previousFocus = this.previousFocus?.isConnected ? this.previousFocus : document.getElementById(this.previousFocusId)
+    previousFocus?.focus({preventScroll: true})
   }
 }
 const AtlasFilters = {
@@ -99,7 +107,7 @@ const AtlasFilters = {
 }
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, AtlasReader, AtlasFilters}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket
