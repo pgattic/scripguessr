@@ -161,9 +161,20 @@ an account; the Atlas is independent of both modes.
 ## Friendly matches
 
 From Play, choose **Play with a friend**, create a room, and copy its invite link.
-Both players need accounts. The friend joins the room, both mark themselves ready,
-and the host starts. An invite opened while signed out returns to the room after
-sign-in or registration; new accounts still receive their recovery code first.
+Play signed in or enter a guest name—accounts are optional for creating and
+joining friendly matches. Both players mark themselves ready, and the host starts.
+Guests are labeled in the room and round results. Guest names are 1–32 characters
+and must differ from names already in the room. Signing in remains an option on
+the invite; new accounts still receive their recovery code first.
+
+Guest seats belong to the secure browser session, not the display name or invite
+link. Refreshing, reconnecting, or opening another tab in the same browser restores
+the seat and its locked guess. **Your rooms** also works for guests. Clearing
+cookies, letting the browser session expire, or switching browsers loses access
+to those seats. Signing in preserves access in that browser without creating an
+account for the guest or merging their match history into the account. If the
+account already has a seat in the same room, that account's seat takes precedence.
+XP, ranked daily attempts, and saved verses still require an account.
 
 Each player gets the same five frozen verses in the same order. Rounds last
 **90 seconds**, or close early once everyone has submitted. Guesses lock on their
@@ -185,11 +196,14 @@ and another tab or device can resume the same account's locked attempt. Before
 starting, a friend can leave to free a seat, and the host can cancel the room.
 Rooms are private invitations, with no public matchmaking or spectators.
 
-Matches have their own `matches`, `match_players`, and `match_guesses` tables;
-they have no daily-challenge or single-player game foreign keys. They share
+Matches have their own `matches`, `match_players`, and `match_guesses` tables.
+A participant has either an account link or a hashed browser identity and guest
+name; host permissions and presence use participant IDs. Existing account-hosted
+rooms retain their hosts through the guest-support migration.
+Matches have no daily-challenge or single-player game foreign keys. They share
 corpus preparation, pure scoring rules, and presentation components. Player rows
-and capacity-based rules support larger rooms; the first UI creates two-player rooms. Every mutation locks
-the match row, and player-facing projections exclude future prompts, unrevealed
+and capacity-based rules support larger rooms; the first UI creates two-player
+rooms. Every mutation locks the match row, and player-facing projections exclude future prompts, unrevealed
 answers, and opponents' pending guesses. Scores update only when rounds close.
 
 A supervised clock polls persisted round deadlines once per second. An expired

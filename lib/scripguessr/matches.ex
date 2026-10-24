@@ -3,63 +3,65 @@ defmodule Scripguessr.Matches do
   import Ecto.Query
   alias Scripguessr.{Repo, Corpus.Cache}
   alias Scripguessr.Games.Rules
-  alias Scripguessr.Matches.{Match, Player, Guess}
+  alias Scripguessr.Matches.{Match, Player, Guess, Identity}
 
   @round_seconds 90
 
   def topic(id), do: "match:" <> id
   def round_seconds, do: @round_seconds
-  def create(user_id, capacity \\ 2)
-  def create(nil, _capacity), do: {:error, :account_required}
 
-  def create(user_id, capacity) when is_binary(user_id) and capacity in 2..8 do
-    with {:ok, snapshot} <- Cache.prepare() do
+  def create(actor, capacity \\ 2, name \\ nil) do
+    with {:ok, attrs} <- player_attributes(actor, name),
+         true <- capacity in 2..8,
+         {:ok, snapshot} <- Cache.prepare() do
       Repo.transaction(fn ->
         match =
           Repo.insert!(%Match{
-            host_id: user_id,
             capacity: capacity,
             snapshot: snapshot,
             code: Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
           })
 
-        Repo.insert!(%Player{match_id: match.id, user_id: user_id, seat: 0})
+        Repo.insert!(struct(Player, Map.merge(attrs, %{match_id: match.id, seat: 0, host: true})))
         match.code
       end)
+    else
+      false -> {:error, :invalid_capacity}
+      error -> error
     end
   end
 
-  def recent(nil), do: []
+  def recent(actor) do
+    filter = identity_filter(identity(actor))
 
-  def recent(user_id) do
     Repo.all(
       from m in Match,
         join: p in Player,
         on: p.match_id == m.id,
-        where: p.user_id == ^user_id,
+        where: ^filter,
+        distinct: true,
         order_by: [desc: m.inserted_at, desc: m.id],
         limit: 20,
-        select: %{code: m.code, status: m.status, inserted_at: m.inserted_at}
+        select: %{code: m.code, status: m.status, inserted_at: m.inserted_at, id: m.id}
     )
+    |> Enum.map(&Map.delete(&1, :id))
   end
 
-  def fetch(code, user_id) do
+  def fetch(code, actor) do
     case find(code) do
       nil ->
         {:error, :not_found}
 
       match ->
         if due?(match, DateTime.utc_now()), do: expire(match.id)
-        {:ok, find(code) |> load_players() |> present(user_id)}
+        {:ok, find(code) |> load_players() |> present(actor)}
     end
   end
 
-  def join(code, nil), do: account_required(code)
-
-  def join(code, user_id) do
+  def join(code, actor, name \\ nil) do
     mutate(code, fn match ->
       cond do
-        member(match, user_id) ->
+        member(match, actor) ->
           {:ok, match.code}
 
         match.status != "lobby" ->
@@ -69,16 +71,19 @@ defmodule Scripguessr.Matches do
           {:error, :full}
 
         true ->
-          seats = Enum.map(match.players, & &1.seat)
-          seat = Enum.find(0..(match.capacity - 1), &(&1 not in seats))
-          Repo.insert!(%Player{match_id: match.id, user_id: user_id, seat: seat})
-          {:ok, match.code}
+          with {:ok, attrs} <- player_attributes(actor, name),
+               :ok <- available_name(match, attrs) do
+            seats = Enum.map(match.players, & &1.seat)
+            seat = Enum.find(0..(match.capacity - 1), &(&1 not in seats))
+            Repo.insert!(struct(Player, Map.merge(attrs, %{match_id: match.id, seat: seat})))
+            {:ok, match.code}
+          end
       end
     end)
   end
 
-  def ready(code, user_id, ready?) when is_boolean(ready?) do
-    mutate_member(code, user_id, fn match, player ->
+  def ready(code, actor, ready?) when is_boolean(ready?) do
+    mutate_member(code, actor, fn match, player ->
       if match.status == "lobby" do
         player |> Ecto.Changeset.change(ready: ready?) |> Repo.update!()
         {:ok, match.code}
@@ -88,10 +93,10 @@ defmodule Scripguessr.Matches do
     end)
   end
 
-  def start(code, user_id) do
-    mutate_member(code, user_id, fn match, _ ->
+  def start(code, actor) do
+    mutate_member(code, actor, fn match, player ->
       cond do
-        match.host_id != user_id ->
+        !player.host ->
           {:error, :host_only}
 
         match.status != "lobby" ->
@@ -111,10 +116,10 @@ defmodule Scripguessr.Matches do
     end)
   end
 
-  def leave(code, user_id) do
-    mutate_member(code, user_id, fn match, player ->
+  def leave(code, actor) do
+    mutate_member(code, actor, fn match, player ->
       if match.status == "lobby" do
-        if match.host_id == user_id,
+        if player.host,
           do: change(match, status: "cancelled"),
           else: Repo.delete!(player)
 
@@ -125,10 +130,10 @@ defmodule Scripguessr.Matches do
     end)
   end
 
-  def advance(code, user_id, index) do
-    mutate_member(code, user_id, fn match, _ ->
+  def advance(code, actor, index) do
+    mutate_member(code, actor, fn match, player ->
       cond do
-        match.host_id != user_id ->
+        !player.host ->
           {:error, :host_only}
 
         match.status != "reveal" or match.round != index ->
@@ -150,8 +155,8 @@ defmodule Scripguessr.Matches do
     end)
   end
 
-  def submit(code, user_id, index, book, chapter) do
-    mutate_member(code, user_id, fn match, player ->
+  def submit(code, actor, index, book, chapter) do
+    mutate_member(code, actor, fn match, player ->
       cond do
         match.status != "round" or match.round != index ->
           {:error, :stale_round}
@@ -235,9 +240,9 @@ defmodule Scripguessr.Matches do
     change(match, status: "reveal", deadline: nil)
   end
 
-  defp mutate_member(code, user_id, action) do
+  defp mutate_member(code, actor, action) do
     mutate(code, fn match ->
-      case member(match, user_id) do
+      case member(match, actor) do
         nil -> {:error, :not_a_player}
         player -> action.(match, player)
       end
@@ -287,8 +292,59 @@ defmodule Scripguessr.Matches do
     )
   end
 
-  defp member(_match, nil), do: nil
-  defp member(match, user_id), do: Enum.find(match.players, &(&1.user_id == user_id))
+  defp identity(%Identity{} = actor), do: actor
+  defp identity(user_id) when is_binary(user_id), do: %Identity{user_id: user_id}
+  defp identity(_), do: %Identity{}
+
+  defp identity_filter(actor) do
+    filter = dynamic([_m, _p], false)
+
+    filter =
+      if actor.user_id, do: dynamic([m, p], ^filter or p.user_id == ^actor.user_id), else: filter
+
+    if actor.guest_hash,
+      do: dynamic([m, p], ^filter or p.guest_hash == ^actor.guest_hash),
+      else: filter
+  end
+
+  defp member(match, actor) do
+    actor = identity(actor)
+    # Prefer the account seat if this browser also has an older guest seat.
+    Enum.find(match.players, &(actor.user_id != nil && &1.user_id == actor.user_id)) ||
+      Enum.find(match.players, &(actor.guest_hash != nil && &1.guest_hash == actor.guest_hash))
+  end
+
+  defp player_attributes(actor, name) do
+    case identity(actor) do
+      %{user_id: user_id} when not is_nil(user_id) ->
+        {:ok, %{user_id: user_id}}
+
+      %{guest_hash: hash} when not is_nil(hash) ->
+        name =
+          if is_binary(name) && byte_size(name) <= 256 && String.valid?(name),
+            do: name |> String.trim() |> String.normalize(:nfc),
+            else: ""
+
+        if byte_size(name) <= 128 && length(String.codepoints(name)) in 1..32 &&
+             !Regex.match?(~r/[\p{C}]/u, name),
+           do: {:ok, %{guest_hash: hash, guest_name: name}},
+           else: {:error, :invalid_name}
+
+      _ ->
+        {:error, :identity_required}
+    end
+  end
+
+  defp available_name(match, %{guest_name: name}) do
+    if Enum.any?(match.players, &(String.downcase(player_name(&1)) == String.downcase(name))),
+      do: {:error, :name_taken},
+      else: :ok
+  end
+
+  defp available_name(_, _), do: :ok
+  defp player_name(%{user: nil, guest_name: name}), do: name
+  defp player_name(player), do: player.user.username
+
   defp guess_for(player, round), do: Enum.find(player.guesses, &(&1.round == round))
 
   defp due?(%Match{status: "round", deadline: %DateTime{} = deadline}, now),
@@ -300,19 +356,18 @@ defmodule Scripguessr.Matches do
   defp broadcast(id),
     do: Phoenix.PubSub.broadcast(Scripguessr.PubSub, topic(id), {:match_updated, id})
 
-  defp account_required(_code), do: {:error, :account_required}
-
   # This is the only player-facing projection. Never return the frozen snapshot,
   # opponents' pending guesses, scores for an open round, or future answers.
-  defp present(match, user_id) do
-    player = member(match, user_id)
+  defp present(match, actor) do
+    player = member(match, actor)
     visible? = player != nil and match.status in ["reveal", "finished"]
     own_guess = player && guess_for(player, match.round)
 
     %{
       id: match.id,
       code: match.code,
-      host_id: match.host_id,
+      host_id: Enum.find(match.players, & &1.host).id,
+      player_id: player && player.id,
       capacity: match.capacity,
       status: match.status,
       round: match.round,
@@ -323,8 +378,10 @@ defmodule Scripguessr.Matches do
       players:
         Enum.map(match.players, fn p ->
           %{
+            id: p.id,
             user_id: p.user_id,
-            username: p.user.username,
+            guest?: is_nil(p.user_id),
+            username: player_name(p),
             ready: p.ready,
             score: if(player, do: p.score),
             submitted?: guess_for(p, match.round) != nil
@@ -360,8 +417,10 @@ defmodule Scripguessr.Matches do
           guess = guess_for(player, index)
 
           %{
+            player_id: player.id,
             user_id: player.user_id,
-            username: player.user.username,
+            guest?: is_nil(player.user_id),
+            username: player_name(player),
             book: guess && guess.book,
             chapter: guess && guess.chapter,
             points: if(guess, do: guess.points, else: 0),

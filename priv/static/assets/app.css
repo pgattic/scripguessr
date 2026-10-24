@@ -979,3 +979,5 @@ footer {
   .atlas-reading-verse:hover .reader-save-verse,
   .atlas-reading-verse:focus-within .reader-save-verse { opacity: 1; pointer-events: auto; }
 }
+
+.match-guest-form { max-width: 340px; margin: 18px 0 8px; }

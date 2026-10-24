@@ -4,6 +4,7 @@ defmodule ScripguessrWeb.MatchLive do
   import ScripguessrWeb.ChapterReader, only: [chapter_reader: 1]
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Matches, SavedVerses}
+  alias Scripguessr.Matches.Identity
   alias ScripguessrWeb.{GameComponents, MatchPresence}
 
   @impl true
@@ -27,6 +28,12 @@ defmodule ScripguessrWeb.MatchLive do
 
     {:ok,
      assign(socket,
+       identity:
+         Identity.new(
+           socket.assigns.current_user && socket.assigns.current_user.id,
+           session["owner"]
+         ),
+       guest_name: "",
        room: nil,
        code: nil,
        unavailable: false,
@@ -62,7 +69,7 @@ defmodule ScripguessrWeb.MatchLive do
            code: nil,
            room: nil,
            unavailable: false,
-           recent: Matches.recent(user_id(socket)),
+           recent: Matches.recent(socket.assigns.identity),
            error: nil
          )}
     end
@@ -71,31 +78,35 @@ defmodule ScripguessrWeb.MatchLive do
   @impl true
   def handle_event("create", _, %{assigns: %{preparing: true}} = socket), do: {:noreply, socket}
 
-  def handle_event("create", _, socket) do
-    if user_id = user_id(socket) do
-      {:noreply,
-       socket
-       |> assign(preparing: true, error: nil)
-       |> start_async(:create, fn -> Matches.create(user_id) end)}
-    else
-      {:noreply, redirect(socket, to: sign_in_path(socket.assigns.code))}
-    end
+  def handle_event("create", params, socket) do
+    name = guest_name(params, socket)
+    actor = socket.assigns.identity
+
+    {:noreply,
+     socket
+     |> assign(preparing: true, error: nil, guest_name: name)
+     |> start_async(:create, fn -> Matches.create(actor, 2, name) end)}
   end
 
-  def handle_event("join", _, socket),
-    do: act(socket, fn -> Matches.join(socket.assigns.code, user_id(socket)) end)
+  def handle_event("join", params, socket) do
+    name = guest_name(params, socket)
+    socket = assign(socket, guest_name: name)
+    act(socket, fn -> Matches.join(socket.assigns.code, socket.assigns.identity, name) end)
+  end
 
   def handle_event("ready", %{"ready" => value}, socket) when value in ["true", "false"],
     do:
-      act(socket, fn -> Matches.ready(socket.assigns.code, user_id(socket), value == "true") end)
+      act(socket, fn ->
+        Matches.ready(socket.assigns.code, socket.assigns.identity, value == "true")
+      end)
 
   def handle_event("start", _, socket),
-    do: act(socket, fn -> Matches.start(socket.assigns.code, user_id(socket)) end)
+    do: act(socket, fn -> Matches.start(socket.assigns.code, socket.assigns.identity) end)
 
   def handle_event("advance", %{"round" => value}, socket) when is_binary(value) do
     case Integer.parse(value) do
       {index, ""} ->
-        act(socket, fn -> Matches.advance(socket.assigns.code, user_id(socket), index) end)
+        act(socket, fn -> Matches.advance(socket.assigns.code, socket.assigns.identity, index) end)
 
       _ ->
         {:noreply, socket}
@@ -103,7 +114,7 @@ defmodule ScripguessrWeb.MatchLive do
   end
 
   def handle_event("leave", _, socket) do
-    case Matches.leave(socket.assigns.code, user_id(socket)) do
+    case Matches.leave(socket.assigns.code, socket.assigns.identity) do
       {:ok, _} -> {:noreply, push_navigate(socket, to: "/matches")}
       {:error, reason} -> {:noreply, assign(refresh(socket), :error, error_message(reason))}
     end
@@ -168,7 +179,7 @@ defmodule ScripguessrWeb.MatchLive do
     case Integer.parse(index) do
       {index, ""} ->
         act(socket, fn ->
-          Matches.submit(socket.assigns.code, user_id(socket), index, book, chapter)
+          Matches.submit(socket.assigns.code, socket.assigns.identity, index, book, chapter)
         end)
 
       _ ->
@@ -221,6 +232,11 @@ defmodule ScripguessrWeb.MatchLive do
   def handle_async(:create, {:ok, {:ok, code}}, socket),
     do: {:noreply, socket |> assign(preparing: false) |> push_navigate(to: "/matches/#{code}")}
 
+  def handle_async(:create, {:ok, {:error, reason}}, socket)
+      when reason in [:invalid_name, :identity_required] do
+    {:noreply, assign(socket, preparing: false, error: error_message(reason))}
+  end
+
   def handle_async(:create, _, socket),
     do:
       {:noreply,
@@ -263,7 +279,7 @@ defmodule ScripguessrWeb.MatchLive do
   defp refresh(%{assigns: %{code: nil}} = socket), do: socket
 
   defp refresh(socket) do
-    case Matches.fetch(socket.assigns.code, user_id(socket)) do
+    case Matches.fetch(socket.assigns.code, socket.assigns.identity) do
       {:ok, room} ->
         old = socket.assigns.room
 
@@ -295,7 +311,7 @@ defmodule ScripguessrWeb.MatchLive do
       end
 
     if connected?(socket) and room.joined? and socket.assigns.presence_topic != topic do
-      {:ok, _} = MatchPresence.track(self(), topic, user_id(socket), %{})
+      {:ok, _} = MatchPresence.track(self(), topic, room.player_id, %{})
       assign(socket, :presence_topic, topic)
     else
       socket
@@ -304,7 +320,12 @@ defmodule ScripguessrWeb.MatchLive do
 
   defp detach(socket) do
     if socket.assigns.presence_topic,
-      do: MatchPresence.untrack(self(), socket.assigns.presence_topic, user_id(socket))
+      do:
+        MatchPresence.untrack(
+          self(),
+          socket.assigns.presence_topic,
+          socket.assigns.room.player_id
+        )
 
     if socket.assigns.topic,
       do: Phoenix.PubSub.unsubscribe(Scripguessr.PubSub, socket.assigns.topic)
@@ -318,16 +339,14 @@ defmodule ScripguessrWeb.MatchLive do
     do: assign(socket, :online, MatchPresence.list(socket.assigns.topic) |> Map.keys())
 
   defp act(socket, action) do
-    if user_id(socket) do
-      case action.() do
-        {:ok, _} -> {:noreply, assign(refresh(socket), :error, nil)}
-        {:error, reason} -> {:noreply, assign(refresh(socket), :error, error_message(reason))}
-      end
-    else
-      {:noreply, redirect(socket, to: sign_in_path(socket.assigns.code))}
+    case action.() do
+      {:ok, _} -> {:noreply, assign(refresh(socket), :error, nil)}
+      {:error, reason} -> {:noreply, assign(refresh(socket), :error, error_message(reason))}
     end
   end
 
+  defp guest_name(%{"guest" => %{"name" => name}}, _) when is_binary(name), do: name
+  defp guest_name(_, socket), do: socket.assigns.guest_name
   defp user_id(socket), do: socket.assigns.current_user && socket.assigns.current_user.id
 
   defp readable_result(%{joined?: true, status: "reveal", round: index, result: result}, index),
@@ -380,6 +399,9 @@ defmodule ScripguessrWeb.MatchLive do
   defp guess_label(%{book: nil}), do: "No answer"
   defp guess_label(guess), do: "#{guess.book} #{guess.chapter}"
 
+  defp save_verse(%{assigns: %{current_user: nil}} = socket, _, _),
+    do: assign(socket, save_error: "Sign in to save verses.")
+
   defp save_verse(socket, verse, release) do
     key = SavedVerses.key(verse)
     saved? = !MapSet.member?(socket.assigns.saved_verses, key)
@@ -421,19 +443,24 @@ defmodule ScripguessrWeb.MatchLive do
         else: 0
       )
 
-  defp own_player(room, user_id), do: Enum.find(room.players, &(&1.user_id == user_id))
+  defp own_player(room), do: Enum.find(room.players, &(&1.id == room.player_id))
 
-  defp winner_text(room, user_id) do
+  defp winner_text(room, player_id) do
     best = room.players |> Enum.map(& &1.score) |> Enum.max()
     winners = Enum.filter(room.players, &(&1.score == best))
 
     cond do
       length(winners) > 1 -> "It’s a tie!"
-      hd(winners).user_id == user_id -> "You won!"
+      hd(winners).id == player_id -> "You won!"
       true -> "#{hd(winners).username} wins"
     end
   end
 
+  defp error_message(:invalid_name),
+    do: "Choose a name between 1 and 32 characters, without control characters."
+
+  defp error_message(:name_taken), do: "That name is already in this room. Choose another."
+  defp error_message(:identity_required), do: "Refresh the page to start a browser session."
   defp error_message(:full), do: "This room is full."
   defp error_message(:not_ready), do: "Everyone needs to join and be ready first."
   defp error_message(:host_only), do: "Only the host can start or advance the match."
@@ -449,7 +476,7 @@ defmodule ScripguessrWeb.MatchLive do
       assign(assigns,
         player:
           if(assigns.room,
-            do: own_player(assigns.room, assigns.current_user && assigns.current_user.id)
+            do: own_player(assigns.room)
           )
       )
 

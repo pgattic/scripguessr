@@ -8,9 +8,8 @@ defmodule ScripguessrWeb.MatchLiveTest do
   alias Scripguessr.Matches.Match
   @endpoint ScripguessrWeb.Endpoint
 
-  defp browser(token \\ nil),
-    do:
-      build_conn() |> Plug.Test.init_test_session(%{"owner" => "owner", "account_token" => token})
+  defp browser(token \\ nil, owner \\ "owner"),
+    do: build_conn() |> Plug.Test.init_test_session(%{"owner" => owner, "account_token" => token})
 
   test "Play links to matches and guests return to their invite after signing in" do
     {code, [{_host, _}, {friend, _}]} = match_lobby()
@@ -270,6 +269,100 @@ defmodule ScripguessrWeb.MatchLiveTest do
     render_async(view)
     assert has_element?(view, "#match-reader .atlas-reading-verse")
     assert has_element?(view, "#answer-reveal .score", "0")
+  end
+
+  defp guest_owner, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+
+  test "guests create and join a room, reconnect, read chapters, and complete a match" do
+    host_owner = guest_owner()
+    friend_owner = guest_owner()
+    {:ok, hub, _} = live(browser(nil, host_owner), "/matches")
+    hub |> form("#guest-create-form", guest: %{name: "Avery"}) |> render_submit()
+    {path, _} = assert_redirect(hub, 3_000)
+    {:ok, host, _} = live(browser(nil, host_owner), path)
+    {:ok, friend, _} = live(browser(nil, friend_owner), path)
+    assert has_element?(friend, "#guest-join-form")
+    friend |> form("#guest-join-form", guest: %{name: "Blake"}) |> render_submit()
+    assert has_element?(host, "#match-players", "Blake")
+    assert has_element?(host, "#match-players .match-self", "Avery")
+    assert has_element?(friend, "#match-players .match-self", "Blake")
+    host |> element("#match-ready") |> render_click()
+    friend |> element("#match-ready") |> render_click()
+    host |> element("#start-match") |> render_click()
+    host |> element("#book-grid button", "Omni") |> render_click()
+    host |> form("#guess-form") |> render_submit()
+    {:ok, reconnect, _} = live(browser(nil, host_owner), path)
+    assert has_element?(reconnect, "#match-waiting", "Omni 1")
+    refute has_element?(reconnect, "#book-grid")
+    {:ok, outsider, _} = live(browser(nil, guest_owner()), path)
+    refute has_element?(outsider, "#verse-text")
+    # Forged participant and browser fields do not change the identity read at mount.
+    render_click(outsider, "guess", %{
+      "guess" => %{"round" => "0", "book" => "Omni", "chapter" => "1"},
+      "owner" => host_owner
+    })
+
+    refute has_element?(outsider, "#match-waiting")
+    friend |> element("#book-grid button", "Omni") |> render_click()
+    friend |> form("#guess-form") |> render_submit()
+    assert has_element?(host, ".round-player[data-self=true] .round-player-name", "Avery")
+    assert has_element?(friend, ".round-player[data-self=true] .round-player-name", "Blake")
+    assert has_element?(friend, "#waiting-for-host")
+    host |> element("#read-chapter") |> render_click()
+    render_async(host)
+    assert has_element?(host, "#match-reader .matched")
+    refute has_element?(host, "#match-reader .save-verse")
+    render_click(host, "save-verse", %{"source" => "round", "index" => "0"})
+    assert has_element?(host, "#match-reader [role=alert]", "Sign in")
+    host |> element("#match-reader-close") |> render_click()
+    host |> element("#advance-match") |> render_click()
+    code = List.last(String.split(path, "/"))
+    actor = Scripguessr.Matches.Identity.new(nil, host_owner)
+
+    for index <- 1..4 do
+      expire_match(code)
+      assert has_element?(host, ".match-heading", "Round #{index + 1} results")
+      assert has_element?(host, "#match-round-result")
+      host |> element("#advance-match") |> render_click()
+      assert {:ok, _} = Matches.fetch(code, actor)
+    end
+
+    assert has_element?(host, "#match-results")
+    assert has_element?(friend, "#match-results")
+    assert has_element?(reconnect, "#match-results")
+    {:ok, results, _} = live(browser(nil, host_owner), path)
+    assert has_element?(results, "#match-results")
+    {:ok, hub, _} = live(browser(nil, host_owner), "/matches")
+    assert has_element?(hub, "#recent-matches a[href='#{path}']")
+    assert Repo.aggregate(Scripguessr.Accounts.User, :count) == 0
+  end
+
+  test "guest name errors preserve the invite and signing in keeps the same guest host" do
+    owner = guest_owner()
+    {:ok, hub, _} = live(browser(nil, owner), "/matches")
+    render_submit(hub, "create", %{"guest" => %{"name" => "  "}})
+    render_async(hub)
+    assert has_element?(hub, "[role=alert]", "Choose a name")
+    assert has_element?(hub, "#guest-create-form")
+    hub |> form("#guest-create-form", guest: %{name: "Avery"}) |> render_submit()
+    {path, _} = assert_redirect(hub, 3_000)
+    {:ok, friend, _} = live(browser(nil, guest_owner()), path)
+    friend |> form("#guest-join-form", guest: %{name: "avery"}) |> render_submit()
+    assert has_element?(friend, "[role=alert]", "already in this room")
+    assert has_element?(friend, "#guest-join-form")
+    # The normal sign-in controller preserves Owner's cookie identity.
+    {user, _} = account("accountplayer")
+    conn = browser(nil, owner)
+    conn = get(conn, "/account/sign-in?" <> URI.encode_query(%{return_to: path}))
+
+    conn =
+      post(recycle(conn), "/account/sign-in", %{username: user.username, password: password()})
+
+    assert redirected_to(conn) == path
+    {:ok, signed_in, _} = live(recycle(conn), path)
+    assert has_element?(signed_in, "#match-players .match-self", "Avery")
+    assert has_element?(signed_in, "#start-match")
+    assert has_element?(signed_in, "#leave-match", "Cancel room")
   end
 
   test "session revocation prevents further pushed match content" do

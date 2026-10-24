@@ -6,11 +6,11 @@ defmodule Scripguessr.MatchesTest do
   alias Scripguessr.{Matches, Repo, Progression}
   alias Scripguessr.Matches.{Match, Player, Guess}
 
-  test "private rooms require accounts, readiness, and the host to start" do
+  test "private rooms require an identity, readiness, and the host to start" do
     {code, [{host, _}, {friend, _}]} = match_lobby()
     {stranger, _} = account("stranger")
-    assert {:error, :account_required} = Matches.create(nil)
-    assert {:error, :account_required} = Matches.join(code, nil)
+    assert {:error, :identity_required} = Matches.create(nil)
+    assert {:error, :identity_required} = Matches.join(code, nil)
     assert {:error, :not_found} = Matches.fetch("invalid", host.id)
     assert {:error, :not_ready} = Matches.start(code, host.id)
     assert {:error, :not_a_player} = Matches.start(code, stranger.id)
@@ -211,6 +211,123 @@ defmodule Scripguessr.MatchesTest do
     assert {:ok, %{status: "reveal", result: %{guesses: guesses}}} = Matches.fetch(code, host.id)
     assert length(guesses) == 3
     assert Enum.all?(guesses, &(&1.points == 1000))
+  end
+
+  defp guest do
+    owner = Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)
+    {Scripguessr.Matches.Identity.new(nil, owner), owner}
+  end
+
+  test "three guests can host, reconnect, score, and finish without creating accounts" do
+    {host, owner} = guest()
+    {friend, _} = guest()
+    {third, _} = guest()
+    {stranger, _} = guest()
+    assert {:ok, code} = Matches.create(host, 3, "Avery")
+    assert {:ok, _} = Matches.join(code, friend, "Blake")
+    assert {:ok, _} = Matches.join(code, third, "Casey")
+    assert {:ok, view} = Matches.fetch(code, host)
+    assert view.player_id == view.host_id
+    assert Enum.all?(view.players, & &1.guest?)
+    assert Enum.all?(view.players, &is_nil(&1.user_id))
+    refute Enum.any?(view.players, &Map.has_key?(&1, :guest_hash))
+    refute inspect(view) =~ owner
+    assert Repo.aggregate(Scripguessr.Accounts.User, :count) == 0
+    for actor <- [host, friend, third], do: assert({:ok, _} = Matches.ready(code, actor, true))
+    assert {:error, :host_only} = Matches.start(code, friend)
+    assert {:ok, _} = Matches.start(code, host)
+    snapshot = Repo.get_by!(Match, code: code).snapshot
+    assert {:error, :not_a_player} = Matches.submit(code, stranger, 0, "Omni", "1")
+    # A public participant ID is not an authentication credential.
+    assert {:error, :not_a_player} = Matches.ready(code, view.host_id, false)
+
+    reconnected = Scripguessr.Matches.Identity.new(nil, owner)
+    assert {:ok, %{player_id: id}} = Matches.fetch(code, reconnected)
+    assert id == view.host_id
+
+    for {round, index} <- Enum.with_index(snapshot["rounds"]) do
+      for actor <- [host, friend, third] do
+        assert {:ok, _} =
+                 Matches.submit(code, actor, index, round["book"], to_string(round["chapter"]))
+      end
+
+      assert {:error, :host_only} = Matches.advance(code, friend, index)
+      assert {:ok, _} = Matches.advance(code, reconnected, index)
+    end
+
+    assert {:ok, %{status: "finished", players: players, results: results}} =
+             Matches.fetch(code, reconnected)
+
+    assert Enum.all?(players, &(&1.score == 5000))
+    assert length(results) == 5
+    assert {:ok, %{results: [], result: nil}} = Matches.fetch(code, stranger)
+    assert [%{code: ^code}] = Matches.recent(reconnected)
+    assert Matches.recent(stranger) == []
+  end
+
+  test "guest names are validated and a guest cannot take another participant's name" do
+    {host, _} = guest()
+    {friend, _} = guest()
+
+    for name <- [
+          nil,
+          "",
+          "   ",
+          String.duplicate("x", 33),
+          "x" <> String.duplicate("\u0301", 32),
+          "Avery\nSmith",
+          "Avery" <> <<0>>
+        ] do
+      assert {:error, :invalid_name} = Matches.create(host, 2, name)
+    end
+
+    assert Repo.aggregate(Match, :count) == 0
+    assert {:ok, code} = Matches.create(host, 2, " Avery ")
+    assert {:error, :name_taken} = Matches.join(code, friend, "avery")
+    assert {:ok, _} = Matches.join(code, friend, "Blake")
+    assert {:ok, _} = Matches.join(code, friend)
+    assert Repo.aggregate(Player, :count) == 2
+    assert {:ok, _} = Matches.leave(code, friend)
+    assert {:ok, _} = Matches.join(code, friend, "New name")
+    assert {:ok, _} = Matches.leave(code, host)
+    assert {:ok, %{status: "cancelled"}} = Matches.fetch(code, friend)
+
+    assert {:error, :identity_required} =
+             Matches.create(Scripguessr.Matches.Identity.new(nil, "bad"), 2, "Avery")
+  end
+
+  test "signing in preserves a browser's guest seat without merging it into an account" do
+    {host, owner} = guest()
+    {user, _} = account("friend")
+    {other, _} = guest()
+    assert {:ok, code} = Matches.create(host, 2, "Avery")
+    assert {:ok, _} = Matches.join(code, user.id)
+    signed_in = Scripguessr.Matches.Identity.new(user.id, owner)
+    # If the account already has its own seat, that seat wins over the browser's guest seat.
+    assert {:ok, account_view} = Matches.fetch(code, signed_in)
+    assert Enum.find(account_view.players, &(&1.id == account_view.player_id)).user_id == user.id
+    assert {:ok, _} = Matches.leave(code, user.id)
+    assert {:ok, guest_view} = Matches.fetch(code, signed_in)
+    assert guest_view.player_id == guest_view.host_id
+    assert {:ok, _} = Matches.ready(code, signed_in, true)
+    assert {:ok, _} = Matches.join(code, other, "Blake")
+    assert {:ok, _} = Matches.ready(code, other, true)
+    assert {:ok, _} = Matches.start(code, signed_in)
+    assert {:ok, %{joined?: false}} = Matches.fetch(code, user.id)
+    assert [%{code: ^code}] = Matches.recent(signed_in)
+    assert Progression.for_user(user.id).xp == 0
+  end
+
+  test "competing guest joins cannot duplicate a browser's seat" do
+    {host, _} = guest()
+    {friend, _} = guest()
+    {:ok, code} = Matches.create(host, 2, "Avery")
+
+    results =
+      Task.async_stream(1..2, fn _ -> Matches.join(code, friend, "Blake") end) |> Enum.to_list()
+
+    assert Enum.all?(results, &match?({:ok, {:ok, _}}, &1))
+    assert Repo.aggregate(Player, :count) == 2
   end
 
   test "failed preparation creates no room or memberships" do

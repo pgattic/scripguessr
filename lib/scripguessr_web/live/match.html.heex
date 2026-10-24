@@ -18,7 +18,26 @@
       disabled={@preparing}
       phx-disable-with="Loading…"
     >{if @preparing, do: "Loading…", else: "Create room"} <span aria-hidden="true">→</span></button>
-    <a :if={!@current_user} id="match-sign-in" href={sign_in_path(@code)} class="button">Sign in to play →</a>
+    <form
+      :if={!@current_user}
+      id="guest-create-form"
+      phx-submit="create"
+      class="account-form match-guest-form"
+    >
+      <label for="guest-name">Your name</label>
+      <input
+        id="guest-name"
+        name="guest[name]"
+        value={@guest_name}
+        required
+        maxlength="32"
+        autocomplete="nickname"
+      />
+      <button id="create-match" class="button" disabled={@preparing} phx-disable-with="Loading…">
+        {if @preparing, do: "Loading…", else: "Create room"} →
+      </button>
+    </form>
+    <a :if={!@current_user} id="match-sign-in" href={sign_in_path(@code)} class="text-button">Sign in instead</a>
     <p class="muted daily-note">Friendly matches don’t affect XP or daily rankings.</p>
     <p :if={@error} class="error" role="alert">{@error}</p>
   </div>
@@ -59,7 +78,7 @@
             "Round #{@room.round + 1} results"
 
           "finished" ->
-            if @room.joined?, do: winner_text(@room, @current_user.id), else: "Match finished"
+            if @room.joined?, do: winner_text(@room, @room.player_id), else: "Match finished"
 
           "cancelled" ->
             "Room cancelled"
@@ -73,17 +92,18 @@
     <div
       :for={player <- @room.players}
       class={
-        if @current_user && player.user_id == @current_user.id,
+        if player.id == @room.player_id,
           do: "panel match-player match-self",
           else: "panel match-player"
       }
     >
       <div class="match-player-name">
         <span
-          class={if player.user_id in @online, do: "presence-dot online", else: "presence-dot"}
-          aria-label={if player.user_id in @online, do: "Online", else: "Away"}
-        ></span><strong title={player.username}>{player.username}</strong><span
-          :if={player.user_id == @room.host_id}
+          class={if player.id in @online, do: "presence-dot online", else: "presence-dot"}
+          aria-label={if player.id in @online, do: "Online", else: "Away"}
+        ></span><strong title={player.username}>{player.username}</strong>
+        <span :if={player.guest?} class="muted">Guest</span><span
+          :if={player.id == @room.host_id}
           class="muted"
         >Host</span>
       </div>
@@ -120,12 +140,29 @@
       phx-click="join"
       class="button"
     >Join room →</button>
+    <form
+      :if={!@current_user && @room.status == "lobby" && length(@room.players) < @room.capacity}
+      id="guest-join-form"
+      phx-submit="join"
+      class="account-form match-guest-form"
+    >
+      <label for="guest-name">Your name</label>
+      <input
+        id="guest-name"
+        name="guest[name]"
+        value={@guest_name}
+        required
+        maxlength="32"
+        autocomplete="nickname"
+      />
+      <button id="join-match" class="button" phx-disable-with="Joining…">Join room →</button>
+    </form>
     <a
       :if={!@current_user && @room.status == "lobby" && length(@room.players) < @room.capacity}
       id="match-sign-in"
       href={sign_in_path(@code)}
-      class="button"
-    >Sign in to join →</a>
+      class="text-button"
+    >Sign in instead</a>
     <p :if={@room.status != "lobby"} class="muted">
       Only its players can rejoin or view its results.
     </p>
@@ -157,13 +194,13 @@
         phx-value-ready={to_string(!@player.ready)}
       >{if @player.ready, do: "Not ready", else: "I’m ready"}</button>
       <button
-        :if={@current_user.id == @room.host_id}
+        :if={@room.player_id == @room.host_id}
         id="start-match"
         class="button"
         phx-click="start"
         disabled={!@room.all_ready?}
       >Start match →</button>
-      <button id="leave-match" class="text-button" phx-click="leave">{if @current_user.id ==
+      <button id="leave-match" class="text-button" phx-click="leave">{if @room.player_id ==
                                                                            @room.host_id,
                                                                          do: "Cancel room",
                                                                          else: "Leave room"}</button>
@@ -239,7 +276,8 @@
           <:player
             :for={guess <- @room.result.guesses}
             name={guess.username}
-            self={guess.user_id == @current_user.id}
+            self={guess.player_id == @room.player_id}
+            guest={guess.guest?}
             guess={guess_label(guess)}
             points={guess.points}
             distance={guess.distance}
@@ -259,7 +297,7 @@
             index={@room.round}
           />
           <button
-            :if={@current_user.id == @room.host_id}
+            :if={@room.player_id == @room.host_id}
             id="advance-match"
             class="button full-width"
             phx-click="advance"
@@ -269,7 +307,7 @@
             {if @room.round == 4, do: "View results", else: "Next round"} →
           </button>
           <p
-            :if={@current_user.id != @room.host_id}
+            :if={@room.player_id != @room.host_id}
             id="waiting-for-host"
             class="muted"
             role="status"

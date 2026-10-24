@@ -111,6 +111,7 @@ defmodule ScripguessrWeb.GameComponents do
     attr :guess, :string, required: true
     attr :points, :integer, required: true
     attr :distance, :integer
+    attr :guest, :boolean
     attr :self, :boolean
   end
 
@@ -127,6 +128,7 @@ defmodule ScripguessrWeb.GameComponents do
           <div class="round-player-heading">
             <strong class="round-player-name">{player.name}</strong>
             <span :if={player[:self] && player.name != "You"} class="pill">You</span>
+            <span :if={player[:guest]} class="pill">Guest</span>
             <span class="score">{player.points}<span> / 1,000</span></span>
           </div>
           <strong class="round-player-guess">{player.guess}</strong>

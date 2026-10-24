@@ -3,7 +3,6 @@ defmodule Scripguessr.Matches.Match do
   @primary_key {:id, :binary_id, autogenerate: true}
   schema "matches" do
     field :code, :string
-    field :host_id, :binary_id
     field :capacity, :integer, default: 2
     field :status, :string, default: "lobby"
     field :round, :integer, default: 0
