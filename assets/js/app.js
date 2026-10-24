@@ -148,9 +148,28 @@ reducedMotion.addEventListener("change", () => {
 document.addEventListener("phx:update", animateMeters)
 animateMeters()
 
+const CopyResult = {
+  mounted() {
+    this.copy = async () => {
+      const result = document.getElementById("daily-result")
+      const status = document.getElementById("copy-daily-status")
+      try {
+        await navigator.clipboard.writeText(result.value)
+        status.textContent = "Copied!"
+      } catch {
+        result.focus()
+        result.select()
+        status.textContent = "Selected — copy the text above."
+      }
+    }
+    this.el.addEventListener("click", this.copy)
+  },
+  destroyed() { this.el.removeEventListener("click", this.copy) }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, ChapterReader, AtlasFilters}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket

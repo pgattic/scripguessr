@@ -129,7 +129,19 @@
   <div :if={@games != []} id="game-history" class="game-history">
     <a :for={game <- @games} href={"/game/#{game.id}"} class="panel history-row">
       <div>
-        <strong>{if game.snapshot["finished"], do: "Completed game", else: "Game in progress"}</strong>
+        <strong>{cond do
+          game.snapshot["finished"] ->
+            if game.challenge_id, do: "Daily game · #{game.challenge.day}", else: "Completed game"
+
+          Games.daily_closed?(game, Date.utc_today()) ->
+            "Daily game ended · #{game.challenge.day}"
+
+          game.challenge_id ->
+            "Daily game · #{game.challenge.day}"
+
+          true ->
+            "Game in progress"
+        end}</strong>
         <span class="muted"><time datetime={DateTime.to_iso8601(game.inserted_at)}>{Calendar.strftime(
           game.inserted_at,
           "%b %-d, %Y"
@@ -143,7 +155,11 @@
                                                                              do: "/ 5,000",
                                                                              else: "pts"}</span>
       </div>
-      <span class="text-button">{if game.snapshot["finished"], do: "Review", else: "Resume"} →</span>
+      <span class="text-button">{cond do
+        game.snapshot["finished"] -> "Review"
+        Games.daily_closed?(game, Date.utc_today()) -> "Ended"
+        true -> "Resume"
+      end} →</span>
     </a>
   </div>
   <nav :if={@more || @page_number > 1} class="history-pages" aria-label="Game history pages">

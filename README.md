@@ -72,6 +72,9 @@ hash. Do not commit build outputs or corpus payloads.
 - `Scripguessr.Games.Rules` implements scoring and progression without I/O.
 - `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
+- `Scripguessr.Challenges` freezes each daily challenge independently of its
+  players' attempts. The first successful preparation saves that day's verses;
+  concurrent starts use the same database-enforced challenge and account attempt.
 - `ScripguessrWeb.GameLive` renders the game and final summary.
 - `Scripguessr.Progression` stores one XP reward per completed account game and
   derives lifetime XP and level progress from those rewards.
@@ -128,6 +131,28 @@ with tied players displayed alphabetically. Only usernames, XP, and levels are
 public; games and saved verses remain private. `Scripguessr.Leaderboards` owns
 the ranking queries independently of the page, allowing future categories to
 use different scoring rules.
+
+## Daily game
+
+Choose **Daily game** from Play for five shared Book of Mormon verses. Daily
+games require an account and allow one attempt per account per UTC date. You can
+resume that attempt on another device. A day's challenge is prepared on its first
+start and frozen with its corpus release, so subsequent players get the same
+verses and order even if the corpus changes or becomes unavailable.
+
+Finish all five rounds before **midnight UTC** to enter that day's score board.
+Unfinished attempts close at the reset and aren't ranked. Completed results stay
+available in your game history. **Leaderboard → Daily game** shows the top 50
+completed scores for a selected date, with equal scores sharing a rank. Signed-in
+players outside the top 50 can still see their own rank. Daily games earn the
+usual completion and accuracy XP once; they cannot be restarted for extra XP.
+
+The results' **Share result** disclosure offers a copyable score and five colored
+squares: green for an exact chapter, yellow for 750–999 points, orange for
+250–749, and white for fewer than 250. The shared text links to `/daily` and
+contains no verse text, answer references, or private game URL. Rankings publish
+only usernames and scores. Random games remain separate and available without
+an account; the Atlas is independent of both modes.
 
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
 navigation. Search for topics, people, places, and other corpus entries, select

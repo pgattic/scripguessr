@@ -3,14 +3,20 @@ defmodule ScripguessrWeb.GameLive do
   import ScripguessrWeb.ChapterReader, only: [chapter_reader: 1]
   alias Scripguessr.SavedVerses
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
-  alias Scripguessr.{Games, Progression}
+  alias Scripguessr.{Games, Progression, Leaderboards}
   import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
 
   @impl true
   def mount(_params, session, socket) do
+    if connected?(socket), do: schedule_daily_reset()
+
     {:ok,
      assign(socket,
+       today: Date.utc_today(),
+       daily_lobby: false,
+       daily_attempt: nil,
+       daily_rank: nil,
        owner: session["owner"],
        game: nil,
        resume_game: nil,
@@ -32,6 +38,8 @@ defmodule ScripguessrWeb.GameLive do
 
   @impl true
   def handle_params(params, _uri, socket) do
+    socket = assign(socket, :today, Date.utc_today())
+
     case params do
       %{"id" => id} ->
         case Games.fetch(id, socket.assigns.owner, user_id(socket)) do
@@ -55,6 +63,8 @@ defmodule ScripguessrWeb.GameLive do
       _ ->
         {:noreply,
          assign(socket,
+           daily_lobby: socket.assigns.live_action == :daily,
+           daily_attempt: Games.daily_for_user(Date.utc_today(), user_id(socket)),
            game: nil,
            unavailable: false,
            resume_game: Games.latest_unfinished(socket.assigns.owner, user_id(socket))
@@ -73,6 +83,22 @@ defmodule ScripguessrWeb.GameLive do
      socket
      |> assign(preparing: true, error: nil)
      |> start_async(:prepare, fn -> Games.create(owner, user_id) end)}
+  end
+
+  def handle_event("start-daily", _, %{assigns: %{preparing: true}} = socket),
+    do: {:noreply, socket}
+
+  def handle_event("start-daily", _, socket) do
+    if user_id = user_id(socket) do
+      owner = socket.assigns.owner
+
+      {:noreply,
+       socket
+       |> assign(preparing: true, error: nil)
+       |> start_async(:prepare, fn -> Games.start_daily(owner, user_id) end)}
+    else
+      {:noreply, redirect(socket, to: "/account/sign-in")}
+    end
   end
 
   def handle_event("choose-book", %{"book" => book}, socket) do
@@ -226,6 +252,27 @@ defmodule ScripguessrWeb.GameLive do
   def handle_async(:chapter, _result, socket),
     do: {:noreply, assign(socket, reader_error: "Couldn’t load this chapter. Try again.")}
 
+  @impl true
+  def handle_info(:daily_reset, socket) do
+    schedule_daily_reset()
+
+    {:noreply,
+     assign(socket,
+       today: Date.utc_today(),
+       daily_attempt: Games.daily_for_user(Date.utc_today(), user_id(socket))
+     )}
+  end
+
+  defp schedule_daily_reset do
+    tomorrow = Date.utc_today() |> Date.add(1) |> DateTime.new!(~T[00:00:00], "Etc/UTC")
+
+    Process.send_after(
+      self(),
+      :daily_reset,
+      max(1, DateTime.diff(tomorrow, DateTime.utc_now(), :millisecond) + 100)
+    )
+  end
+
   defp load_chapter(socket, round) do
     release = socket.assigns.game.snapshot["release"]
 
@@ -277,10 +324,12 @@ defmodule ScripguessrWeb.GameLive do
       assign(socket,
         progress: progress,
         current_progress: progress,
-        reward: Progression.for_game(game.id)
+        reward: Progression.for_game(game.id),
+        daily_rank:
+          if(game.challenge_id, do: Leaderboards.daily_rank(game.challenge.day, game.user_id))
       )
     else
-      assign(socket, progress: nil, reward: nil)
+      assign(socket, progress: nil, reward: nil, daily_rank: nil)
     end
   end
 
@@ -337,6 +386,8 @@ defmodule ScripguessrWeb.GameLive do
     assigns =
       assign(assigns,
         snapshot: snapshot,
+        daily_day: if(assigns.game && assigns.game.challenge_id, do: assigns.game.challenge.day),
+        daily_closed: assigns.game && Games.daily_closed?(assigns.game, assigns.today),
         xp_reward: Progression.Rules.reward(snapshot),
         round: if(snapshot, do: Enum.at(snapshot["rounds"], snapshot["current"]))
       )
@@ -345,4 +396,18 @@ defmodule ScripguessrWeb.GameLive do
   end
 
   embed_templates "game.html"
+
+  defp daily_result(game) do
+    squares =
+      Enum.map_join(game.snapshot["rounds"], fn round ->
+        case round["guess"]["points"] do
+          1000 -> "🟩"
+          points when points >= 750 -> "🟨"
+          points when points >= 250 -> "🟧"
+          _ -> "⬜"
+        end
+      end)
+
+    "ScripGuessr Daily · #{game.challenge.day}\n#{Rules.total(game.snapshot)} / 5,000\n#{squares}\n#{ScripguessrWeb.Endpoint.url()}/daily"
+  end
 end

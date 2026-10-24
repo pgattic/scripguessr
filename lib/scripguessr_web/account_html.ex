@@ -3,6 +3,7 @@ defmodule ScripguessrWeb.AccountHTML do
   import ScripguessrWeb.Layouts, only: [personal_nav: 1]
   import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
+  alias Scripguessr.Games
   defp form_action(:sign_in), do: "/account/sign-in"
   defp form_action(:register), do: "/account/register"
   defp form_action(:recover), do: "/account/recover"

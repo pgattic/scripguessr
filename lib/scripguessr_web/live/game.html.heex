@@ -4,12 +4,14 @@
   <a class="button" href="/">Home</a>
 </section>
 
-<section :if={!@game && !@unavailable} class="welcome">
+<section :if={!@game && !@unavailable && !@daily_lobby} class="welcome">
   <div class="intro-copy">
     <span class="pill">Book of Mormon · 5 rounds</span>
     <h1>How well do you<br /> know the verses?</h1>
     <p class="lede">Read a verse. Guess its book and chapter.</p>
     <div class="welcome-actions">
+      <a href="/daily" id="daily-game" class="button secondary">Daily game
+      <span aria-hidden="true">↗</span></a>
       <a :if={@resume_game} id="resume-game" class="button" href={"/game/#{@resume_game.id}"}>
         Continue game <span aria-hidden="true">→</span>
       </a>
@@ -38,7 +40,62 @@
   </aside>
 </section>
 
-<section :if={@game && !@snapshot["finished"]} class="game-page">
+<section :if={!@game && !@unavailable && @daily_lobby} class="daily-page">
+  <span class="pill">{@today} · UTC</span>
+  <h1>The daily five.</h1>
+  <p class="lede">Same verses. A new challenge every day.</p>
+  <div class="panel daily-card">
+    <h2>Book of Mormon · 5 rounds</h2>
+    <p class="muted">One ranked attempt per account. Finish before midnight UTC.</p>
+    <div class="welcome-actions">
+      <a
+        :if={@daily_attempt}
+        id="daily-attempt"
+        class="button"
+        href={"/game/#{@daily_attempt.id}"}
+      >
+        {if @daily_attempt.snapshot["finished"], do: "Review results", else: "Continue daily"}
+        <span aria-hidden="true">→</span>
+      </a>
+      <button
+        :if={@current_user && !@daily_attempt}
+        id="start-daily"
+        class="button"
+        phx-click="start-daily"
+        disabled={@preparing}
+        phx-disable-with="Loading…"
+      >
+        {if @preparing, do: "Loading…", else: "Play today’s game"}
+        <span aria-hidden="true">→</span>
+      </button>
+      <a :if={!@current_user} id="daily-sign-in" href="/account/sign-in" class="button">Sign in to play →</a>
+      <a href="/leaderboard?board=daily" class="text-button">Today’s leaderboard →</a>
+    </div>
+    <p :if={!@current_user} class="muted daily-note">
+      New here? <a href="/account/register">Create an account</a>
+      or <a href="/">play a random game</a>.
+    </p>
+    <p :if={@error} role="alert" class="error">{@error}</p>
+  </div>
+  <a href="/" class="text-button">← Random games</a>
+</section>
+
+<section
+  :if={@game && @daily_closed && !@snapshot["finished"]}
+  id="daily-expired"
+  class="panel daily-page daily-card"
+>
+  <h1>This daily has ended.</h1>
+  <p class="muted">
+    The {@daily_day} challenge closed at midnight UTC. Unfinished attempts aren’t ranked.
+  </p>
+  <a href="/daily" class="button">Play today’s game →</a>
+</section>
+
+<section :if={@game && !@snapshot["finished"] && !@daily_closed} class="game-page">
+  <p :if={@daily_day} id="daily-game-label" class="daily-game-label">
+    Daily game · {@daily_day} <span class="muted">· Closes at midnight UTC</span>
+  </p>
   <div class="progress-header">
     <span>Round <strong>{@snapshot["current"] + 1}</strong> / 5</span>
     <span><strong>{Rules.total(@snapshot)}</strong> pts</span>
@@ -178,18 +235,40 @@
 <section :if={@game && @snapshot["finished"]} class="summary-page">
   <div class="summary-heading">
     <div>
-      <p class="eyebrow">5 rounds complete</p><h1>Final score</h1>
+      <p class="eyebrow">
+        {if @daily_day, do: "Daily game · #{@daily_day}", else: "5 rounds complete"}
+      </p><h1>Final score</h1>
     </div><button
       id="play-again"
       class="button"
       phx-click="start"
       disabled={@preparing}
       phx-disable-with="Loading…"
-    >{if @preparing, do: "Loading…", else: "New game"}<span aria-hidden="true">→</span></button>
+    >{cond do
+      @preparing -> "Loading…"
+      @daily_day -> "Random game"
+      true -> "New game"
+    end}<span aria-hidden="true">→</span></button>
   </div>
   <p :if={@error} role="alert" class="error">{@error}</p>
   <div class="final-score panel">
     <strong>{Rules.total(@snapshot)}</strong><span>/ 5,000</span>
+  </div>
+  <div :if={@daily_day} id="daily-results" class="panel daily-card">
+    <div class="daily-result-heading">
+      <strong :if={@daily_rank}>Rank #{@daily_rank.rank} <span class="muted">· Daily score</span></strong>
+      <a
+        href={"/leaderboard?" <> URI.encode_query(%{board: "daily", date: Date.to_iso8601(@daily_day)})}
+        class="text-button"
+      >Daily leaderboard →</a>
+    </div>
+    <details class="daily-share">
+      <summary>Share result</summary>
+      <label for="daily-result" class="sr-only">Spoiler-free daily result</label>
+      <textarea id="daily-result" rows="4" readonly spellcheck="false">{daily_result(@game)}</textarea>
+      <button type="button" id="copy-daily-result" phx-hook="CopyResult" class="text-button">Copy result</button>
+      <span id="copy-daily-status" role="status" class="muted"></span>
+    </details>
   </div>
   <div :if={@reward || @xp_reward} id="game-xp-reward" class="panel xp-summary">
     <div>

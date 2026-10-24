@@ -810,6 +810,28 @@ footer {
 
 .saved-pagination { display: flex; justify-content: space-between; gap: 16px; margin-top: 24px; }
 
+/* Daily game */
+.daily-page { max-width: 750px; margin: 30px auto; }
+.daily-page > h1 { margin: 22px 0 10px; }
+.daily-card { padding: 26px; margin: 24px 0; }
+.daily-card h2 { margin-top: 0; font-size: 1.1rem; }
+.daily-card .welcome-actions { margin-top: 22px; }
+.daily-note { margin: 20px 0 0; font-size: .8rem; }
+.daily-game-label { font-size: .8rem; font-weight: 600; margin-bottom: 20px; }
+.daily-game-label .muted { font-weight: 400; }
+.daily-result-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 14px; }
+.daily-share { margin-top: 24px; font-size: .85rem; }
+.daily-share summary { cursor: pointer; color: var(--accent); }
+.daily-share textarea { display: block; width: 100%; resize: vertical; min-height: 125px; margin: 16px 0 12px; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--raised); color: var(--text); font: .85rem/1.7 system-ui,sans-serif; }
+#copy-daily-status { margin-left: 14px; font-size: .8rem; }
+.daily-board-date { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 24px; font-size: .85rem; }
+.daily-board-date input { border: 1px solid var(--border); border-radius: 6px; padding: 9px 12px; background: var(--raised); color: var(--text); }
+@media (max-width: 640px) {
+  .daily-page { margin: 18px auto; }
+  .daily-card { padding: 20px; }
+  .daily-game-label .muted { display: block; margin-top: 4px; }
+}
+
 /* Leaderboard */
 .leaderboard-page { max-width: 850px; margin: 0 auto; }
 .leaderboard-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin-bottom: 28px; }

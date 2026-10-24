@@ -30,6 +30,7 @@ defmodule ScripguessrWeb.Router do
 
     live_session :public, on_mount: [{ScripguessrWeb.Auth, :current_user}] do
       live "/", GameLive, :home
+      live "/daily", GameLive, :daily
       live "/game/:id", GameLive, :game
       live "/atlas", AtlasLive, :index
       live "/leaderboard", LeaderboardLive, :index

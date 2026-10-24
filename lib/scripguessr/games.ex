@@ -1,6 +1,7 @@
 defmodule Scripguessr.Games do
   import Ecto.Query
-  alias Scripguessr.{Repo, Corpus.Cache, Progression}
+  alias Scripguessr.{Repo, Corpus.Cache, Progression, Challenges}
+  alias Scripguessr.Challenges.Challenge
   alias Scripguessr.Games.{Game, Rules}
 
   def create(owner, user_id \\ nil) when is_binary(owner) do
@@ -9,10 +10,50 @@ defmodule Scripguessr.Games do
     end
   end
 
+  def start_daily(_owner, nil), do: {:error, :account_required}
+
+  def start_daily(owner, user_id) when is_binary(owner) and is_binary(user_id) do
+    with {:ok, challenge} <- Challenges.daily(),
+         true <- challenge.day == Date.utc_today() do
+      Repo.insert!(
+        %Game{
+          owner_hash: owner_hash(owner),
+          user_id: user_id,
+          challenge_id: challenge.id,
+          snapshot: challenge.snapshot
+        },
+        on_conflict: :nothing,
+        conflict_target: [:challenge_id, :user_id]
+      )
+
+      {:ok,
+       Repo.get_by!(Game, challenge_id: challenge.id, user_id: user_id)
+       |> Repo.preload(:challenge)}
+    else
+      false -> {:error, :daily_closed}
+      error -> error
+    end
+  end
+
+  def daily_for_user(_day, nil), do: nil
+
+  def daily_for_user(day, user_id) do
+    Repo.one(
+      from g in Game,
+        join: c in Challenge,
+        on: c.id == g.challenge_id,
+        where: c.day == ^day and g.user_id == ^user_id,
+        preload: [challenge: c]
+    )
+  end
+
+  def daily_closed?(%Game{challenge: %Challenge{day: day}}, today), do: day != today
+  def daily_closed?(%Game{challenge_id: nil}, _today), do: false
+
   def fetch(id, owner, user_id \\ nil) do
     with {:ok, uuid} <- Ecto.UUID.cast(id),
          %Game{} = game <- Repo.one(owned(uuid, owner, user_id)) do
-      {:ok, game}
+      {:ok, Repo.preload(game, :challenge)}
     else
       _ -> {:error, :not_found}
     end
@@ -32,9 +73,18 @@ defmodule Scripguessr.Games do
             Repo.rollback(:not_found)
 
           game ->
+            game = Repo.preload(game, :challenge)
+            if daily_closed?(game, Date.utc_today()), do: Repo.rollback(:daily_closed)
+
             case update.(game.snapshot) do
               {:ok, snapshot} ->
-                game = game |> Ecto.Changeset.change(snapshot: snapshot) |> Repo.update!()
+                score = if snapshot["finished"], do: Rules.total(snapshot)
+
+                game =
+                  game
+                  |> Ecto.Changeset.change(snapshot: snapshot, score: score)
+                  |> Repo.update!()
+
                 Progression.award(game)
                 game
 
@@ -56,6 +106,7 @@ defmodule Scripguessr.Games do
       offset: ^((page - 1) * 20)
     )
     |> Repo.all()
+    |> Repo.preload(:challenge)
   end
 
   def latest_unfinished(owner, user_id \\ nil) do
@@ -70,7 +121,7 @@ defmodule Scripguessr.Games do
 
     Repo.one(
       from g in accessible,
-        where: fragment("?->>'finished' = 'false'", g.snapshot),
+        where: fragment("?->>'finished' = 'false'", g.snapshot) and is_nil(g.challenge_id),
         order_by: [desc: g.updated_at, desc: g.id],
         limit: 1,
         select: %{id: g.id, current: fragment("(?->>'current')::integer", g.snapshot)}

@@ -196,7 +196,18 @@ The XP milestone adds 100 completion XP plus up to 100 accuracy XP per finished
 game, account levels with increasing thresholds, progress on account and result
 pages, and a single stored award per game. Existing completed account games and
 claimed anonymous games count. XP is separate from competitive rankings; daily
-challenges, leaderboards, and multiplayer remain future work.
+challenges, leaderboards, and multiplayer were deferred from that milestone.
+
+## Daily game milestone
+
+An account gets one resumable ranked attempt at each UTC day's shared five-verse
+challenge. The database freezes the shared prompts independently of player
+progress and enforces one attempt per account. Attempts must finish before
+midnight UTC; completed results remain reviewable. A date-selectable daily score
+leaderboard sits alongside lifetime XP, and results can be shared without verse
+or answer spoilers. Existing random games and the standalone Atlas remain
+available. Lobbies, synchronized multiplayer rounds, and daily practice replays
+are outside this milestone.
 
 ## Lessons to retain
 
