@@ -122,6 +122,13 @@ the next one. Level 2 starts at 500 XP, level 3 at 1,500 XP, and level 4 at
 games earn their XP when attached
 to an account. Refreshing, resuming, or attaching again never awards extra XP.
 
+The public **Leaderboard** shows the top 50 accounts by lifetime XP, alongside
+their levels. Accounts appear after earning XP. Equal XP shares a rank (1, 1, 3),
+with tied players displayed alphabetically. Only usernames, XP, and levels are
+public; games and saved verses remain private. `Scripguessr.Leaderboards` owns
+the ranking queries independently of the page, allowing future categories to
+use different scoring rules.
+
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
 navigation. Search for topics, people, places, and other corpus entries, select
 up to eight to compare their chapters, and click a chapter to read it. Descriptions
@@ -162,7 +169,7 @@ Signed-in readers can save verses from revealed game answers or chapter readers.
 lists them newest first in pages of 20, with links to read each chapter in the Atlas. Saves are private and retain their corpus text and release
 so they remain readable during API outages.
 
-The main navigation separates **Play** and **Atlas**. The account tag shows the
+The main navigation offers **Play**, **Atlas**, and **Leaderboard**. The account tag shows the
 username, level, and lifetime XP, and opens account, saved-verse, and sign-out
 actions. The landing page offers the most recently active unfinished game that
 the current browser or account can access. **Play again** starts directly from

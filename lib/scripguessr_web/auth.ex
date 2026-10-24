@@ -91,6 +91,7 @@ defmodule ScripguessrWeb.Auth do
   defp section("/"), do: :play
   defp section("/game/" <> _), do: :play
   defp section("/atlas"), do: :atlas
+  defp section("/leaderboard"), do: :leaderboard
   defp section("/saved-verses"), do: :saved
   defp section(_), do: :account
 end

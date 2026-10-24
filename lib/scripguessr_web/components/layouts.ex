@@ -33,6 +33,11 @@ defmodule ScripguessrWeb.Layouts do
         <nav class="site-nav" aria-label="Main navigation">
           <a href="/" class="home-link" aria-current={if @active_section == :play, do: "page"}>Play</a>
           <a href="/atlas" class="home-link" aria-current={if @active_section == :atlas, do: "page"}>Atlas</a>
+          <a
+            href="/leaderboard"
+            class="home-link"
+            aria-current={if @active_section == :leaderboard, do: "page"}
+          >Leaderboard</a>
         </nav>
         <details :if={@current_user} id="account-menu" class="account-menu">
           <summary
