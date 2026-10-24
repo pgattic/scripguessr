@@ -1,0 +1,281 @@
+<section :if={@unavailable} class="panel empty-state">
+  <h1>Room unavailable</h1><p class="muted">Check the invite link or create a new room.</p><a
+    href="/matches"
+    class="button"
+  >Matches →</a>
+</section>
+
+<section :if={!@room && !@unavailable} class="daily-page match-hub">
+  <span class="pill">Friendly matches · 2 players</span>
+  <h1>Guess together.</h1>
+  <div class="panel daily-card">
+    <h2>Invite a friend</h2><p class="muted">90 seconds per round. Answers revealed together.</p>
+    <button
+      :if={@current_user}
+      id="create-match"
+      phx-click="create"
+      class="button"
+      disabled={@preparing}
+      phx-disable-with="Loading…"
+    >{if @preparing, do: "Loading…", else: "Create room"} <span aria-hidden="true">→</span></button>
+    <a :if={!@current_user} id="match-sign-in" href={sign_in_path(@code)} class="button">Sign in to play →</a>
+    <p class="muted daily-note">Friendly matches don’t affect XP or daily rankings.</p>
+    <p :if={@error} class="error" role="alert">{@error}</p>
+  </div>
+  <div :if={@recent != []} id="recent-matches">
+    <h2>Your rooms</h2>
+    <a :for={room <- @recent} class="panel match-history" href={"/matches/#{room.code}"}>
+      <span>{Calendar.strftime(room.inserted_at, "%b %-d · %H:%M UTC")}</span>
+      <strong>{case room.status do
+        "lobby" -> "Waiting room"
+        "finished" -> "View results"
+        "cancelled" -> "Cancelled"
+        _ -> "Rejoin match"
+      end} →</strong>
+    </a>
+  </div>
+  <a href="/" class="text-button">← Play</a>
+</section>
+
+<section
+  :if={@room}
+  id="match-room"
+  class="match-page"
+  phx-hook="MatchRound"
+  data-phase={@room.status}
+  data-round={@room.round}
+>
+  <div class="match-heading">
+    <div>
+      <p class="eyebrow">Friendly match</p><h1 tabindex="-1">
+        {case @room.status do
+          "lobby" ->
+            "Your room"
+
+          "round" ->
+            "Round #{@room.round + 1} of 5"
+
+          "reveal" ->
+            "Round #{@room.round + 1} results"
+
+          "finished" ->
+            if @room.joined?, do: winner_text(@room, @current_user.id), else: "Match finished"
+
+          "cancelled" ->
+            "Room cancelled"
+        end}
+      </h1>
+    </div>
+    <a href="/matches" class="text-button">Your rooms →</a>
+  </div>
+  <p :if={@error} class="error" role="alert">{@error}</p>
+  <div :if={@room.status != "cancelled"} id="match-players" class="match-players">
+    <div
+      :for={player <- @room.players}
+      class={
+        if @current_user && player.user_id == @current_user.id,
+          do: "panel match-player match-self",
+          else: "panel match-player"
+      }
+    >
+      <div class="match-player-name">
+        <span
+          class={if player.user_id in @online, do: "presence-dot online", else: "presence-dot"}
+          aria-label={if player.user_id in @online, do: "Online", else: "Away"}
+        ></span><strong title={player.username}>{player.username}</strong><span
+          :if={player.user_id == @room.host_id}
+          class="muted"
+        >Host</span>
+      </div>
+      <span :if={@room.status == "lobby"} class="muted">{if player.ready,
+        do: "Ready",
+        else: "Not ready"}</span>
+      <strong :if={@room.joined? && @room.status != "lobby"}>{player.score}
+      <small class="muted">pts</small></strong>
+      <span :if={@room.status == "round"} class="match-submitted">{if player.submitted?,
+        do: "Guess locked",
+        else: "Guessing…"}</span>
+    </div>
+    <div
+      :for={_ <- List.duplicate(nil, max(0, @room.capacity - length(@room.players)))}
+      class="panel match-player match-empty"
+    >
+      Waiting for a friend…
+    </div>
+  </div>
+
+  <div
+    :if={!@room.joined? && @room.status != "cancelled"}
+    class="panel daily-card"
+    id="match-invitation"
+  >
+    <h2>
+      {if @room.status == "lobby" && length(@room.players) < @room.capacity,
+        do: "You’re invited.",
+        else: "This room is full or has already started."}
+    </h2>
+    <button
+      :if={@current_user && @room.status == "lobby" && length(@room.players) < @room.capacity}
+      id="join-match"
+      phx-click="join"
+      class="button"
+    >Join room →</button>
+    <a
+      :if={!@current_user && @room.status == "lobby" && length(@room.players) < @room.capacity}
+      id="match-sign-in"
+      href={sign_in_path(@code)}
+      class="button"
+    >Sign in to join →</a>
+    <p :if={@room.status != "lobby"} class="muted">
+      Only its players can rejoin or view its results.
+    </p>
+  </div>
+
+  <div :if={@room.joined? && @room.status == "lobby"} class="panel daily-card" id="match-lobby">
+    <label for="match-invite">Invite link</label>
+    <div class="match-invite">
+      <input
+        id="match-invite"
+        type="text"
+        value={ScripguessrWeb.Endpoint.url() <> "/matches/" <> @room.code}
+        readonly
+      /><button
+        type="button"
+        id="copy-match-invite"
+        class="text-button"
+        phx-hook="CopyText"
+        data-copy-target="match-invite"
+        data-copy-status="match-copy-status"
+      >Copy link</button>
+    </div>
+    <span id="match-copy-status" role="status" class="muted"></span>
+    <div class="welcome-actions">
+      <button
+        id="match-ready"
+        class={if @player.ready, do: "button secondary", else: "button"}
+        phx-click="ready"
+        phx-value-ready={to_string(!@player.ready)}
+      >{if @player.ready, do: "Not ready", else: "I’m ready"}</button>
+      <button
+        :if={@current_user.id == @room.host_id}
+        id="start-match"
+        class="button"
+        phx-click="start"
+        disabled={!@room.all_ready?}
+      >Start match →</button>
+      <button id="leave-match" class="text-button" phx-click="leave">{if @current_user.id ==
+                                                                           @room.host_id,
+                                                                         do: "Cancel room",
+                                                                         else: "Leave room"}</button>
+    </div>
+    <p class="muted daily-note">
+      {if @room.all_ready?,
+        do: "Everyone is ready. The host can start.",
+        else: "Everyone needs to join and mark themselves ready."}
+    </p>
+  </div>
+
+  <div :if={@room.joined? && @room.status in ["round", "reveal"]} class="match-clockbar">
+    <div class="progress-header">
+      <span>{if @room.status == "round", do: "Time remaining", else: "Next round in"}</span><strong
+        id="match-countdown"
+        role="timer"
+        aria-label={
+          if @room.status == "round", do: "Seconds remaining", else: "Seconds until next round"
+        }
+      >{seconds_left(@room, @now)}s</strong>
+    </div>
+    <div
+      class="progress-track"
+      role="progressbar"
+      aria-label="Match progress"
+      aria-valuemin="0"
+      aria-valuemax="5"
+      aria-valuenow={@room.round + if(@room.status == "reveal", do: 1, else: 0)}
+    >
+      <span
+        :for={index <- 0..4}
+        class={
+          if index < @room.round || (index == @room.round && @room.status == "reveal"),
+            do: "filled"
+        }
+      ></span>
+    </div>
+  </div>
+
+  <div :if={@room.joined? && @room.status == "round"} class="game-layout">
+    <article class="panel verse-panel">
+      <div class="verse-label"><span>Book of Mormon</span></div><blockquote
+        id="verse-text"
+        class="verse"
+        tabindex="-1"
+      >
+        {@room.verse}
+      </blockquote>
+    </article>
+    <.picker
+      :if={!@room.own_guess}
+      chapters={@room.chapters}
+      book={@book}
+      chapter={@chapter}
+      step={@step}
+      round={@room.round}
+      error={@error}
+    />
+    <aside
+      :if={@room.own_guess}
+      id="match-waiting"
+      class="panel picker match-waiting"
+      role="status"
+    >
+      <span class="pill">Guess locked</span><h2>
+        {@room.own_guess.book} {@room.own_guess.chapter}
+      </h2><p class="muted">
+        Waiting for everyone. Answers appear when everyone submits or time runs out.
+      </p>
+    </aside>
+  </div>
+
+  <article
+    :if={@room.joined? && @room.status == "reveal"}
+    id="match-round-result"
+    tabindex="-1"
+    class="panel daily-card result"
+  >
+    <p class="eyebrow">The answer</p><h2>
+      {@room.result.book} {@room.result.chapter}:{@room.result.verse}
+    </h2><p class="match-reveal-verse">{@room.result.text}</p>
+    <div class="match-players">
+      <div :for={guess <- @room.result.guesses} class="match-round-score">
+        <strong>{guess.username}</strong><span>{if guess.book,
+          do: "#{guess.book} #{guess.chapter}",
+          else: "No answer"}</span><strong>{guess.points} <small class="muted">pts</small></strong>
+      </div>
+    </div>
+  </article>
+
+  <div :if={@room.joined? && @room.status == "finished"} id="match-results">
+    <p class="muted">5 rounds complete · Friendly match</p>
+    <div class="round-list">
+      <article :for={result <- @room.results} class="panel match-result-round">
+        <span class="round-number">{result.round + 1}</span>
+        <div>
+          <h2>{result.book} {result.chapter}:{result.verse}</h2><p>{result.text}</p><a
+            class="text-button"
+            href={"/atlas?" <> URI.encode_query(%{book: result.book, chapter: result.chapter})}
+          >Read chapter →</a>
+          <div class="match-final-guesses">
+            <span :for={guess <- result.guesses}><strong>{guess.username}</strong>: {if guess.book,
+              do: "#{guess.book} #{guess.chapter}",
+              else: "No answer"} · {guess.points} pts</span>
+          </div>
+        </div>
+      </article>
+    </div>
+    <a href="/matches" class="button">Play another match →</a>
+  </div>
+  <p :if={@room.joined? && @room.status in ["round", "reveal"]} class="muted daily-note">
+    The timer keeps running if you disconnect. Reopen this link to rejoin.
+  </p>
+  <a :if={@room.status == "cancelled"} href="/matches" class="button">Create a new room →</a>
+</section>

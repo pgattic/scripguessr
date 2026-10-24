@@ -154,6 +154,41 @@ contains no verse text, answer references, or private game URL. Rankings publish
 only usernames and scores. Random games remain separate and available without
 an account; the Atlas is independent of both modes.
 
+## Friendly matches
+
+From Play, choose **Play with a friend**, create a room, and copy its invite link.
+Both players need accounts. The friend joins the room, both mark themselves ready,
+and the host starts. An invite opened while signed out returns to the room after
+sign-in or registration; new accounts still receive their recovery code first.
+
+Each player gets the same five frozen verses in the same order. Rounds last
+**90 seconds**, or close early once everyone has submitted. Guesses lock on their
+first accepted submission. The answer, both guesses, round points, and updated
+totals appear together, followed by a **12-second** reveal before the next round.
+Missing answers score zero. After five rounds, the highest total wins; equal
+totals tie. Completed matches include links to read each chapter in the Atlas.
+Friendly matches currently award no XP and do not affect daily rankings.
+
+Reopen the invite link or use **Your rooms** on `/matches` to reconnect or review
+results. Timers continue through disconnects; online indicators reflect open tabs,
+and another tab or device can resume the same account's locked attempt. Before
+starting, a friend can leave to free a seat, and the host can cancel the room.
+Rooms are private invitations, with no public matchmaking or spectators.
+
+Matches have their own `matches`, `match_players`, and `match_guesses` tables;
+they have no daily-challenge or single-player game foreign keys. They reuse only
+corpus preparation and pure scoring rules. Player rows and capacity-based rules
+support larger rooms; the first UI creates two-player rooms. Every mutation locks
+the match row, and player-facing projections exclude future prompts, unrevealed
+answers, and opponents' pending guesses. Scores update only when rounds close.
+
+A supervised clock polls persisted deadlines once per second. Expired phases
+advance from their original deadline, so reconnecting or restarting cannot grant
+extra guessing time. Reconnects and submissions also settle elapsed deadlines.
+Phoenix PubSub updates connected players and Presence supplies online indicators.
+The current deployment uses one Phoenix instance; multiple application nodes
+would also need a configured distributed PubSub cluster.
+
 The standalone [Atlas](http://localhost:4000/atlas) is available from the main
 navigation. Search for topics, people, places, and other corpus entries, select
 up to eight to compare their chapters, and click a chapter to read it. Descriptions

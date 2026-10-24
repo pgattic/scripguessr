@@ -90,6 +90,8 @@ defmodule ScripguessrWeb.Auth do
   defp progress(user), do: Progression.for_user(user.id)
   defp section("/"), do: :play
   defp section("/daily"), do: :play
+  defp section("/matches"), do: :play
+  defp section("/matches/" <> _), do: :play
   defp section("/game/" <> _), do: :play
   defp section("/atlas"), do: :atlas
   defp section("/leaderboard"), do: :leaderboard

@@ -6,12 +6,18 @@ defmodule Scripguessr.Application do
       Scripguessr.Repo,
       Scripguessr.Accounts.RateLimit,
       {Phoenix.PubSub, name: Scripguessr.PubSub},
+      ScripguessrWeb.MatchPresence,
       {Task.Supervisor, name: Scripguessr.Corpus.Tasks},
       Scripguessr.Corpus.Cache,
       Scripguessr.Corpus.Chapter,
       Scripguessr.Atlas.Cache,
       ScripguessrWeb.Endpoint
     ]
+
+    children =
+      if Application.get_env(:scripguessr, :match_clock, true),
+        do: children ++ [Scripguessr.Matches.Clock],
+        else: children
 
     Supervisor.start_link(children, strategy: :one_for_one, name: Scripguessr.Supervisor)
   end

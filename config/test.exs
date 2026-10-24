@@ -1,4 +1,6 @@
 import Config
+
+config :scripguessr, :match_clock, false
 config :scripguessr, corpus_client: Scripguessr.Corpus.Fake
 
 config :scripguessr, Scripguessr.Repo,

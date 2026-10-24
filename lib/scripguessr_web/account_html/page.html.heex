@@ -84,7 +84,9 @@
   </p>
   <label for="recovery-code" class="muted">Recovery code for {@current_user.username}</label>
   <textarea id="recovery-code" class="recovery-code" rows="2" readonly spellcheck="false">{@code}</textarea>
-  <a class="button" href="/account">Continue to your account →</a>
+  <a class="button" href={@continue_to}>{if @continue_to == "/account",
+    do: "Continue to your account →",
+    else: "Continue playing →"}</a>
 </section>
 
 <section :if={@mode == :account} class="account-page">

@@ -209,6 +209,21 @@ or answer spoilers. Existing random games and the standalone Atlas remain
 available. Lobbies, synchronized multiplayer rounds, and daily practice replays
 are outside this milestone.
 
+## Private matches milestone
+
+Account holders can create private two-player rooms, invite a friend, mark
+themselves ready, and play five synchronized rounds. A round closes when all
+players submit or 90 seconds expire. Answers and scores appear together, with a
+12-second reveal between rounds. Reconnects restore persisted progress without
+pausing deadlines; missing answers earn zero. Results and ties persist for review.
+Friendly matches have no XP awards or competitive ranking in this milestone.
+
+Match data is independent of daily challenges. Membership and guesses use player
+rows, and readiness, capacity, scoring, and round closure operate over the full
+player list. Creating rooms larger than two is reserved for a later UI change.
+Public matchmaking, spectators, competitive ratings, and configurable timers
+remain outside this milestone.
+
 ## Lessons to retain
 
 - Prefer a single documented Nix workflow over manually coordinated toolchains.

@@ -167,9 +167,46 @@ const CopyResult = {
   destroyed() { this.el.removeEventListener("click", this.copy) }
 }
 
+const CopyText = {
+  mounted() {
+    this.copy = async () => {
+      const target = document.getElementById(this.el.dataset.copyTarget)
+      const status = document.getElementById(this.el.dataset.copyStatus)
+      try {
+        await navigator.clipboard.writeText(target.value)
+        status.textContent = "Copied!"
+      } catch {
+        target.focus()
+        target.select()
+        status.textContent = "Selected — copy the link above."
+      }
+    }
+    this.el.addEventListener("click", this.copy)
+  },
+  destroyed() { this.el.removeEventListener("click", this.copy) }
+}
+
+const MatchRound = {
+  mounted() { this.phase = this.el.dataset.phase; this.round = this.el.dataset.round },
+  updated() {
+    const phase = this.el.dataset.phase, round = this.el.dataset.round
+    if (phase === this.phase && round === this.round) return
+    this.phase = phase; this.round = round
+    const selector = phase === "round" ? "#verse-text" : phase === "reveal" ? "#match-round-result" : ".match-heading h1"
+    const target = this.el.querySelector(selector)
+    if (!target) return
+    target.focus({preventScroll: true})
+    if (window.matchMedia("(max-width: 760px)").matches) {
+      const behavior = window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"
+      const panel = target.closest(".verse-panel") || target
+      panel.scrollIntoView({behavior, block: "center"})
+    }
+  }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, MatchRound}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket

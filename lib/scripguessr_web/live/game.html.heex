@@ -29,8 +29,11 @@
     <p :if={@resume_game} class="resume-hint muted">
       Round {@resume_game.current + 1} of 5
     </p>
-    <a href="/atlas" class="welcome-study text-button">Explore the Atlas
-    <span aria-hidden="true">↗</span></a>
+    <div class="welcome-links">
+      <a href="/matches" id="online-matches" class="text-button">Play with a friend
+      <span aria-hidden="true">↗</span></a>
+      <a href="/atlas" class="text-button">Explore the Atlas <span aria-hidden="true">↗</span></a>
+    </div>
     <p :if={@error} role="alert" class="error">{@error}</p>
   </div>
   <aside class="intro-art" aria-hidden="true">

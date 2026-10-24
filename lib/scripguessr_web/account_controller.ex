@@ -7,14 +7,26 @@ defmodule ScripguessrWeb.AccountController do
   plug :require_user when action in [:show, :claim]
   defp require_user(conn, opts), do: Auth.require_user(conn, opts)
 
-  def new(conn, _), do: auth_page(conn, :sign_in)
-  def registration(conn, _), do: auth_page(conn, :register)
-  def recovery(conn, _), do: page(conn, mode: :recover, error: nil)
+  def new(conn, params), do: auth_page(remember_return(conn, params), :sign_in)
+  def registration(conn, params), do: auth_page(remember_return(conn, params), :register)
+  def recovery(conn, params), do: page(remember_return(conn, params), mode: :recover, error: nil)
+
+  defp remember_return(conn, %{"return_to" => path}) do
+    if is_binary(path) and
+         (path in ["/matches", "/daily"] or Regex.match?(~r|\A/matches/[A-Za-z0-9_-]{24}\z|, path)),
+       do: put_session(conn, :return_to, path),
+       else: delete_session(conn, :return_to)
+  end
+
+  defp remember_return(conn, _), do: conn
 
   defp auth_page(conn, mode) do
-    if conn.assigns.current_user,
-      do: redirect(conn, to: "/account"),
-      else: page(conn, mode: mode, error: nil)
+    if conn.assigns.current_user do
+      destination = get_session(conn, :return_to) || "/account"
+      conn |> delete_session(:return_to) |> redirect(to: destination)
+    else
+      page(conn, mode: mode, error: nil)
+    end
   end
 
   def register(conn, params) do
@@ -33,7 +45,8 @@ defmodule ScripguessrWeb.AccountController do
     limited(conn, :sign_in, fn conn ->
       case Accounts.sign_in(params["username"], params["password"]) do
         {:ok, {user, token}} ->
-          conn |> Auth.log_in(user, token) |> redirect(to: "/account")
+          destination = get_session(conn, :return_to) || "/account"
+          conn |> Auth.log_in(user, token) |> redirect(to: destination)
 
         {:error, _} ->
           conn |> put_status(422) |> page(mode: :sign_in, error: "Invalid username or password.")
@@ -70,7 +83,11 @@ defmodule ScripguessrWeb.AccountController do
   end
 
   defp recovery_code_page(conn, user, token, code) do
-    conn |> Auth.log_in(user, token) |> page(mode: :recovery_code, code: code)
+    destination = get_session(conn, :return_to) || "/account"
+
+    conn
+    |> Auth.log_in(user, token)
+    |> page(mode: :recovery_code, code: code, continue_to: destination)
   end
 
   defp changeset_error(changeset) do
