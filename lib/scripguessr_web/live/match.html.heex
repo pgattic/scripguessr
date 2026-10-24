@@ -177,12 +177,11 @@
 
   <div :if={@room.joined? && @room.status in ["round", "reveal"]} class="match-clockbar">
     <div class="progress-header">
-      <span>{if @room.status == "round", do: "Time remaining", else: "Next round in"}</span><strong
+      <span>{if @room.status == "round", do: "Time remaining", else: "Round complete"}</span><strong
+        :if={@room.status == "round"}
         id="match-countdown"
         role="timer"
-        aria-label={
-          if @room.status == "round", do: "Seconds remaining", else: "Seconds until next round"
-        }
+        aria-label="Seconds remaining"
       >{seconds_left(@room, @now)}s</strong>
     </div>
     <div
@@ -252,6 +251,19 @@
           else: "No answer"}</span><strong>{guess.points} <small class="muted">pts</small></strong>
       </div>
     </div>
+    <button
+      :if={@current_user.id == @room.host_id}
+      id="advance-match"
+      class="button"
+      phx-click="advance"
+      phx-value-round={@room.round}
+      phx-disable-with="Loading…"
+    >{if @room.round == 4, do: "View results", else: "Next round"} →</button>
+    <p :if={@current_user.id != @room.host_id} id="waiting-for-host" class="muted" role="status">
+      Waiting for the host to {if @room.round == 4,
+        do: "show the results",
+        else: "start the next round"}.
+    </p>
   </article>
 
   <div :if={@room.joined? && @room.status == "finished"} id="match-results">
@@ -274,7 +286,7 @@
     </div>
     <a href="/matches" class="button">Play another match →</a>
   </div>
-  <p :if={@room.joined? && @room.status in ["round", "reveal"]} class="muted daily-note">
+  <p :if={@room.joined? && @room.status == "round"} class="muted daily-note">
     The timer keeps running if you disconnect. Reopen this link to rejoin.
   </p>
   <a :if={@room.status == "cancelled"} href="/matches" class="button">Create a new room →</a>

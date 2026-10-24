@@ -83,6 +83,16 @@ defmodule ScripguessrWeb.MatchLive do
   def handle_event("start", _, socket),
     do: act(socket, fn -> Matches.start(socket.assigns.code, user_id(socket)) end)
 
+  def handle_event("advance", %{"round" => value}, socket) when is_binary(value) do
+    case Integer.parse(value) do
+      {index, ""} ->
+        act(socket, fn -> Matches.advance(socket.assigns.code, user_id(socket), index) end)
+
+      _ ->
+        {:noreply, socket}
+    end
+  end
+
   def handle_event("leave", _, socket) do
     case Matches.leave(socket.assigns.code, user_id(socket)) do
       {:ok, _} -> {:noreply, push_navigate(socket, to: "/matches")}
@@ -287,7 +297,7 @@ defmodule ScripguessrWeb.MatchLive do
 
   defp error_message(:full), do: "This room is full."
   defp error_message(:not_ready), do: "Everyone needs to join and be ready first."
-  defp error_message(:host_only), do: "Only the host can start the match."
+  defp error_message(:host_only), do: "Only the host can start or advance the match."
   defp error_message(:not_a_player), do: "Join the room to play."
   defp error_message(:already_started), do: "This match has already started or ended."
   defp error_message(:invalid_guess), do: "Choose a valid book and chapter."

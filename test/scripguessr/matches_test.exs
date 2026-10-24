@@ -91,7 +91,7 @@ defmodule Scripguessr.MatchesTest do
     assert chapter == round["chapter"]
   end
 
-  test "both submissions reveal together; a reveal deadline starts the next shared round" do
+  test "both submissions reveal together and only the host can start the next round" do
     {code, [{host, _}, {friend, _}], snapshot} = started_match()
     round = hd(snapshot["rounds"])
 
@@ -105,7 +105,12 @@ defmodule Scripguessr.MatchesTest do
     assert Enum.all?(result.guesses, &(&1.points == 1000))
     assert Enum.all?(players, &(&1.score == 1000))
     assert {:error, :stale_round} = Matches.submit(code, friend.id, 0, "Omni", "1")
-    expire_match(code)
+    Matches.tick()
+    assert {:ok, %{status: "reveal", round: 0, deadline: nil}} = Matches.fetch(code, host.id)
+    assert {:error, :host_only} = Matches.advance(code, friend.id, 0)
+    assert {:error, :stale_round} = Matches.advance(code, host.id, 1)
+    assert {:ok, _} = Matches.advance(code, host.id, 0)
+    assert {:error, :stale_round} = Matches.advance(code, host.id, 0)
 
     assert {:ok, %{status: "round", round: 1, verse: text, result: nil}} =
              Matches.fetch(code, friend.id)
@@ -128,18 +133,20 @@ defmodule Scripguessr.MatchesTest do
     assert Repo.aggregate(Guess, :count) == 1
   end
 
-  test "reconnect catches up after downtime without resetting the saved deadlines" do
+  test "reconnect closes an expired round and waits for the host instead of skipping ahead" do
     {code, [{host, _}, _], _} = started_match()
     match = Repo.get_by!(Match, code: code)
     Repo.update!(Ecto.Changeset.change(match, deadline: DateTime.add(DateTime.utc_now(), -1000)))
 
-    assert {:ok, %{status: "finished", results: results, players: players}} =
+    assert {:ok, %{status: "reveal", round: 0, deadline: nil, results: [], players: players}} =
              Matches.fetch(code, host.id)
 
-    assert length(results) == 5
     assert Enum.all?(players, &(&1.score == 0))
     Matches.tick()
-    assert Repo.get_by!(Match, code: code).status == "finished"
+    assert Repo.get_by!(Match, code: code).status == "reveal"
+    assert {:ok, _} = Matches.advance(code, host.id, 0)
+    assert {:ok, %{status: "round", round: 1, deadline: deadline}} = Matches.fetch(code, host.id)
+    assert DateTime.diff(deadline, DateTime.utc_now()) in 80..90
     assert Progression.for_user(host.id).xp == 0
   end
 
@@ -151,8 +158,18 @@ defmodule Scripguessr.MatchesTest do
       for {user, _} <- accounts,
           do: Matches.submit(code, user.id, index, round["book"], to_string(round["chapter"]))
 
-      if index < 4, do: expire_match(code)
+      assert {:ok, %{status: "reveal", round: ^index, deadline: nil, results: []}} =
+               Matches.fetch(code, host.id)
+
+      if index < 4, do: Matches.advance(code, host.id, index)
     end
+
+    assert {:ok, %{status: "reveal", round: 4, result: %{round: 4}}} =
+             Matches.fetch(code, host.id)
+
+    Matches.tick()
+    assert Repo.get_by!(Match, code: code).status == "reveal"
+    assert {:ok, _} = Matches.advance(code, host.id, 4)
 
     assert {:ok, %{status: "finished", results: results, players: players}} =
              Matches.fetch(code, host.id)
@@ -164,6 +181,21 @@ defmodule Scripguessr.MatchesTest do
     assert {:ok, %{results: [], result: nil, verse: nil}} = Matches.fetch(code, nil)
     assert [%{code: ^code, status: "finished"}] = Matches.recent(host.id)
     assert Progression.for_user(host.id).xp == 0
+  end
+
+  test "competing host tabs cannot advance twice or skip a round" do
+    {code, [{host, _}, _], _} = started_match()
+    assert {:error, :stale_round} = Matches.advance(code, host.id, 0)
+    expire_match(code)
+
+    results =
+      1..2
+      |> Task.async_stream(fn _ -> Matches.advance(code, host.id, 0) end)
+      |> Enum.map(fn {:ok, result} -> result end)
+
+    assert Enum.count(results, &match?({:ok, _}, &1)) == 1
+    assert {:error, :stale_round} in results
+    assert {:ok, %{status: "round", round: 1}} = Matches.fetch(code, host.id)
   end
 
   test "capacity and readiness work for three players without changing round logic" do

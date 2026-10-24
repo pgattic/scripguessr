@@ -164,13 +164,16 @@ sign-in or registration; new accounts still receive their recovery code first.
 Each player gets the same five frozen verses in the same order. Rounds last
 **90 seconds**, or close early once everyone has submitted. Guesses lock on their
 first accepted submission. The answer, both guesses, round points, and updated
-totals appear together, followed by a **12-second** reveal before the next round.
+totals appear together. The host chooses **Next round** when everyone has had time
+to review the answer. The fifth round also has its own reveal; the host then
+chooses **View results** to open the final summary for everyone.
 Missing answers score zero. After five rounds, the highest total wins; equal
 totals tie. Completed matches include links to read each chapter in the Atlas.
 Friendly matches currently award no XP and do not affect daily rankings.
 
 Reopen the invite link or use **Your rooms** on `/matches` to reconnect or review
-results. Timers continue through disconnects; online indicators reflect open tabs,
+results. Active round timers continue through disconnects; reveals wait for the
+host to return and continue. Online indicators reflect open tabs,
 and another tab or device can resume the same account's locked attempt. Before
 starting, a friend can leave to free a seat, and the host can cancel the room.
 Rooms are private invitations, with no public matchmaking or spectators.
@@ -182,9 +185,10 @@ support larger rooms; the first UI creates two-player rooms. Every mutation lock
 the match row, and player-facing projections exclude future prompts, unrevealed
 answers, and opponents' pending guesses. Scores update only when rounds close.
 
-A supervised clock polls persisted deadlines once per second. Expired phases
-advance from their original deadline, so reconnecting or restarting cannot grant
-extra guessing time. Reconnects and submissions also settle elapsed deadlines.
+A supervised clock polls persisted round deadlines once per second. An expired
+round closes into its reveal, so reconnecting or restarting cannot grant extra
+guessing time or skip over results. Reveals have no deadline; only the host can
+advance them. Reconnects and submissions also settle elapsed round deadlines.
 Phoenix PubSub updates connected players and Presence supplies online indicators.
 The current deployment uses one Phoenix instance; multiple application nodes
 would also need a configured distributed PubSub cluster.

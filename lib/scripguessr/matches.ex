@@ -6,7 +6,6 @@ defmodule Scripguessr.Matches do
   alias Scripguessr.Matches.{Match, Player, Guess}
 
   @round_seconds 90
-  @reveal_seconds 12
 
   def topic(id), do: "match:" <> id
   def round_seconds, do: @round_seconds
@@ -126,6 +125,31 @@ defmodule Scripguessr.Matches do
     end)
   end
 
+  def advance(code, user_id, index) do
+    mutate_member(code, user_id, fn match, _ ->
+      cond do
+        match.host_id != user_id ->
+          {:error, :host_only}
+
+        match.status != "reveal" or match.round != index ->
+          {:error, :stale_round}
+
+        match.round == 4 ->
+          change(match, status: "finished")
+          {:ok, match.code}
+
+        true ->
+          change(match,
+            status: "round",
+            round: match.round + 1,
+            deadline: DateTime.add(DateTime.utc_now(), @round_seconds)
+          )
+
+          {:ok, match.code}
+      end
+    end)
+  end
+
   def submit(code, user_id, index, book, chapter) do
     mutate_member(code, user_id, fn match, player ->
       cond do
@@ -154,7 +178,7 @@ defmodule Scripguessr.Matches do
               match = load_players(match)
 
               if Enum.all?(match.players, &guess_for(&1, index)),
-                do: close_round(match, DateTime.utc_now())
+                do: close_round(match)
 
               {:ok, match.code}
 
@@ -165,14 +189,14 @@ defmodule Scripguessr.Matches do
     end)
   end
 
-  # The clock and reconnects use the same idempotent, locked transition. Deadlines
-  # advance from their saved time, so downtime cannot extend a player's round.
+  # The clock and reconnects close elapsed rounds without extending guessing time.
+  # Reveals have no deadline; only the host can start another round or the summary.
   def tick do
     now = DateTime.utc_now()
 
     Repo.all(
       from(m in Match,
-        where: m.status in ["round", "reveal"] and m.deadline <= ^now,
+        where: m.status == "round" and m.deadline <= ^now,
         order_by: m.deadline,
         limit: 100,
         select: m.id
@@ -196,36 +220,19 @@ defmodule Scripguessr.Matches do
 
   defp settle(match, now) do
     if due?(match, now) do
-      next =
-        case match.status do
-          "round" ->
-            close_round(match, match.deadline)
-
-          "reveal" ->
-            change(match,
-              status: "round",
-              round: match.round + 1,
-              deadline: DateTime.add(match.deadline, @round_seconds)
-            )
-        end
-
-      settle(next, now)
+      close_round(match)
     else
       match
     end
   end
 
-  defp close_round(match, ended_at) do
+  defp close_round(match) do
     Enum.each(match.players, fn player ->
       score = Enum.reduce(player.guesses, 0, &(&1.points + &2))
       player |> Ecto.Changeset.change(score: score) |> Repo.update!()
     end)
 
-    if match.round == 4 do
-      change(match, status: "finished", deadline: nil)
-    else
-      change(match, status: "reveal", deadline: DateTime.add(ended_at, @reveal_seconds))
-    end
+    change(match, status: "reveal", deadline: nil)
   end
 
   defp mutate_member(code, user_id, action) do
@@ -283,8 +290,11 @@ defmodule Scripguessr.Matches do
   defp member(_match, nil), do: nil
   defp member(match, user_id), do: Enum.find(match.players, &(&1.user_id == user_id))
   defp guess_for(player, round), do: Enum.find(player.guesses, &(&1.round == round))
-  defp due?(%Match{deadline: nil}, _now), do: false
-  defp due?(match, now), do: DateTime.compare(match.deadline, now) != :gt
+
+  defp due?(%Match{status: "round", deadline: %DateTime{} = deadline}, now),
+    do: DateTime.compare(deadline, now) != :gt
+
+  defp due?(_match, _now), do: false
   defp change(match, attrs), do: match |> Ecto.Changeset.change(attrs) |> Repo.update!()
 
   defp broadcast(id),

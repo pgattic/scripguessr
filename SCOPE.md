@@ -214,8 +214,10 @@ are outside this milestone.
 Account holders can create private two-player rooms, invite a friend, mark
 themselves ready, and play five synchronized rounds. A round closes when all
 players submit or 90 seconds expire. Answers and scores appear together, with a
-12-second reveal between rounds. Reconnects restore persisted progress without
-pausing deadlines; missing answers earn zero. Results and ties persist for review.
+host-controlled reveal after every round, including the fifth. The host starts the
+next round or opens the final summary. Reconnects restore persisted progress
+without pausing active round deadlines; missing answers earn zero. Reveals wait
+for the host to continue. Results and ties persist for review.
 Friendly matches have no XP awards or competitive ranking in this milestone.
 
 Match data is independent of daily challenges. Membership and guesses use player

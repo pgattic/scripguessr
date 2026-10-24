@@ -95,7 +95,13 @@ defmodule ScripguessrWeb.MatchLiveTest do
     assert has_element?(host_view, "#match-round-result", answer)
     assert has_element?(friend_view, "#match-round-result", answer)
     refute has_element?(friend_view, "#book-grid")
-    expire_match(code)
+    refute has_element?(host_view, "#match-countdown")
+    assert has_element?(host_view, "#advance-match", "Next round")
+    assert has_element?(friend_view, "#waiting-for-host")
+    refute has_element?(friend_view, "#advance-match")
+    render_click(friend_view, "advance", %{"round" => "0"})
+    assert has_element?(friend_view, "#match-round-result", answer)
+    host_view |> element("#advance-match") |> render_click()
     assert has_element?(host_view, "#book-grid")
     assert has_element?(friend_view, "#book-grid")
     assert has_element?(host_view, ".match-heading", "Round 2 of 5")
@@ -117,10 +123,24 @@ defmodule ScripguessrWeb.MatchLiveTest do
   end
 
   test "completed match results persist, ties are explicit, and outsiders cannot see results" do
-    {code, [{host, token}, _], _} = started_match()
+    {code, [{host, token}, {_friend, friend_token}], _} = started_match()
     match = Repo.get_by!(Match, code: code)
-    Repo.update!(Ecto.Changeset.change(match, deadline: DateTime.add(DateTime.utc_now(), -1000)))
+
+    for index <- 0..3 do
+      expire_match(code)
+      {:ok, _} = Matches.advance(code, host.id, index)
+    end
+
+    expire_match(code)
     {:ok, results, _} = live(browser(token), "/matches/#{code}")
+    {:ok, friend_view, _} = live(browser(friend_token), "/matches/#{code}")
+    assert has_element?(results, ".match-heading", "Round 5 results")
+    assert has_element?(results, "#match-round-result")
+    assert has_element?(results, "#advance-match", "View results")
+    refute has_element?(results, "#match-results")
+    assert has_element?(friend_view, "#waiting-for-host", "show the results")
+    results |> element("#advance-match") |> render_click()
+    assert has_element?(friend_view, "#match-results")
     assert has_element?(results, ".match-heading", "It’s a tie!")
     assert has_element?(results, "#match-results")
 
@@ -134,6 +154,8 @@ defmodule ScripguessrWeb.MatchLiveTest do
     refute html =~ hd(match.snapshot["rounds"])["text"]
     {:ok, hub, _} = live(browser(token), "/matches")
     assert has_element?(hub, "#recent-matches a[href='/matches/#{code}']", "View results")
+    {:ok, refreshed, _} = live(browser(token), "/matches/#{code}")
+    assert has_element?(refreshed, "#match-results")
     assert Scripguessr.Progression.for_user(host.id).xp == 0
   end
 
