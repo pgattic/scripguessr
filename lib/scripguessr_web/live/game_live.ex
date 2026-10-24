@@ -1,6 +1,10 @@
 defmodule ScripguessrWeb.GameLive do
   use ScripguessrWeb, :live_view
   import ScripguessrWeb.ChapterReader, only: [chapter_reader: 1]
+
+  import ScripguessrWeb.GameComponents,
+    only: [verse_panel: 1, picker: 1, round_feedback: 1, distance_label: 1]
+
   alias Scripguessr.SavedVerses
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Games, Progression, Leaderboards}
@@ -348,10 +352,6 @@ defmodule ScripguessrWeb.GameLive do
   end
 
   defp editable?(_), do: false
-
-  defp distance_label(0), do: "Exact chapter"
-  defp distance_label(1), do: "Off by 1 chapter"
-  defp distance_label(n), do: "Off by #{n} chapters"
 
   defp save_verse(socket, verse, release) do
     if user = socket.assigns.current_user do

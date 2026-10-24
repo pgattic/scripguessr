@@ -1,8 +1,10 @@
 defmodule ScripguessrWeb.MatchLive do
   use ScripguessrWeb, :live_view
-  import ScripguessrWeb.MatchPicker, only: [picker: 1]
-  alias Scripguessr.Matches
-  alias ScripguessrWeb.{MatchPicker, MatchPresence}
+  import ScripguessrWeb.GameComponents, only: [picker: 1, verse_panel: 1, round_feedback: 1]
+  import ScripguessrWeb.ChapterReader, only: [chapter_reader: 1]
+  import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
+  alias Scripguessr.{Matches, SavedVerses}
+  alias ScripguessrWeb.{GameComponents, MatchPresence}
 
   @impl true
   def mount(_, session, socket) do
@@ -37,13 +39,18 @@ defmodule ScripguessrWeb.MatchLive do
        topic: nil,
        presence_topic: nil,
        online: [],
+       reading: nil,
+       reader: nil,
+       reader_error: nil,
+       saved_verses: SavedVerses.keys(socket.assigns.current_user),
+       save_error: nil,
        now: DateTime.utc_now()
      )}
   end
 
   @impl true
   def handle_params(params, _, socket) do
-    socket = detach(socket)
+    socket = socket |> detach() |> close_reader()
 
     case params do
       %{"code" => code} ->
@@ -104,7 +111,7 @@ defmodule ScripguessrWeb.MatchLive do
 
   def handle_event("choose-book", %{"book" => book}, socket) do
     if editable?(socket) and Enum.any?(socket.assigns.room.chapters, &(&1["book"] == book)) do
-      case MatchPicker.chapter_numbers(socket.assigns.room.chapters, book) do
+      case GameComponents.chapter_numbers(socket.assigns.room.chapters, book) do
         [number] ->
           {:noreply,
            assign(socket, book: book, chapter: to_string(number), step: :ready, error: nil)}
@@ -120,7 +127,7 @@ defmodule ScripguessrWeb.MatchLive do
   def handle_event("choose-chapter", %{"chapter" => chapter}, socket) do
     if editable?(socket) and
          chapter in Enum.map(
-           MatchPicker.chapter_numbers(socket.assigns.room.chapters, socket.assigns.book),
+           GameComponents.chapter_numbers(socket.assigns.room.chapters, socket.assigns.book),
            &to_string/1
          ),
        do: {:noreply, assign(socket, chapter: chapter, step: :ready, error: nil)},
@@ -130,7 +137,9 @@ defmodule ScripguessrWeb.MatchLive do
   def handle_event("edit-book", _, socket) do
     if editable?(socket) and socket.assigns.book != "" do
       step =
-        if length(MatchPicker.chapter_numbers(socket.assigns.room.chapters, socket.assigns.book)) ==
+        if length(
+             GameComponents.chapter_numbers(socket.assigns.room.chapters, socket.assigns.book)
+           ) ==
              1, do: :ready, else: :chapter
 
       {:noreply, assign(socket, step: step)}
@@ -167,6 +176,45 @@ defmodule ScripguessrWeb.MatchLive do
     end
   end
 
+  def handle_event("read-chapter", %{"round" => value}, socket) when is_binary(value) do
+    case Integer.parse(value) do
+      {index, ""} when index in 0..4 -> {:noreply, open_chapter(socket, index)}
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("close-chapter", _, socket), do: {:noreply, close_reader(socket)}
+
+  def handle_event("retry-chapter", _, %{assigns: %{reading: %{round: index}}} = socket),
+    do: {:noreply, open_chapter(socket, index)}
+
+  def handle_event("save-verse", %{"source" => "round", "index" => value}, socket)
+      when is_binary(value) do
+    socket = refresh(socket)
+
+    with {index, ""} when index in 0..4 <- Integer.parse(value),
+         result when not is_nil(result) <- readable_result(socket.assigns.room, index) do
+      {:noreply, save_verse(socket, result_verse(result), socket.assigns.room.release)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
+  def handle_event("save-verse", %{"source" => "reader", "verse" => value}, socket)
+      when is_binary(value) do
+    socket = refresh(socket)
+
+    with {number, ""} when number > 0 <- Integer.parse(value),
+         reading when not is_nil(reading) <- socket.assigns.reading,
+         verses when is_list(verses) <- socket.assigns.reader,
+         verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
+      verse = Map.merge(verse, %{"book" => reading.book, "chapter" => reading.chapter})
+      {:noreply, save_verse(socket, verse, reading.release)}
+    else
+      _ -> {:noreply, socket}
+    end
+  end
+
   def handle_event(_, _, socket), do: {:noreply, socket}
 
   @impl true
@@ -177,6 +225,30 @@ defmodule ScripguessrWeb.MatchLive do
     do:
       {:noreply,
        assign(socket, preparing: false, error: "We couldn’t load the verses. Please try again.")}
+
+  def handle_async(:chapter, result, socket) do
+    # A host may advance while the upstream request is in flight. Recheck the
+    # persisted phase before delivering chapter text to this player.
+    socket = refresh(socket)
+
+    if socket.assigns.reading do
+      case result do
+        {:ok, {:ok, verses}} ->
+          {:noreply, assign(socket, reader: verses, reader_error: nil)}
+
+        {:ok, {:error, :release_changed}} ->
+          {:noreply,
+           assign(socket,
+             reader_error: "The corpus has changed since this match. This chapter is unavailable."
+           )}
+
+        _ ->
+          {:noreply, assign(socket, reader_error: "Couldn’t load this chapter. Try again.")}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
 
   @impl true
   def handle_info({:match_updated, id}, socket) do
@@ -197,7 +269,7 @@ defmodule ScripguessrWeb.MatchLive do
 
         socket =
           if old && (old.round != room.round or old.status != room.status),
-            do: reset_picker(socket),
+            do: socket |> reset_picker() |> close_reader(),
             else: socket
 
         socket
@@ -206,7 +278,7 @@ defmodule ScripguessrWeb.MatchLive do
         |> assign_online()
 
       _ ->
-        assign(socket, room: nil, unavailable: true)
+        socket |> close_reader() |> assign(room: nil, unavailable: true)
     end
   end
 
@@ -258,6 +330,78 @@ defmodule ScripguessrWeb.MatchLive do
 
   defp user_id(socket), do: socket.assigns.current_user && socket.assigns.current_user.id
 
+  defp readable_result(%{joined?: true, status: "reveal", round: index, result: result}, index),
+    do: result
+
+  defp readable_result(%{joined?: true, status: "finished", results: results}, index),
+    do: Enum.find(results, &(&1.round == index))
+
+  defp readable_result(_, _), do: nil
+
+  defp open_chapter(socket, index) do
+    socket = refresh(socket)
+
+    case readable_result(socket.assigns.room, index) do
+      nil ->
+        close_reader(socket)
+
+      result ->
+        release = socket.assigns.room.release
+
+        socket
+        |> cancel_async(:chapter)
+        |> assign(
+          reading: Map.put(result, :release, release),
+          reader: nil,
+          reader_error: nil,
+          save_error: nil
+        )
+        |> start_async(:chapter, fn ->
+          Scripguessr.Corpus.Chapter.read(result.book, result.chapter, release)
+        end)
+    end
+  end
+
+  defp close_reader(socket),
+    do:
+      socket
+      |> cancel_async(:chapter)
+      |> assign(reading: nil, reader: nil, reader_error: nil, save_error: nil)
+
+  defp result_verse(result),
+    do: %{
+      "book" => result.book,
+      "chapter" => result.chapter,
+      "verse" => result.verse,
+      "text" => result.text
+    }
+
+  defp result_reference(result), do: "#{result.book} #{result.chapter}:#{result.verse}"
+  defp guess_label(%{book: nil}), do: "No answer"
+  defp guess_label(guess), do: "#{guess.book} #{guess.chapter}"
+
+  defp save_verse(socket, verse, release) do
+    key = SavedVerses.key(verse)
+    saved? = !MapSet.member?(socket.assigns.saved_verses, key)
+
+    case SavedVerses.set_saved(user_id(socket), verse, release, saved?) do
+      {:ok, true} ->
+        assign(socket,
+          saved_verses: MapSet.put(socket.assigns.saved_verses, key),
+          save_error: nil
+        )
+
+      {:ok, false} ->
+        assign(socket,
+          saved_verses: MapSet.delete(socket.assigns.saved_verses, key),
+          save_error: nil
+        )
+
+      {:error, _} ->
+        assign(socket, save_error: "Couldn’t update this saved verse. Please try again.")
+    end
+  end
+
   defp editable?(socket),
     do:
       socket.assigns.room && socket.assigns.room.joined? && socket.assigns.room.status == "round" &&
@@ -301,8 +445,17 @@ defmodule ScripguessrWeb.MatchLive do
 
   @impl true
   def render(assigns) do
+    own_result =
+      if assigns.room && assigns.room.result,
+        do:
+          Enum.find(
+            assigns.room.result.guesses,
+            &(&1.user_id == (assigns.current_user && assigns.current_user.id))
+          )
+
     assigns =
       assign(assigns,
+        own_result: own_result,
         player:
           if(assigns.room,
             do: own_player(assigns.room, assigns.current_user && assigns.current_user.id)

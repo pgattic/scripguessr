@@ -75,13 +75,13 @@ defmodule ScripguessrWeb.MatchLiveTest do
     assert has_element?(host_view, "#guess-form .ready", "Omni 1")
     refute has_element?(host_view, "#chapter-grid")
     host_view |> form("#guess-form") |> render_submit()
-    assert has_element?(host_view, "#match-waiting", "Guess locked")
+    assert has_element?(host_view, "#picker", "Guess locked")
     refute has_element?(host_view, "#match-round-result")
     refute render(host_view) =~ answer
     assert has_element?(friend_view, "#book-grid")
     render_click(host_view, "read-chapter", %{"round" => "4"})
     render_click(host_view, "save-verse", %{"source" => "round", "index" => "4"})
-    refute has_element?(host_view, "#game-reader")
+    refute has_element?(host_view, "#match-reader")
     assert Scripguessr.SavedVerses.page(host.id).entries == []
     friend_view |> element("#book-grid button", round["book"]) |> render_click()
 
@@ -147,16 +147,106 @@ defmodule ScripguessrWeb.MatchLiveTest do
     assert has_element?(results, "#match-results .match-result-round:nth-child(5)")
     refute has_element?(results, "#match-results .match-result-round:nth-child(6)")
 
-    assert has_element?(results, "#match-results a[href^='/atlas?']")
+    assert has_element?(results, "#match-results button[phx-click=read-chapter]")
     refute has_element?(results, "#guess-form")
+    results |> element("#match-results button[phx-value-round='0']") |> render_click()
+    render_async(results)
+    assert has_element?(results, "#match-reader")
+    results |> element("#match-reader-close") |> render_click()
+
     {:ok, outsider, html} = live(browser(), "/matches/#{code}")
     refute has_element?(outsider, "#match-results")
+    render_click(outsider, "read-chapter", %{"round" => "0"})
+    refute has_element?(outsider, "#match-reader")
+
     refute html =~ hd(match.snapshot["rounds"])["text"]
     {:ok, hub, _} = live(browser(token), "/matches")
     assert has_element?(hub, "#recent-matches a[href='/matches/#{code}']", "View results")
     {:ok, refreshed, _} = live(browser(token), "/matches/#{code}")
     assert has_element?(refreshed, "#match-results")
     assert Scripguessr.Progression.for_user(host.id).xp == 0
+  end
+
+  test "revealed chapters support reading and saving, and advancing closes every reader" do
+    {code, [{host, host_token}, {_friend, friend_token}], snapshot} = started_match()
+    first = hd(snapshot["rounds"])
+    {:ok, host_view, _} = live(browser(host_token), "/matches/#{code}")
+    {:ok, friend_view, _} = live(browser(friend_token), "/matches/#{code}")
+
+    for index <- ["0", "4"] do
+      render_click(host_view, "read-chapter", %{"round" => index})
+      render_click(host_view, "save-verse", %{"source" => "round", "index" => index})
+      refute has_element?(host_view, "#match-reader")
+    end
+
+    assert Scripguessr.SavedVerses.page(host.id).entries == []
+    expire_match(code)
+    assert has_element?(host_view, "#answer-reveal", "No answer submitted")
+    host_view |> element("#read-chapter") |> render_click()
+    render_async(host_view)
+    assert has_element?(host_view, "#match-reader-title", "#{first["book"]} #{first["chapter"]}")
+    assert has_element?(host_view, "#match-reader .matched[data-verse='#{first["verse"]}']")
+    number = if first["verse"] == 3, do: 1, else: 3
+
+    host_view
+    |> element("#match-reader .save-verse[phx-value-verse='#{number}']")
+    |> render_click()
+
+    [saved] = Scripguessr.SavedVerses.page(host.id).entries
+    assert saved.book == first["book"]
+    assert saved.chapter == first["chapter"]
+    assert saved.verse == number
+    assert saved.text == "Invented study passage #{number}."
+    host_view |> element("#match-reader-close") |> render_click()
+    host_view |> element("#answer-reveal .save-verse") |> render_click()
+    assert has_element?(host_view, "#answer-reveal .save-verse[aria-pressed=true]")
+
+    friend_view |> element("#read-chapter") |> render_click()
+    render_async(friend_view)
+    assert has_element?(friend_view, "#match-reader")
+    host_view |> element("#advance-match") |> render_click()
+    refute has_element?(friend_view, "#match-reader")
+    assert has_element?(friend_view, "#book-grid")
+    render_click(friend_view, "read-chapter", %{"round" => "0"})
+    render_click(friend_view, "save-verse", %{"source" => "reader", "verse" => "3"})
+    refute has_element?(friend_view, "#match-reader")
+  end
+
+  test "an in-flight chapter cannot appear after the host advances" do
+    {code, [{host, token}, _], snapshot} = started_match()
+    expire_match(code)
+    {:ok, view, _} = live(browser(token), "/matches/#{code}")
+    Scripguessr.Corpus.Fake.block_next("atlas:reader", self())
+    view |> element("#read-chapter") |> render_click()
+    assert_receive {:corpus_blocked, _, worker}
+    on_exit(fn -> Scripguessr.Corpus.Chapter.clear() end)
+    assert has_element?(view, "#match-reader")
+    {:ok, _} = Matches.advance(code, host.id, 0)
+    refute has_element?(view, "#match-reader")
+    send(worker, :release_corpus)
+    first = hd(snapshot["rounds"])
+
+    assert {:ok, _} =
+             Scripguessr.Corpus.Chapter.read(first["book"], first["chapter"], snapshot["release"])
+
+    render_async(view)
+    refute has_element?(view, "#match-reader")
+    assert has_element?(view, "#book-grid")
+  end
+
+  test "chapter failures can be retried without affecting match scores" do
+    {code, [{_host, token}, _], _} = started_match()
+    expire_match(code)
+    {:ok, view, _} = live(browser(token), "/matches/#{code}")
+    Scripguessr.Corpus.Fake.reset(:down)
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    assert has_element?(view, "#match-reader [role=alert]", "Couldn’t load")
+    Scripguessr.Corpus.Fake.reset()
+    render_click(view, "retry-chapter")
+    render_async(view)
+    assert has_element?(view, "#match-reader .atlas-reading-verse")
+    assert has_element?(view, "#answer-reveal .score", "0")
   end
 
   test "session revocation prevents further pushed match content" do

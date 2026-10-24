@@ -323,7 +323,7 @@ footer {
   line-height: 1.5;
 }
 
-#picker-heading:focus {
+#picker-heading:focus, #match-round-result:focus {
   outline: none;
 }
 
@@ -829,13 +829,10 @@ footer {
 .presence-dot.online { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .match-invite { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
 .match-invite input { width: 100%; flex: 1 1 250px; min-width: 0; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: .8rem system-ui,sans-serif; }
-.match-waiting { align-content: center; }
-.match-waiting .pill { justify-self: start; }
 .match-waiting h2 { margin-bottom: 0; }
 .match-waiting p { line-height: 1.7; }
-.match-reveal-verse { font: 1.2rem/1.8 Georgia,serif; }
-.match-round-score { display: grid; gap: 8px; padding: 16px; min-width: 0; overflow-wrap: anywhere; border: 1px solid var(--border); border-radius: 6px; }
-.match-round-score > span { font-size: .85rem; color: var(--muted); }
+.match-opponent-results { display: grid; gap: 10px; margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--border); }
+.match-opponent-results > div { display: grid; gap: 5px; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
 .match-final-guesses { display: grid; gap: 8px; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; color: var(--muted); }
 .round-list .match-result-round { grid-template-columns: 26px minmax(0,1fr); }
 .match-history { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; padding: 18px; text-decoration: none; margin: 12px 0; font-size: .85rem; }

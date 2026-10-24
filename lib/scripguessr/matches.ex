@@ -337,6 +337,7 @@ defmodule Scripguessr.Matches do
         ),
       own_guess: if(own_guess, do: %{book: own_guess.book, chapter: own_guess.chapter}),
       result: if(visible?, do: round_result(match, match.round)),
+      release: if(visible?, do: match.snapshot["release"]),
       results:
         if(player && match.status == "finished",
           do: Enum.map(0..4, &round_result(match, &1)),

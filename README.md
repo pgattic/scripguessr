@@ -67,8 +67,10 @@ hash. Do not commit build outputs or corpus payloads.
   workers per cache, at most 32 outstanding keys and 64 callers per key, and a
   60-second deadline including queue time. Identical requests share a fetch;
   cached hits bypass waiting work. Failures are not cached.
-- `Scripguessr.Corpus.Chapter` shares release-checked chapter text between games
-  and the Atlas. Both use `ScripguessrWeb.ChapterReader` for the reader dialog.
+- `Scripguessr.Corpus.Chapter` shares release-checked chapter text between games,
+  matches, and the Atlas. All use `ScripguessrWeb.ChapterReader` for the reader dialog.
+- `ScripguessrWeb.GameComponents` shares the verse panel, guess picker, and round
+  score reveal between single-player games and matches.
 - `Scripguessr.Games.Rules` implements scoring and progression without I/O.
 - `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.
@@ -168,7 +170,10 @@ totals appear together. The host chooses **Next round** when everyone has had ti
 to review the answer. The fifth round also has its own reveal; the host then
 chooses **View results** to open the final summary for everyone.
 Missing answers score zero. After five rounds, the highest total wins; equal
-totals tie. Completed matches include links to read each chapter in the Atlas.
+totals tie. During each shared reveal, players can read the chapter in the same
+dialog used in regular games and save verses. Open readers close when the host
+advances. Chapters remain available from the completed match summary; unrevealed
+chapters cannot be opened before the round ends.
 Friendly matches currently award no XP and do not affect daily rankings.
 
 Reopen the invite link or use **Your rooms** on `/matches` to reconnect or review
@@ -179,9 +184,9 @@ starting, a friend can leave to free a seat, and the host can cancel the room.
 Rooms are private invitations, with no public matchmaking or spectators.
 
 Matches have their own `matches`, `match_players`, and `match_guesses` tables;
-they have no daily-challenge or single-player game foreign keys. They reuse only
-corpus preparation and pure scoring rules. Player rows and capacity-based rules
-support larger rooms; the first UI creates two-player rooms. Every mutation locks
+they have no daily-challenge or single-player game foreign keys. They share
+corpus preparation, pure scoring rules, and presentation components. Player rows
+and capacity-based rules support larger rooms; the first UI creates two-player rooms. Every mutation locks
 the match row, and player-facing projections exclude future prompts, unrevealed
 answers, and opponents' pending guesses. Scores update only when rounds close.
 

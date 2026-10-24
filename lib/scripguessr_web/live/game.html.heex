@@ -114,102 +114,25 @@
     <span :for={round <- @snapshot["rounds"]} class={if round["guess"], do: "filled"}></span>
   </div>
   <div class="game-layout">
-    <article class="panel verse-panel">
-      <div class="verse-label">
-        <span>Book of Mormon</span><span :if={@round["guess"]}>{reference(@round)}</span>
-      </div>
-      <blockquote id="verse-text" class="verse" tabindex="-1">{@round["text"]}</blockquote>
-    </article>
-    <aside
-      id="picker"
-      class="panel picker"
-      phx-hook="PickerFocus"
-      data-step={if @round["guess"], do: "result", else: @step}
+    <.verse_panel text={@round["text"]} reference={if @round["guess"], do: reference(@round)} />
+    <.picker
+      chapters={@snapshot["chapters"]}
+      book={@book}
+      chapter={@chapter}
+      step={@step}
+      round={@snapshot["current"]}
+      error={@error}
+      revealed={!is_nil(@round["guess"])}
     >
-      <div class="picker-header">
-        <h1 id="picker-heading" tabindex="-1">
-          {if @round["guess"], do: "Result", else: "Guess location"}
-        </h1>
-        <span :if={!@round["guess"]} class="muted">{case @step do
-          :book -> "Book"
-          :chapter -> "Chapter"
-          :ready -> "Confirm"
-        end}</span>
-      </div>
-      <p :if={@error} role="alert" class="error">{@error}</p>
-      <nav :if={@book != "" && !@round["guess"]} class="breadcrumbs" aria-label="Your guess">
-        <button
-          id="edit-book"
-          class={
-            if @step == :chapter || single_chapter?(@snapshot, @book),
-              do: "crumb current",
-              else: "crumb"
-          }
-          phx-click="edit-book"
-        >{@book}</button>
-        <span :if={@chapter != "" && !single_chapter?(@snapshot, @book)} aria-hidden="true">/</span>
-        <button
-          :if={@chapter != "" && !single_chapter?(@snapshot, @book)}
-          id="edit-chapter"
-          class={if @step == :ready, do: "crumb current", else: "crumb"}
-          phx-click="edit-chapter"
-        >Chapter {@chapter}</button>
-        <button
-          id="clear-guess"
-          class="crumb clear-guess"
-          phx-click="clear-guess"
-          aria-label="Clear guess"
-          title="Clear guess"
-        >×</button>
-      </nav>
-      <div :if={!@round["guess"] && @step == :book} id="book-grid" class="grid book-grid">
-        <button
-          :for={book <- books(@snapshot)}
-          class={if book == @book, do: "choice active", else: "choice"}
-          phx-click="choose-book"
-          phx-value-book={book}
-          aria-pressed={book == @book}
-        >{book}</button>
-      </div>
-      <div :if={!@round["guess"] && @step == :chapter} id="chapter-grid" class="grid chapter-grid">
-        <button
-          :for={chapter <- chapters(@snapshot, @book)}
-          class={if to_string(chapter) == @chapter, do: "choice active", else: "choice"}
-          phx-click="choose-chapter"
-          phx-value-chapter={chapter}
-          aria-label={"Chapter #{chapter}"}
-          aria-pressed={to_string(chapter) == @chapter}
-        >{chapter}</button>
-      </div>
-      <form :if={!@round["guess"] && @step == :ready} id="guess-form" phx-submit="guess">
-        <input type="hidden" name="guess[round]" value={@snapshot["current"]} />
-        <input type="hidden" name="guess[book]" value={@book} />
-        <input type="hidden" name="guess[chapter]" value={@chapter} />
-        <div class="ready">
-          <span class="muted">Your guess</span><strong>{@book} {@chapter}</strong>
-        </div>
-        <button class="button full-width" phx-disable-with="Submitting…">Submit guess</button>
-      </form>
-      <div :if={@round["guess"]} id="answer-reveal" class="result" role="status">
+      <.round_feedback
+        :if={@round["guess"]}
+        answer={reference(@round)}
+        guess={"#{@round["guess"]["book"]} #{@round["guess"]["chapter"]}"}
+        points={@round["guess"]["points"]}
+        distance={@round["guess"]["distance"]}
+        round={@snapshot["current"]}
+      >
         <p :if={@save_error} role="alert" class="error">{@save_error}</p>
-        <p class="score">{@round["guess"]["points"]}<span> / 1,000</span></p>
-        <p class="distance">{distance_label(@round["guess"]["distance"])}</p>
-        <div
-          class="score-meter"
-          aria-hidden="true"
-          data-meter={@round["guess"]["points"] / 10}
-          data-meter-stage={@snapshot["current"]}
-        >
-          <span data-meter-fill style={"width: #{@round["guess"]["points"] / 10}%"}></span>
-        </div>
-        <div class="result-grid">
-          <div><span class="muted">Actual</span><strong>{reference(@round)}</strong></div>
-          <div>
-            <span class="muted">Guess</span><strong>{@round["guess"]["book"]} {@round["guess"][
-              "chapter"
-            ]}</strong>
-          </div>
-        </div>
         <button
           id="read-chapter"
           class="text-button game-read-chapter"
@@ -230,8 +153,8 @@
           phx-value-round={@snapshot["current"]}
           phx-disable-with="Saving…"
         >{if @snapshot["current"] == 4, do: "Finish game", else: "Next round"}<span aria-hidden="true">→</span></button>
-      </div>
-    </aside>
+      </.round_feedback>
+    </.picker>
   </div>
 </section>
 

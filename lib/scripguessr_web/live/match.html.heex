@@ -206,69 +206,85 @@
     </div>
   </div>
 
-  <div :if={@room.joined? && @room.status == "round"} class="game-layout">
-    <article class="panel verse-panel">
-      <div class="verse-label"><span>Book of Mormon</span></div><blockquote
-        id="verse-text"
-        class="verse"
-        tabindex="-1"
-      >
-        {@room.verse}
-      </blockquote>
-    </article>
+  <div :if={@room.joined? && @room.status in ["round", "reveal"]} class="game-layout">
+    <.verse_panel
+      text={if @room.result, do: @room.result.text, else: @room.verse}
+      reference={if @room.result, do: result_reference(@room.result)}
+    />
     <.picker
-      :if={!@room.own_guess}
       chapters={@room.chapters}
       book={@book}
       chapter={@chapter}
       step={@step}
       round={@room.round}
-      error={@error}
-    />
-    <aside
-      :if={@room.own_guess}
-      id="match-waiting"
-      class="panel picker match-waiting"
-      role="status"
+      revealed={@room.status == "reveal" || !is_nil(@room.own_guess)}
+      title={if @room.status == "round", do: "Guess locked", else: "Result"}
     >
-      <span class="pill">Guess locked</span><h2>
-        {@room.own_guess.book} {@room.own_guess.chapter}
-      </h2><p class="muted">
-        Waiting for everyone. Answers appear when everyone submits or time runs out.
-      </p>
-    </aside>
-  </div>
-
-  <article
-    :if={@room.joined? && @room.status == "reveal"}
-    id="match-round-result"
-    tabindex="-1"
-    class="panel daily-card result"
-  >
-    <p class="eyebrow">The answer</p><h2>
-      {@room.result.book} {@room.result.chapter}:{@room.result.verse}
-    </h2><p class="match-reveal-verse">{@room.result.text}</p>
-    <div class="match-players">
-      <div :for={guess <- @room.result.guesses} class="match-round-score">
-        <strong>{guess.username}</strong><span>{if guess.book,
-          do: "#{guess.book} #{guess.chapter}",
-          else: "No answer"}</span><strong>{guess.points} <small class="muted">pts</small></strong>
+      <div
+        :if={@room.status == "round" && @room.own_guess}
+        id="match-waiting"
+        class="match-waiting"
+        role="status"
+      >
+        <h2>{@room.own_guess.book} {@room.own_guess.chapter}</h2>
+        <p class="muted">
+          Waiting for everyone. Answers appear when everyone submits or time runs out.
+        </p>
       </div>
-    </div>
-    <button
-      :if={@current_user.id == @room.host_id}
-      id="advance-match"
-      class="button"
-      phx-click="advance"
-      phx-value-round={@room.round}
-      phx-disable-with="Loading…"
-    >{if @room.round == 4, do: "View results", else: "Next round"} →</button>
-    <p :if={@current_user.id != @room.host_id} id="waiting-for-host" class="muted" role="status">
-      Waiting for the host to {if @room.round == 4,
-        do: "show the results",
-        else: "start the next round"}.
-    </p>
-  </article>
+      <div :if={@room.status == "reveal"} id="match-round-result" tabindex="-1">
+        <.round_feedback
+          answer={result_reference(@room.result)}
+          guess={guess_label(@own_result)}
+          points={@own_result.points}
+          distance={@own_result.distance}
+          round={@room.round}
+        >
+          <:opponents>
+            <div class="match-opponent-results">
+              <div :for={guess <- @room.result.guesses} :if={guess.user_id != @current_user.id}>
+                <strong>{guess.username}</strong><span class="muted">{guess_label(guess)}</span>
+                <strong>{guess.points} <small class="muted">pts</small></strong>
+              </div>
+            </div>
+          </:opponents>
+          <p :if={@save_error} class="error" role="alert">{@save_error}</p>
+          <button
+            id="read-chapter"
+            phx-click="read-chapter"
+            phx-value-round={@room.round}
+            class="text-button game-read-chapter"
+          >Read chapter</button>
+          <.save_button
+            verse={result_verse(@room.result)}
+            saved={@saved_verses}
+            user={@current_user}
+            source="round"
+            index={@room.round}
+          />
+          <button
+            :if={@current_user.id == @room.host_id}
+            id="advance-match"
+            class="button full-width"
+            phx-click="advance"
+            phx-value-round={@room.round}
+            phx-disable-with="Loading…"
+          >
+            {if @room.round == 4, do: "View results", else: "Next round"} →
+          </button>
+          <p
+            :if={@current_user.id != @room.host_id}
+            id="waiting-for-host"
+            class="muted"
+            role="status"
+          >
+            Waiting for the host to {if @room.round == 4,
+              do: "show the results",
+              else: "start the next round"}.
+          </p>
+        </.round_feedback>
+      </div>
+    </.picker>
+  </div>
 
   <div :if={@room.joined? && @room.status == "finished"} id="match-results">
     <p class="muted">5 rounds complete · Friendly match</p>
@@ -276,10 +292,11 @@
       <article :for={result <- @room.results} class="panel match-result-round">
         <span class="round-number">{result.round + 1}</span>
         <div>
-          <h2>{result.book} {result.chapter}:{result.verse}</h2><p>{result.text}</p><a
+          <h2>{result.book} {result.chapter}:{result.verse}</h2><p>{result.text}</p><button
             class="text-button"
-            href={"/atlas?" <> URI.encode_query(%{book: result.book, chapter: result.chapter})}
-          >Read chapter →</a>
+            phx-click="read-chapter"
+            phx-value-round={result.round}
+          >Read chapter →</button>
           <div class="match-final-guesses">
             <span :for={guess <- result.guesses}><strong>{guess.username}</strong>: {if guess.book,
               do: "#{guess.book} #{guess.chapter}",
@@ -295,3 +312,14 @@
   </p>
   <a :if={@room.status == "cancelled"} href="/matches" class="button">Create a new room →</a>
 </section>
+
+<.chapter_reader
+  id="match-reader"
+  chapter={if @reading, do: {@reading.book, @reading.chapter}}
+  target={if @reading, do: @reading.verse}
+  verses={@reader}
+  error={@reader_error}
+  save_error={@save_error}
+  user={@current_user}
+  saved={@saved_verses}
+/>
