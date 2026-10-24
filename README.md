@@ -70,7 +70,9 @@ hash. Do not commit build outputs or corpus payloads.
 - `Scripguessr.Corpus.Chapter` shares release-checked chapter text between games,
   matches, and the Atlas. All use `ScripguessrWeb.ChapterReader` for the reader dialog.
 - `ScripguessrWeb.GameComponents` shares the verse panel, guess picker, and round
-  score reveal between single-player games and matches.
+  score reveal between single-player games and matches. Reveals show the answer
+  once, followed by equal player rows with each guess, distance, and animated
+  round score; matches mark the current player with “You.”
 - `Scripguessr.Games.Rules` implements scoring and progression without I/O.
 - `Scripguessr.Games` stores immutable prepared prompts and accepted guesses in
   PostgreSQL, using row locks to protect progression across tabs.

@@ -127,11 +127,15 @@
       <.round_feedback
         :if={@round["guess"]}
         answer={reference(@round)}
-        guess={"#{@round["guess"]["book"]} #{@round["guess"]["chapter"]}"}
-        points={@round["guess"]["points"]}
-        distance={@round["guess"]["distance"]}
         round={@snapshot["current"]}
       >
+        <:player
+          name="You"
+          self={true}
+          guess={"#{@round["guess"]["book"]} #{@round["guess"]["chapter"]}"}
+          points={@round["guess"]["points"]}
+          distance={@round["guess"]["distance"]}
+        />
         <p :if={@save_error} role="alert" class="error">{@save_error}</p>
         <button
           id="read-chapter"

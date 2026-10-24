@@ -94,6 +94,29 @@ defmodule ScripguessrWeb.MatchLiveTest do
     friend_view |> form("#guess-form") |> render_submit()
     assert has_element?(host_view, "#match-round-result", answer)
     assert has_element?(friend_view, "#match-round-result", answer)
+
+    # Both players use the same result rows, with only the "You" marker differing.
+    for {view, own_name, other_name} <- [
+          {host_view, host.username, friend.username},
+          {friend_view, friend.username, host.username}
+        ] do
+      assert has_element?(view, "#answer-reveal .round-player:nth-child(2)")
+      refute has_element?(view, "#answer-reveal .round-player:nth-child(3)")
+      assert has_element?(view, ".round-player[data-self=true] .round-player-name", own_name)
+      assert has_element?(view, ".round-player[data-self=true] .pill", "You")
+      assert has_element?(view, ".round-player[data-self=false] .round-player-name", other_name)
+      assert has_element?(view, ".round-player:first-child .round-player-guess", "Omni 1")
+
+      assert has_element?(
+               view,
+               ".round-player:nth-child(2) .round-player-guess",
+               "#{round["book"]} #{round["chapter"]}"
+             )
+
+      assert has_element?(view, ".round-player:nth-child(2) .score", "1000")
+      assert has_element?(view, ".round-player:nth-child(2) .distance", "Exact chapter")
+    end
+
     refute has_element?(friend_view, "#book-grid")
     refute has_element?(host_view, "#match-countdown")
     assert has_element?(host_view, "#advance-match", "Next round")

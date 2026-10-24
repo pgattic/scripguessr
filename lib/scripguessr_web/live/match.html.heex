@@ -234,19 +234,16 @@
       <div :if={@room.status == "reveal"} id="match-round-result" tabindex="-1">
         <.round_feedback
           answer={result_reference(@room.result)}
-          guess={guess_label(@own_result)}
-          points={@own_result.points}
-          distance={@own_result.distance}
           round={@room.round}
         >
-          <:opponents>
-            <div class="match-opponent-results">
-              <div :for={guess <- @room.result.guesses} :if={guess.user_id != @current_user.id}>
-                <strong>{guess.username}</strong><span class="muted">{guess_label(guess)}</span>
-                <strong>{guess.points} <small class="muted">pts</small></strong>
-              </div>
-            </div>
-          </:opponents>
+          <:player
+            :for={guess <- @room.result.guesses}
+            name={guess.username}
+            self={guess.user_id == @current_user.id}
+            guess={guess_label(guess)}
+            points={guess.points}
+            distance={guess.distance}
+          />
           <p :if={@save_error} class="error" role="alert">{@save_error}</p>
           <button
             id="read-chapter"

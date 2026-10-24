@@ -445,25 +445,19 @@ footer {
   background: linear-gradient(90deg, var(--danger), var(--accent));
 }
 
-.result-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-}
-
-.result-grid div {
-  display: grid;
-  align-content: start;
-  gap: 5px;
-  padding: 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  background: var(--raised);
-}
-
-.result-grid strong {
-  font-size: .9rem;
-}
+.round-answer { display: grid; gap: 5px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
+.round-answer strong { font-size: 1.15rem; }
+.round-players { list-style: none; margin: 0; padding: 0; }
+.round-player { display: grid; gap: 6px; padding: 18px 0; min-width: 0; }
+.round-player + .round-player { border-top: 1px solid var(--border-soft); }
+.round-player-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.round-player-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
+.round-player-heading .pill { padding: 2px 6px; font-size: .65rem; }
+.round-player .score { margin: 0; font-size: 1.5rem; line-height: 1.2; white-space: nowrap; }
+.round-player .score span { font-size: .7rem; }
+.round-player-guess { font-size: .95rem; }
+.round-player .distance { margin: 0; font-size: .8rem; }
+.round-player .score-meter { margin: 4px 0 0; }
 
 .game-read-chapter {
   display: block;
@@ -831,8 +825,6 @@ footer {
 .match-invite input { width: 100%; flex: 1 1 250px; min-width: 0; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: .8rem system-ui,sans-serif; }
 .match-waiting h2 { margin-bottom: 0; }
 .match-waiting p { line-height: 1.7; }
-.match-opponent-results { display: grid; gap: 10px; margin: 20px 0; padding-top: 16px; border-top: 1px solid var(--border); }
-.match-opponent-results > div { display: grid; gap: 5px; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
 .match-final-guesses { display: grid; gap: 8px; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; color: var(--muted); }
 .round-list .match-result-round { grid-template-columns: 26px minmax(0,1fr); }
 .match-history { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; padding: 18px; text-decoration: none; margin: 12px 0; font-size: .85rem; }

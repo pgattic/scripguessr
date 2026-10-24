@@ -34,6 +34,9 @@ defmodule ScripguessrWeb.GameLiveTest do
       view |> form("#guess-form") |> render_submit()
 
       assert has_element?(view, "#answer-reveal", "Exact chapter")
+      assert has_element?(view, "#answer-reveal .round-player-name", "You")
+      assert has_element?(view, "#answer-reveal .round-player .score", "1000")
+      refute has_element?(view, "#answer-reveal .round-player:nth-child(2)")
       view |> element("#next-round") |> render_click()
     end
 

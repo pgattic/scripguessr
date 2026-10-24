@@ -104,26 +104,43 @@ defmodule ScripguessrWeb.GameComponents do
 
   attr :id, :string, default: "answer-reveal"
   attr :answer, :string, required: true
-  attr :guess, :string, required: true
-  attr :points, :integer, required: true
-  attr :distance, :integer, default: nil
   attr :round, :integer, required: true
-  slot :opponents
+
+  slot :player, required: true do
+    attr :name, :string, required: true
+    attr :guess, :string, required: true
+    attr :points, :integer, required: true
+    attr :distance, :integer
+    attr :self, :boolean
+  end
+
   slot :inner_block
 
   def round_feedback(assigns) do
     ~H"""
     <div id={@id} class="result" role="status">
-      <p class="score">{@points}<span> / 1,000</span></p>
-      <p class="distance">{distance_label(@distance)}</p>
-      <div class="score-meter" aria-hidden="true" data-meter={@points / 10} data-meter-stage={@round}>
-        <span data-meter-fill style={"width: #{@points / 10}%"}></span>
+      <div class="round-answer">
+        <span class="muted">The answer</span><strong>{@answer}</strong>
       </div>
-      <div class="result-grid">
-        <div><span class="muted">Actual</span><strong>{@answer}</strong></div>
-        <div><span class="muted">Guess</span><strong>{@guess}</strong></div>
-      </div>
-      {render_slot(@opponents)}
+      <ul class="round-players" aria-label="Round results">
+        <li :for={player <- @player} class="round-player" data-self={to_string(player[:self] == true)}>
+          <div class="round-player-heading">
+            <strong class="round-player-name">{player.name}</strong>
+            <span :if={player[:self] && player.name != "You"} class="pill">You</span>
+            <span class="score">{player.points}<span> / 1,000</span></span>
+          </div>
+          <strong class="round-player-guess">{player.guess}</strong>
+          <p class="distance">{distance_label(player[:distance])}</p>
+          <div
+            class="score-meter"
+            aria-hidden="true"
+            data-meter={player.points / 10}
+            data-meter-stage={@round}
+          >
+            <span data-meter-fill style={"width: #{player.points / 10}%"}></span>
+          </div>
+        </li>
+      </ul>
       {render_slot(@inner_block)}
     </div>
     """

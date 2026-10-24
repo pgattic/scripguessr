@@ -445,17 +445,8 @@ defmodule ScripguessrWeb.MatchLive do
 
   @impl true
   def render(assigns) do
-    own_result =
-      if assigns.room && assigns.room.result,
-        do:
-          Enum.find(
-            assigns.room.result.guesses,
-            &(&1.user_id == (assigns.current_user && assigns.current_user.id))
-          )
-
     assigns =
       assign(assigns,
-        own_result: own_result,
         player:
           if(assigns.room,
             do: own_player(assigns.room, assigns.current_user && assigns.current_user.id)
