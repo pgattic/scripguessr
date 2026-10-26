@@ -106,7 +106,10 @@ defmodule ScripguessrWeb.GameComponents do
   attr :answer, :string, required: true
   attr :round, :integer, required: true
 
+  attr :wide, :boolean, default: false
+
   slot :player, required: true do
+    attr :rank, :integer
     attr :name, :string, required: true
     attr :guess, :string, required: true
     attr :points, :integer, required: true
@@ -119,18 +122,26 @@ defmodule ScripguessrWeb.GameComponents do
 
   def round_feedback(assigns) do
     ~H"""
-    <div id={@id} class="result" role="status">
+    <div id={@id} class={["result", @wide && "round-results-wide"]} role="status">
       <div class="round-answer">
         <span class="muted">The answer</span><strong>{@answer}</strong>
+      </div>
+      <div :if={@wide} class="round-results-columns muted" aria-hidden="true">
+        <span>Player</span><span>Guess</span><span>Distance</span><span>Points</span>
       </div>
       <ul class="round-players" aria-label="Round results">
         <li :for={player <- @player} class="round-player" data-self={to_string(player[:self] == true)}>
           <div class="round-player-heading">
+            <span
+              :if={@wide && player[:rank]}
+              class="round-player-rank"
+              aria-label={"Place #{player.rank}"}
+            >{player.rank}</span>
             <strong class="round-player-name">{player.name}</strong>
             <span :if={player[:self] && player.name != "You"} class="pill">You</span>
             <span :if={player[:guest]} class="pill">Guest</span>
-            <span class="score">{player.points}<span> / 1,000</span></span>
           </div>
+          <span class="score">{player.points}<span> / 1,000</span></span>
           <strong class="round-player-guess">{player.guess}</strong>
           <p class="distance">{distance_label(player[:distance])}</p>
           <div

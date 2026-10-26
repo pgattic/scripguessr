@@ -34,6 +34,7 @@ defmodule ScripguessrWeb.MatchLive do
            session["owner"]
          ),
        guest_name: "",
+       capacity: 8,
        invite_qr: nil,
        room: nil,
        code: nil,
@@ -83,10 +84,14 @@ defmodule ScripguessrWeb.MatchLive do
     name = guest_name(params, socket)
     actor = socket.assigns.identity
 
-    {:noreply,
-     socket
-     |> assign(preparing: true, error: nil, guest_name: name)
-     |> start_async(:create, fn -> Matches.create(actor, 2, name) end)}
+    with {capacity, ""} when capacity in 2..8 <- parse_capacity(params, socket.assigns.capacity) do
+      {:noreply,
+       socket
+       |> assign(preparing: true, error: nil, guest_name: name, capacity: capacity)
+       |> start_async(:create, fn -> Matches.create(actor, capacity, name) end)}
+    else
+      _ -> {:noreply, assign(socket, error: error_message(:invalid_capacity), guest_name: name)}
+    end
   end
 
   def handle_event("join", params, socket) do
@@ -116,10 +121,21 @@ defmodule ScripguessrWeb.MatchLive do
 
   def handle_event("leave", _, socket) do
     case Matches.leave(socket.assigns.code, socket.assigns.identity) do
-      {:ok, _} -> {:noreply, push_navigate(socket, to: "/matches")}
-      {:error, reason} -> {:noreply, assign(refresh(socket), :error, error_message(reason))}
+      {:ok, _} ->
+        {:noreply,
+         socket
+         |> detach()
+         |> close_reader()
+         |> assign(room: nil, invite_qr: nil)
+         |> push_navigate(to: "/matches")}
+
+      {:error, reason} ->
+        {:noreply, assign(refresh(socket), :error, error_message(reason))}
     end
   end
+
+  def handle_event("remove-player", %{"player" => id}, socket) when is_binary(id),
+    do: act(socket, fn -> Matches.remove(socket.assigns.code, socket.assigns.identity, id) end)
 
   def handle_event("choose-book", %{"book" => book}, socket) do
     if editable?(socket) and Enum.any?(socket.assigns.room.chapters, &(&1["book"] == book)) do
@@ -297,15 +313,28 @@ defmodule ScripguessrWeb.MatchLive do
       {:ok, room} ->
         old = socket.assigns.room
 
-        socket =
-          if old && (old.round != room.round or old.status != room.status),
-            do: socket |> reset_picker() |> close_reader() |> assign(invite_qr: nil),
-            else: socket
+        socket = if old && old.player_id != room.player_id, do: detach(socket), else: socket
 
-        socket
-        |> assign(room: room, unavailable: false, now: DateTime.utc_now())
-        |> attach()
-        |> assign_online()
+        socket =
+          if old &&
+               (old.round != room.round or old.status != room.status or
+                  old.player_id != room.player_id),
+             do: socket |> reset_picker() |> close_reader() |> assign(invite_qr: nil),
+             else: socket
+
+        socket =
+          socket
+          |> assign(room: room, unavailable: false, now: DateTime.utc_now())
+          |> attach()
+          |> assign_online()
+
+        if old && old.id == room.id && old.joined? && !room.joined? do
+          socket
+          |> put_flash(:info, "You were removed from the room.")
+          |> push_navigate(to: "/matches")
+        else
+          socket
+        end
 
       _ ->
         socket |> close_reader() |> assign(room: nil, unavailable: true, invite_qr: nil)
@@ -358,6 +387,12 @@ defmodule ScripguessrWeb.MatchLive do
       {:error, reason} -> {:noreply, assign(refresh(socket), :error, error_message(reason))}
     end
   end
+
+  defp parse_capacity(%{"match" => %{"capacity" => value}}, _) when is_binary(value),
+    do: Integer.parse(value)
+
+  defp parse_capacity(%{"match" => _}, _), do: :error
+  defp parse_capacity(_, default), do: {default, ""}
 
   defp guest_name(%{"guest" => %{"name" => name}}, _) when is_binary(name), do: name
   defp guest_name(_, socket), do: socket.assigns.guest_name
@@ -461,25 +496,63 @@ defmodule ScripguessrWeb.MatchLive do
 
   defp own_player(room), do: Enum.find(room.players, &(&1.id == room.player_id))
 
-  defp winner_text(room, player_id) do
+  defp winners(room) do
     best = room.players |> Enum.map(& &1.score) |> Enum.max()
-    winners = Enum.filter(room.players, &(&1.score == best))
+    Enum.filter(room.players, &(&1.score == best))
+  end
+
+  defp winner_text(room, player_id) do
+    winners = winners(room)
 
     cond do
-      length(winners) > 1 -> "It’s a tie!"
+      length(winners) == length(room.players) -> "It’s a tie!"
+      length(winners) > 1 -> "Shared victory!"
       hd(winners).id == player_id -> "You won!"
       true -> "#{hd(winners).username} wins"
     end
   end
+
+  defp winner_details(room) do
+    winners = winners(room)
+
+    cond do
+      length(winners) == length(room.players) -> "Everyone shares first place."
+      length(winners) > 1 -> Enum.map_join(winners, ", ", & &1.username) <> " share first place."
+      true -> nil
+    end
+  end
+
+  defp round_guesses(%{guesses: guesses}) do
+    if length(guesses) > 2 do
+      guesses
+      |> Enum.sort_by(&(-&1.points))
+      |> Enum.map(fn guess ->
+        Map.put(guess, :rank, 1 + Enum.count(guesses, &(&1.points > guess.points)))
+      end)
+    else
+      guesses
+    end
+  end
+
+  defp roster_players(%{status: "finished", joined?: true} = room),
+    do: Enum.sort_by(room.players, &(-&1.score))
+
+  defp roster_players(room), do: room.players
 
   defp error_message(:invalid_name),
     do: "Choose a name between 1 and 32 characters, without control characters."
 
   defp error_message(:name_taken), do: "That name is already in this room. Choose another."
   defp error_message(:identity_required), do: "Refresh the page to start a browser session."
+  defp error_message(:invalid_capacity), do: "Choose a player limit between 2 and 8."
+  defp error_message(:cannot_remove_host), do: "The host can cancel the room instead."
+  defp error_message(:player_not_found), do: "That player is no longer in this room."
   defp error_message(:full), do: "This room is full."
-  defp error_message(:not_ready), do: "Everyone needs to join and be ready first."
-  defp error_message(:host_only), do: "Only the host can start or advance the match."
+
+  defp error_message(:not_ready),
+    do: "At least two players must join, and everyone must be ready."
+
+  defp error_message(:host_only), do: "Only the host can manage this match."
   defp error_message(:not_a_player), do: "Join the room to play."
   defp error_message(:already_started), do: "This match has already started or ended."
   defp error_message(:invalid_guess), do: "Choose a valid book and chapter."

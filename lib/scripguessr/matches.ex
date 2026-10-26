@@ -102,7 +102,7 @@ defmodule Scripguessr.Matches do
         match.status != "lobby" ->
           {:error, :already_started}
 
-        length(match.players) != match.capacity or !Enum.all?(match.players, & &1.ready) ->
+        !startable?(match) ->
           {:error, :not_ready}
 
         true ->
@@ -126,6 +126,30 @@ defmodule Scripguessr.Matches do
         {:ok, match.code}
       else
         {:error, :already_started}
+      end
+    end)
+  end
+
+  def remove(code, actor, player_id) do
+    mutate_member(code, actor, fn match, host ->
+      target = Enum.find(match.players, &(&1.id == player_id))
+
+      cond do
+        !host.host ->
+          {:error, :host_only}
+
+        match.status != "lobby" ->
+          {:error, :already_started}
+
+        is_nil(target) ->
+          {:error, :player_not_found}
+
+        target.host ->
+          {:error, :cannot_remove_host}
+
+        true ->
+          Repo.delete!(target)
+          {:ok, match.code}
       end
     end)
   end
@@ -347,6 +371,8 @@ defmodule Scripguessr.Matches do
 
   defp guess_for(player, round), do: Enum.find(player.guesses, &(&1.round == round))
 
+  defp startable?(match), do: length(match.players) >= 2 && Enum.all?(match.players, & &1.ready)
+
   defp due?(%Match{status: "round", deadline: %DateTime{} = deadline}, now),
     do: DateTime.compare(deadline, now) != :gt
 
@@ -373,8 +399,7 @@ defmodule Scripguessr.Matches do
       round: match.round,
       deadline: match.deadline,
       joined?: player != nil,
-      all_ready?:
-        length(match.players) == match.capacity and Enum.all?(match.players, & &1.ready),
+      all_ready?: startable?(match),
       players:
         Enum.map(match.players, fn p ->
           %{

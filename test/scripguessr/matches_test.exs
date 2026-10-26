@@ -330,6 +330,110 @@ defmodule Scripguessr.MatchesTest do
     assert Repo.aggregate(Player, :count) == 2
   end
 
+  test "a room limit does not require filling every seat but all present players must be ready" do
+    {host, _} = guest()
+    {friend, _} = guest()
+    {third, _} = guest()
+
+    for capacity <- [1, 9, "8", nil, %{}] do
+      assert {:error, :invalid_capacity} = Matches.create(host, capacity, "Avery")
+    end
+
+    {:ok, code} = Matches.create(host, 8, "Avery")
+    Matches.ready(code, host, true)
+    assert {:error, :not_ready} = Matches.start(code, host)
+    Matches.join(code, friend, "Blake")
+    Matches.ready(code, friend, true)
+    assert {:ok, %{all_ready?: true}} = Matches.fetch(code, host)
+    Matches.join(code, third, "Casey")
+    assert {:ok, %{all_ready?: false}} = Matches.fetch(code, host)
+    assert {:error, :not_ready} = Matches.start(code, host)
+    Matches.ready(code, third, true)
+    assert {:ok, _} = Matches.start(code, host)
+    assert {:ok, %{capacity: 8, players: players}} = Matches.fetch(code, host)
+    assert length(players) == 3
+  end
+
+  test "only a lobby's host may remove its other players" do
+    {host, _} = guest()
+    {friend, _} = guest()
+    {other, _} = guest()
+    {:ok, code} = Matches.create(host, 8, "Avery")
+    {:ok, other_code} = Matches.create(other, 8, "Casey")
+    Matches.join(code, friend, "Blake")
+    {:ok, room} = Matches.fetch(code, host)
+    {:ok, other_room} = Matches.fetch(other_code, other)
+    id = Enum.find(room.players, &(&1.id != room.host_id)).id
+    assert {:error, :host_only} = Matches.remove(code, friend, id)
+    assert {:error, :not_a_player} = Matches.remove(code, other, id)
+    assert {:error, :cannot_remove_host} = Matches.remove(code, host, room.host_id)
+    assert {:error, :player_not_found} = Matches.remove(code, host, other_room.host_id)
+    assert {:ok, _} = Matches.remove(code, host, id)
+    assert {:error, :not_a_player} = Matches.ready(code, friend, true)
+    assert {:error, :not_a_player} = Matches.submit(code, friend, 0, "Omni", "1")
+    assert {:error, :player_not_found} = Matches.remove(code, host, id)
+    # Removal frees the seat; reopening the invite permits a fresh join.
+    assert {:ok, _} = Matches.join(code, friend, "Blake")
+    for actor <- [host, friend], do: Matches.ready(code, actor, true)
+    Matches.start(code, host)
+    assert {:error, :already_started} = Matches.remove(code, host, room.host_id)
+  end
+
+  test "join and start races keep the active roster consistent" do
+    {host, _} = guest()
+    {friend, _} = guest()
+    {late, _} = guest()
+    {:ok, code} = Matches.create(host, 8, "Avery")
+    Matches.join(code, friend, "Blake")
+    for actor <- [host, friend], do: Matches.ready(code, actor, true)
+
+    tasks = [
+      Task.async(fn -> Matches.start(code, host) end),
+      Task.async(fn -> Matches.join(code, late, "Casey") end)
+    ]
+
+    results = Enum.map(tasks, &Task.await/1)
+    {:ok, room} = Matches.fetch(code, host)
+
+    case room.status do
+      "round" ->
+        assert results == [{:ok, code}, {:error, :already_started}]
+        assert length(room.players) == 2
+
+      "lobby" ->
+        assert results == [{:error, :not_ready}, {:ok, code}]
+        assert length(room.players) == 3
+    end
+  end
+
+  test "eight players can finish five rounds and capacity rejects a ninth" do
+    actors = Enum.map(1..9, fn _ -> guest() |> elem(0) end)
+    host = hd(actors)
+    {:ok, code} = Matches.create(host, 8, "Player 1")
+
+    for {actor, index} <- actors |> Enum.take(8) |> Enum.with_index(1) do
+      assert {:ok, _} = Matches.join(code, actor, "Player #{index}")
+      assert {:ok, _} = Matches.ready(code, actor, true)
+    end
+
+    assert {:error, :full} = Matches.join(code, List.last(actors), "Player 9")
+    assert {:ok, _} = Matches.start(code, host)
+    snapshot = Repo.get_by!(Match, code: code).snapshot
+
+    for {round, index} <- Enum.with_index(snapshot["rounds"]) do
+      for actor <- Enum.take(actors, 8),
+          do: Matches.submit(code, actor, index, round["book"], to_string(round["chapter"]))
+
+      assert {:ok, %{status: "reveal", result: %{guesses: guesses}}} = Matches.fetch(code, host)
+      assert length(guesses) == 8
+      assert {:ok, _} = Matches.advance(code, host, index)
+    end
+
+    assert {:ok, %{status: "finished", players: players}} = Matches.fetch(code, host)
+    assert Enum.all?(players, &(&1.score == 5000))
+    assert Repo.aggregate(Guess, :count) == 40
+  end
+
   test "failed preparation creates no room or memberships" do
     {user, _} = account("reader")
     Scripguessr.Corpus.Fake.reset(:down)

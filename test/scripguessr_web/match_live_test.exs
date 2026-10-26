@@ -42,11 +42,11 @@ defmodule ScripguessrWeb.MatchLiveTest do
     {_, token} = account("host")
     {:ok, view, _} = live(browser(token), "/matches")
     Scripguessr.Corpus.Fake.reset(:down)
-    view |> element("#create-match") |> render_click()
+    view |> form("#create-match-form") |> render_submit()
     render_async(view)
     assert has_element?(view, "[role=alert]", "couldn’t load")
     Scripguessr.Corpus.Fake.reset()
-    view |> element("#create-match") |> render_click()
+    view |> form("#create-match-form") |> render_submit()
     {path, _} = assert_redirect(view, 3_000)
     assert path =~ "/matches/"
     {:ok, room, _} = live(browser(token), path)
@@ -407,6 +407,116 @@ defmodule ScripguessrWeb.MatchLiveTest do
       refute has_element?(view, "#match-invite-dialog")
       assert has_element?(view, "#book-grid")
     end
+  end
+
+  test "room creation validates the player limit for guests and accounts" do
+    {_, token} = account("host")
+
+    for {conn, selector, fields, capacity} <- [
+          {browser(token), "#create-match-form", %{"match" => %{"capacity" => "4"}}, 4},
+          {browser(nil, guest_owner()), "#guest-create-form",
+           %{"guest" => %{"name" => "Avery"}, "match" => %{"capacity" => "8"}}, 8}
+        ] do
+      {:ok, view, _} = live(conn, "/matches")
+
+      for value <- ["1", "9", "three"] do
+        render_submit(view, "create", %{"match" => %{"capacity" => value}})
+        assert has_element?(view, "[role=alert]", "player limit")
+      end
+
+      view |> form(selector, fields) |> render_submit()
+      {path, _} = assert_redirect(view, 3_000)
+      code = List.last(String.split(path, "/"))
+      assert Repo.get_by!(Match, code: code).capacity == capacity
+    end
+  end
+
+  test "host removal closes invite dialogs and allows a ready group to start below capacity" do
+    {host, token} = account("host")
+    {:ok, code} = Matches.create(host.id, 8)
+    owner = guest_owner()
+    guest = Scripguessr.Matches.Identity.new(nil, owner)
+    other_owner = guest_owner()
+    other = Scripguessr.Matches.Identity.new(nil, other_owner)
+    Matches.join(code, guest, "Avery")
+    Matches.join(code, other, "Blake")
+    {:ok, host_view, _} = live(browser(token), "/matches/#{code}")
+    {:ok, guest_view, _} = live(browser(nil, owner), "/matches/#{code}")
+    {:ok, other_view, _} = live(browser(nil, other_owner), "/matches/#{code}")
+    {:ok, room} = Matches.fetch(code, host.id)
+    other_id = Enum.find(room.players, &(&1.username == "Blake")).id
+    assert has_element?(host_view, "#match-player-count", "3 / 8")
+    refute has_element?(host_view, ".match-empty")
+    refute has_element?(guest_view, "[phx-click=remove-player]")
+    render_click(guest_view, "remove-player", %{"player" => other_id})
+    assert has_element?(other_view, "#match-lobby")
+    other_view |> element("#show-match-qr") |> render_click()
+    host_view |> element("#match-ready") |> render_click()
+    guest_view |> element("#match-ready") |> render_click()
+    assert has_element?(host_view, "#start-match[disabled]")
+    host_view |> element("#remove-player-#{other_id}") |> render_click()
+    assert_redirect(other_view, "/matches")
+    assert has_element?(host_view, "#match-player-count", "2 / 8")
+    assert has_element?(host_view, "#start-match:not([disabled])")
+    assert {:ok, %{joined?: false}} = Matches.fetch(code, other)
+    host_view |> element("#start-match") |> render_click()
+    assert has_element?(guest_view, "#book-grid")
+    refute has_element?(host_view, "[phx-click=remove-player]")
+    render_click(host_view, "remove-player", %{"player" => room.host_id})
+    assert has_element?(host_view, "#book-grid")
+  end
+
+  test "larger matches rank shared round results and name only the tied winners" do
+    owners = Enum.map(1..3, fn _ -> guest_owner() end)
+    [host, friend, third] = actors = Enum.map(owners, &Scripguessr.Matches.Identity.new(nil, &1))
+    {:ok, code} = Matches.create(host, 8, "Avery")
+    Matches.join(code, friend, "Blake")
+    Matches.join(code, third, "Casey")
+    for actor <- actors, do: Matches.ready(code, actor, true)
+    Matches.start(code, host)
+    {:ok, host_view, _} = live(browser(nil, hd(owners)), "/matches/#{code}")
+    {:ok, friend_view, _} = live(browser(nil, Enum.at(owners, 1)), "/matches/#{code}")
+    snapshot = Repo.get_by!(Match, code: code).snapshot
+    assert has_element?(host_view, "#match-players.match-players-compact")
+
+    for {round, index} <- Enum.with_index(snapshot["rounds"]) do
+      for actor <- [host, friend],
+          do: Matches.submit(code, actor, index, round["book"], to_string(round["chapter"]))
+
+      expire_match(code)
+      assert has_element?(host_view, ".match-group-reveal #answer-reveal.round-results-wide")
+      assert has_element?(host_view, ".round-player:nth-child(1) .round-player-rank", "1")
+      assert has_element?(host_view, ".round-player:nth-child(2) .round-player-rank", "1")
+      assert has_element?(host_view, ".round-player:nth-child(3) .round-player-rank", "3")
+      assert has_element?(host_view, ".round-player:nth-child(3)", "No answer")
+
+      assert has_element?(
+               friend_view,
+               ".round-player[data-self=true] .round-player-name",
+               "Blake"
+             )
+
+      host_view |> element("#advance-match") |> render_click()
+    end
+
+    assert has_element?(host_view, ".match-heading", "Shared victory!")
+    assert has_element?(host_view, "#match-winners", "Avery, Blake share first place.")
+    refute has_element?(host_view, "#match-winners", "Casey")
+    assert has_element?(friend_view, "#match-results")
+  end
+
+  test "voluntarily leaving does not show the removal notice" do
+    host = Scripguessr.Matches.Identity.new(nil, guest_owner())
+    owner = guest_owner()
+    guest = Scripguessr.Matches.Identity.new(nil, owner)
+    {:ok, code} = Matches.create(host, 8, "Avery")
+    Matches.join(code, guest, "Blake")
+    conn = browser(nil, owner)
+    {:ok, view, _} = live(conn, "/matches/#{code}")
+    result = view |> element("#leave-match") |> render_click()
+    {:ok, _hub, html} = follow_redirect(result, conn, "/matches")
+    refute html =~ "You were removed"
+    assert {:ok, %{players: [_]}} = Matches.fetch(code, host)
   end
 
   test "session revocation prevents further pushed match content" do

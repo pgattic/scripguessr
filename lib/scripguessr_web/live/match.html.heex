@@ -6,26 +6,20 @@
 </section>
 
 <section :if={!@room && !@unavailable} class="daily-page match-hub">
-  <span class="pill">Friendly matches · 2 players</span>
+  <span class="pill">Friendly matches · 2–8 players</span>
   <h1>Guess together.</h1>
   <div class="panel daily-card">
-    <h2>Invite a friend</h2><p class="muted">90 seconds per round. Answers revealed together.</p>
-    <button
-      :if={@current_user}
-      id="create-match"
-      phx-click="create"
-      class="button"
-      disabled={@preparing}
-      phx-disable-with="Loading…"
-    >{if @preparing, do: "Loading…", else: "Create room"} <span aria-hidden="true">→</span></button>
+    <h2>Invite your friends</h2><p class="muted">
+      90 seconds per round. Answers revealed together.
+    </p>
     <form
-      :if={!@current_user}
-      id="guest-create-form"
+      id={if @current_user, do: "create-match-form", else: "guest-create-form"}
       phx-submit="create"
       class="account-form match-guest-form"
     >
-      <label for="guest-name">Your name</label>
+      <label :if={!@current_user} for="guest-name">Your name</label>
       <input
+        :if={!@current_user}
         id="guest-name"
         name="guest[name]"
         value={@guest_name}
@@ -33,6 +27,12 @@
         maxlength="32"
         autocomplete="nickname"
       />
+      <label for="match-capacity">Player limit</label>
+      <select id="match-capacity" name="match[capacity]" disabled={@preparing}>
+        <option :for={limit <- 2..8} value={limit} selected={limit == @capacity}>
+          {limit} players
+        </option>
+      </select>
       <button id="create-match" class="button" disabled={@preparing} phx-disable-with="Loading…">
         {if @preparing, do: "Loading…", else: "Create room"} →
       </button>
@@ -84,13 +84,23 @@
             "Room cancelled"
         end}
       </h1>
+      <p :if={@room.joined? && @room.status == "finished"} id="match-winners" class="muted">
+        {winner_details(@room)}
+      </p>
+      <span :if={@room.status == "lobby"} id="match-player-count" class="muted">{length(
+        @room.players
+      )} / {@room.capacity} players</span>
     </div>
     <a href="/matches" class="text-button">Your rooms →</a>
   </div>
   <p :if={@error} class="error" role="alert">{@error}</p>
-  <div :if={@room.status != "cancelled"} id="match-players" class="match-players">
+  <div
+    :if={@room.status != "cancelled"}
+    id="match-players"
+    class={["match-players", length(@room.players) > 2 && "match-players-compact"]}
+  >
     <div
-      :for={player <- @room.players}
+      :for={player <- roster_players(@room)}
       class={
         if player.id == @room.player_id,
           do: "panel match-player match-self",
@@ -102,25 +112,30 @@
           class={if player.id in @online, do: "presence-dot online", else: "presence-dot"}
           aria-label={if player.id in @online, do: "Online", else: "Away"}
         ></span><strong title={player.username}>{player.username}</strong>
-        <span :if={player.guest?} class="muted">Guest</span><span
-          :if={player.id == @room.host_id}
-          class="muted"
-        >Host</span>
+        <span class="match-player-badges">
+          <span :if={player.guest?} class="muted">Guest</span>
+          <span :if={player.id == @room.host_id} class="muted">Host</span>
+        </span>
       </div>
       <span :if={@room.status == "lobby"} class="muted">{if player.ready,
         do: "Ready",
         else: "Not ready"}</span>
       <strong :if={@room.joined? && @room.status != "lobby"}>{player.score}
       <small class="muted">pts</small></strong>
+      <button
+        :if={
+          @room.status == "lobby" && @room.player_id == @room.host_id &&
+            player.id != @room.host_id
+        }
+        id={"remove-player-" <> player.id}
+        class="text-button match-remove"
+        phx-click="remove-player"
+        phx-value-player={player.id}
+        aria-label={"Remove #{player.username} from room"}
+      >Remove</button>
       <span :if={@room.status == "round"} class="match-submitted">{if player.submitted?,
         do: "Guess locked",
         else: "Guessing…"}</span>
-    </div>
-    <div
-      :for={_ <- List.duplicate(nil, max(0, @room.capacity - length(@room.players)))}
-      class="panel match-player match-empty"
-    >
-      Waiting for a friend…
     </div>
   </div>
 
@@ -214,9 +229,11 @@
                                                                          else: "Leave room"}</button>
     </div>
     <p class="muted daily-note">
-      {if @room.all_ready?,
-        do: "Everyone is ready. The host can start.",
-        else: "Everyone needs to join and mark themselves ready."}
+      {cond do
+        @room.all_ready? -> "Everyone is ready. The host can start."
+        length(@room.players) < 2 -> "Invite at least one player to start."
+        true -> "Waiting for everyone to ready up."
+      end}
     </p>
   </div>
 
@@ -251,7 +268,13 @@
     </div>
   </div>
 
-  <div :if={@room.joined? && @room.status in ["round", "reveal"]} class="game-layout">
+  <div
+    :if={@room.joined? && @room.status in ["round", "reveal"]}
+    class={[
+      "game-layout",
+      @room.status == "reveal" && length(@room.players) > 2 && "match-group-reveal"
+    ]}
+  >
     <.verse_panel
       text={if @room.result, do: @room.result.text, else: @room.verse}
       reference={if @room.result, do: result_reference(@room.result)}
@@ -280,50 +303,54 @@
         <.round_feedback
           answer={result_reference(@room.result)}
           round={@room.round}
+          wide={length(@room.players) > 2}
         >
           <:player
-            :for={guess <- @room.result.guesses}
+            :for={guess <- round_guesses(@room.result)}
             name={guess.username}
+            rank={guess[:rank]}
             self={guess.player_id == @room.player_id}
             guest={guess.guest?}
             guess={guess_label(guess)}
             points={guess.points}
             distance={guess.distance}
           />
-          <p :if={@save_error} class="error" role="alert">{@save_error}</p>
-          <button
-            id="read-chapter"
-            phx-click="read-chapter"
-            phx-value-round={@room.round}
-            class="text-button game-read-chapter"
-          >Read chapter</button>
-          <.save_button
-            verse={result_verse(@room.result)}
-            saved={@saved_verses}
-            user={@current_user}
-            source="round"
-            index={@room.round}
-          />
-          <button
-            :if={@room.player_id == @room.host_id}
-            id="advance-match"
-            class="button full-width"
-            phx-click="advance"
-            phx-value-round={@room.round}
-            phx-disable-with="Loading…"
-          >
-            {if @room.round == 4, do: "View results", else: "Next round"} →
-          </button>
-          <p
-            :if={@room.player_id != @room.host_id}
-            id="waiting-for-host"
-            class="muted"
-            role="status"
-          >
-            Waiting for the host to {if @room.round == 4,
-              do: "show the results",
-              else: "start the next round"}.
-          </p>
+          <div class="match-reveal-actions">
+            <p :if={@save_error} class="error" role="alert">{@save_error}</p>
+            <button
+              id="read-chapter"
+              phx-click="read-chapter"
+              phx-value-round={@room.round}
+              class="text-button game-read-chapter"
+            >Read chapter</button>
+            <.save_button
+              verse={result_verse(@room.result)}
+              saved={@saved_verses}
+              user={@current_user}
+              source="round"
+              index={@room.round}
+            />
+            <button
+              :if={@room.player_id == @room.host_id}
+              id="advance-match"
+              class="button full-width"
+              phx-click="advance"
+              phx-value-round={@room.round}
+              phx-disable-with="Loading…"
+            >
+              {if @room.round == 4, do: "View results", else: "Next round"} →
+            </button>
+            <p
+              :if={@room.player_id != @room.host_id}
+              id="waiting-for-host"
+              class="muted"
+              role="status"
+            >
+              Waiting for the host to {if @room.round == 4,
+                do: "show the results",
+                else: "start the next round"}.
+            </p>
+          </div>
         </.round_feedback>
       </div>
     </.picker>
@@ -341,7 +368,7 @@
             phx-value-round={result.round}
           >Read chapter →</button>
           <div class="match-final-guesses">
-            <span :for={guess <- result.guesses}><strong>{guess.username}</strong>: {if guess.book,
+            <span :for={guess <- round_guesses(result)}><strong>{guess.username}</strong>: {if guess.book,
               do: "#{guess.book} #{guess.chapter}",
               else: "No answer"} · {guess.points} pts</span>
           </div>

@@ -448,16 +448,16 @@ footer {
 .round-answer { display: grid; gap: 5px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
 .round-answer strong { font-size: 1.15rem; }
 .round-players { list-style: none; margin: 0; padding: 0; }
-.round-player { display: grid; gap: 6px; padding: 18px 0; min-width: 0; }
+.round-player { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "player score" "guess guess" "distance distance" "meter meter"; gap: 6px; padding: 18px 0; min-width: 0; }
 .round-player + .round-player { border-top: 1px solid var(--border-soft); }
-.round-player-heading { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
-.round-player-name { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
+.round-player-heading { grid-area: player; display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px; }
+.round-player-name { flex: 1 1 120px; min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
 .round-player-heading .pill { padding: 2px 6px; font-size: .65rem; }
-.round-player .score { margin: 0; font-size: 1.5rem; line-height: 1.2; white-space: nowrap; }
+.round-player .score { grid-area: score; text-align: right; margin: 0; font-size: 1.5rem; line-height: 1.2; white-space: nowrap; }
 .round-player .score span { font-size: .7rem; }
-.round-player-guess { font-size: .95rem; }
-.round-player .distance { margin: 0; font-size: .8rem; }
-.round-player .score-meter { margin: 4px 0 0; }
+.round-player-guess { grid-area: guess; overflow-wrap: anywhere; font-size: .95rem; }
+.round-player .distance { grid-area: distance; margin: 0; font-size: .8rem; }
+.round-player .score-meter { grid-area: meter; margin: 4px 0 0; }
 
 .game-read-chapter {
   display: block;
@@ -815,17 +815,17 @@ footer {
 .match-player { padding: 18px 20px; display: grid; gap: 10px; }
 .match-player-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .match-player-name strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.match-player-name .muted { font-size: .7rem; margin-left: auto; }
+.match-player-badges { display: flex; flex-shrink: 0; gap: 6px; margin-left: auto; }
+.match-player-badges .muted { font-size: .7rem; }
 .match-player > .muted, .match-submitted { font-size: .8rem; }
 .match-self { border-color: var(--accent); background: var(--accent-soft); }
-.match-empty { color: var(--muted); display: grid; place-items: center; border-style: dashed; }
 .presence-dot { width: 8px; height: 8px; flex: 0 0 auto; border-radius: 50%; background: var(--muted); }
 .presence-dot.online { background: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 .match-invite { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin: 12px 0; }
 .match-invite input { width: 100%; flex: 1 1 250px; min-width: 0; background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font: .8rem system-ui,sans-serif; }
 .match-waiting h2 { margin-bottom: 0; }
 .match-waiting p { line-height: 1.7; }
-.match-final-guesses { display: grid; gap: 8px; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; color: var(--muted); }
+.match-final-guesses { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,220px),1fr)); gap: 8px; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; color: var(--muted); }
 .round-list .match-result-round { grid-template-columns: 26px minmax(0,1fr); }
 .match-history { display: flex; flex-wrap: wrap; gap: 12px; justify-content: space-between; padding: 18px; text-decoration: none; margin: 12px 0; font-size: .85rem; }
 #recent-matches { margin-bottom: 28px; }
@@ -988,3 +988,41 @@ footer {
 .invite-qr-heading h2 { margin: 0; font-size: 1.15rem; }
 .invite-qr-image { display: block; width: 100%; max-width: 288px; height: auto; margin: 0 auto; padding: 16px; border-radius: 8px; background: white; }
 .invite-qr-link { display: block; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; text-align: center; }
+
+.match-guest-form select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--raised); color: var(--text); font: inherit; }
+.match-remove { justify-self: start; font-size: .8rem; }
+.match-players-compact { grid-template-columns: repeat(auto-fit,minmax(min(100%,230px),1fr)); gap: 10px; }
+.match-players-compact .match-player { grid-template-columns: minmax(0,1fr) auto; padding: 12px; gap: 6px; }
+.match-players-compact .match-player-name { grid-column: 1 / -1; }
+.match-players-compact .match-player-name strong { flex: 1; min-width: 0; }
+.match-players-compact .match-remove { justify-self: end; }
+.match-group-reveal { grid-template-columns: minmax(0,1fr); }
+.match-group-reveal .verse-panel { padding: 24px 32px; }
+.match-group-reveal .verse { font-size: clamp(1.15rem,2.3vw,1.5rem); line-height: 1.65; }
+.round-results-columns { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 110px; gap: 16px; padding-top: 16px; font-size: .75rem; }
+.round-results-columns > :last-child { text-align: right; }
+.round-player-rank { color: var(--muted); font-size: .8rem; font-variant-numeric: tabular-nums; }
+@media (min-width: 761px) {
+  .round-results-wide .round-player { grid-template-columns: minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr) 110px; grid-template-areas: "player guess distance score" "meter meter meter meter"; align-items: center; gap: 8px 16px; padding: 12px 0; }
+  .round-results-wide .round-player-heading { align-items: center; }
+  .round-results-wide .round-player-name { flex: initial; }
+  .round-results-wide .round-player .score { font-size: 1.2rem; }
+}
+@media (max-width: 760px) {
+  .round-results-columns { display: none; }
+  .match-group-reveal .verse-panel { padding: 22px; }
+}
+
+@media (min-width: 761px) {
+  .match-group-reveal .match-reveal-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
+  .match-group-reveal .match-reveal-actions .game-read-chapter { margin: 0; }
+  .match-group-reveal .match-reveal-actions .button { width: auto; margin-left: auto; }
+  .match-group-reveal .match-reveal-actions #waiting-for-host { margin-left: auto; }
+  .match-group-reveal .match-reveal-actions .error { flex-basis: 100%; }
+}
+@media (max-width: 640px) {
+  .match-players-compact { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .match-players-compact .match-player-name { display: grid; grid-template-columns: 8px minmax(0,1fr); gap: 4px 8px; }
+  .match-players-compact .match-player-badges { grid-column: 2; margin: 0; }
+  .match-players-compact .match-submitted { grid-column: 1 / -1; }
+}

@@ -164,7 +164,9 @@ From Play, choose **Play with a friend**, create a room, and copy its invite lin
 for a friend to scan. QR codes are generated locally; no external service sees
 the invite link.
 Play signed in or enter a guest name—accounts are optional for creating and
-joining friendly matches. Both players mark themselves ready, and the host starts.
+joining friendly matches. Choose a player limit from 2 to 8 (default 8). The host
+can start with any group of at least two, once everyone present is ready; the
+room does not need to fill. The roster is fixed once the match starts.
 Guests are labeled in the room and round results. Guest names are 1–32 characters
 and must differ from names already in the room. Signing in remains an option on
 the invite; new accounts still receive their recovery code first.
@@ -180,7 +182,7 @@ XP, ranked daily attempts, and saved verses still require an account.
 
 Each player gets the same five frozen verses in the same order. Rounds last
 **90 seconds**, or close early once everyone has submitted. Guesses lock on their
-first accepted submission. The answer, both guesses, round points, and updated
+first accepted submission. The answer, all guesses, round points, and updated
 totals appear together. The host chooses **Next round** when everyone has had time
 to review the answer. The fifth round also has its own reveal; the host then
 chooses **View results** to open the final summary for everyone.
@@ -195,7 +197,12 @@ Reopen the invite link or use **Your rooms** on `/matches` to reconnect or revie
 results. Active round timers continue through disconnects; reveals wait for the
 host to return and continue. Online indicators reflect open tabs,
 and another tab or device can resume the same account's locked attempt. Before
-starting, a friend can leave to free a seat, and the host can cancel the room.
+starting, players can leave, the host can remove other participants, and the host
+can cancel the room. Removed players return to Matches and may explicitly reopen
+the invite to join again before play starts; removal is not a permanent ban.
+Larger rooms use a compact roster and a full-width round scoreboard, sorted by
+round points with shared ranks for ties. Final results name shared winners
+without implying that lower-scoring players also tied for first.
 Rooms are private invitations, with no public matchmaking or spectators.
 
 Matches have their own `matches`, `match_players`, and `match_guesses` tables.
@@ -204,8 +211,8 @@ name; host permissions and presence use participant IDs. Existing account-hosted
 rooms retain their hosts through the guest-support migration.
 Matches have no daily-challenge or single-player game foreign keys. They share
 corpus preparation, pure scoring rules, and presentation components. Player rows
-and capacity-based rules support larger rooms; the first UI creates two-player
-rooms. Every mutation locks the match row, and player-facing projections exclude future prompts, unrevealed
+and capacity-based rules support rooms of up to eight players. Every mutation
+locks the match row, and player-facing projections exclude future prompts, unrevealed
 answers, and opponents' pending guesses. Scores update only when rounds close.
 
 A supervised clock polls persisted round deadlines once per second. An expired
