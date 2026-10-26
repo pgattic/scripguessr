@@ -1,6 +1,7 @@
 defmodule ScripguessrWeb.ChapterReader do
   use Phoenix.Component
   alias Phoenix.LiveView.JS
+  import ScripguessrWeb.Icons
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
 
   attr :id, :string, required: true
@@ -50,18 +51,20 @@ defmodule ScripguessrWeb.ChapterReader do
           <div class="reader-actions">
             <button
               :if={@verses && (@target || map_size(@marks) > 0)}
-              class="text-button"
+              type="button"
+              class="text-button icon-label"
               phx-click={JS.dispatch("chapter:first-match", to: "#" <> @id)}
             >
-              {if @target, do: "Verse #{@target}", else: "First match"} ↓
+              <.icon name="down" />
+              <span>{if @target, do: "Verse #{@target}", else: "First match"}</span>
             </button>
-            <button
+            <.icon_button
               id={@id <> "-close"}
               data-reader-close
-              class="crumb"
+              name="close"
+              label="Close chapter"
               phx-click="close-chapter"
-              aria-label="Close chapter"
-            >×</button>
+            />
           </div>
         </header>
         <div class="atlas-reader-scroll">

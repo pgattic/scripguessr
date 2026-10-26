@@ -690,6 +690,14 @@ footer {
 /* The book flow and chapter tile dimensions intentionally match the Rust Atlas. */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 .text-button { border: 0; padding: 4px 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; font-size: .8rem; }
+.ui-icon { display: block; width: 20px; height: 20px; flex: 0 0 20px; }
+.icon-label { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+.game-read-chapter.icon-label { display: flex; width: fit-content; }
+.icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted-strong); }
+.icon-button:hover, .icon-button:focus-visible { color: var(--accent); background: var(--accent-soft); }
+.icon-button::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; width: max-content; max-width: 180px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--raised); color: var(--text); font: .75rem/1.4 system-ui, sans-serif; box-shadow: 0 4px 12px var(--dialog-shadow); pointer-events: none; opacity: 0; }
+.icon-button:focus-visible::after { opacity: 1; }
+@media (hover: hover) { .icon-button:hover::after { opacity: 1; } }
 .button.secondary { background: var(--raised); color: var(--text); border-color: var(--control-border); }
 .atlas-page { margin-bottom: 30px; }
 .atlas-page-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
@@ -740,7 +748,7 @@ footer {
 .atlas-reader-dialog { display: flex; flex-direction: column; width: min(780px,100%); max-height: calc(100dvh - 48px); overflow: hidden; background: var(--raised); box-shadow: 0 20px 70px var(--dialog-shadow); }
 .atlas-reader-header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 18px 24px; border-bottom: 1px solid var(--border); }
 .atlas-reader-header h2 { margin: 0; font-size: 1.15rem; }
-.atlas-reader-header .reader-actions { display: flex; align-items: center; gap: 18px; }
+.atlas-reader-header .reader-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .atlas-reader-scroll { overflow-y: auto; padding: 0 24px 24px; }
 .atlas-evidence { display: grid; gap: 8px; padding: 18px 0; border-bottom: 1px solid var(--border-soft); margin-bottom: 15px; }
 .atlas-evidence-entry { padding: 10px 12px; border: 1px solid var(--border-soft); border-radius: 6px; }
@@ -796,9 +804,9 @@ footer {
 .saved-card-heading > a { font-weight: 700; }
 .saved-text { font-family: Georgia, serif; font-size: 1.15rem; line-height: 1.75; margin-bottom: 0; }
 .save-verse { font: .8rem/1.5 system-ui, sans-serif; margin: 8px 0; }
-.atlas-reading-verse:has(.reader-save-verse) { grid-template-columns: 22px minmax(0,1fr) var(--reader-band-width,4px) 30px; }
+.atlas-reading-verse:has(.reader-save-verse) { grid-template-columns: 22px minmax(0,1fr) var(--reader-band-width,4px) 44px; }
 .atlas-reading-verse:has(.reader-save-verse) > .atlas-verse-bands { grid-column: 3; grid-row: 1; }
-.reader-save-verse { grid-column: 4; grid-row: 1; align-self: start; display: flex; justify-content: center; padding: 6px; margin: 0; border-radius: 4px; }
+.reader-save-verse { grid-column: 4; grid-row: 1; align-self: start; display: flex; justify-content: center; width: 44px; min-height: 44px; padding: 6px; margin: 0; border-radius: 4px; }
 .reader-save-verse:hover, .reader-save-verse:focus-visible { background: var(--accent-soft); }
 .save-verse[aria-pressed="true"] { color: var(--accent); }
 

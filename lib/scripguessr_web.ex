@@ -3,6 +3,7 @@ defmodule ScripguessrWeb do
     quote do
       use Phoenix.LiveView, layout: {ScripguessrWeb.Layouts, :app}
       import Phoenix.Component
+      import ScripguessrWeb.Icons
       alias Phoenix.LiveView.JS
     end
   end

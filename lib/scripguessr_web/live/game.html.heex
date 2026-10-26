@@ -139,10 +139,10 @@
         <p :if={@save_error} role="alert" class="error">{@save_error}</p>
         <button
           id="read-chapter"
-          class="text-button game-read-chapter"
+          class="text-button icon-label game-read-chapter"
           phx-click="read-chapter"
           phx-value-round={@snapshot["current"]}
-        >Read chapter</button>
+        ><.icon name="book" /><span>Read chapter</span></button>
         <.save_button
           verse={@round}
           saved={@saved_verses}
@@ -229,10 +229,10 @@
           "guess"
         ]["book"]} {round["guess"]["chapter"]} · {distance_label(round["guess"]["distance"])}</span>
         <button
-          class="text-button game-read-chapter"
+          class="text-button icon-label game-read-chapter"
           phx-click="read-chapter"
           phx-value-round={index}
-        >Read chapter</button>
+        ><.icon name="book" /><span>Read chapter</span></button>
         <.save_button
           verse={round}
           saved={@saved_verses}
