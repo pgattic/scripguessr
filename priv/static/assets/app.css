@@ -989,7 +989,6 @@ footer {
 .invite-qr-image { display: block; width: 100%; max-width: 288px; height: auto; margin: 0 auto; padding: 16px; border-radius: 8px; background: white; }
 .invite-qr-link { display: block; margin-top: 18px; overflow-wrap: anywhere; font-size: .8rem; text-align: center; }
 
-.match-guest-form select { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 6px; background: var(--raised); color: var(--text); font: inherit; }
 .match-remove { justify-self: start; font-size: .8rem; }
 .match-players-compact { grid-template-columns: repeat(auto-fit,minmax(min(100%,230px),1fr)); gap: 10px; }
 .match-players-compact .match-player { grid-template-columns: minmax(0,1fr) auto; padding: 12px; gap: 6px; }

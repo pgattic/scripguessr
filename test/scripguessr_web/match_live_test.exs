@@ -409,31 +409,27 @@ defmodule ScripguessrWeb.MatchLiveTest do
     end
   end
 
-  test "room creation validates the player limit for guests and accounts" do
+  test "guests and accounts create eight-player rooms without choosing a limit" do
     {_, token} = account("host")
 
-    for {conn, selector, fields, capacity} <- [
-          {browser(token), "#create-match-form", %{"match" => %{"capacity" => "4"}}, 4},
-          {browser(nil, guest_owner()), "#guest-create-form",
-           %{"guest" => %{"name" => "Avery"}, "match" => %{"capacity" => "8"}}, 8}
+    for {conn, selector, fields} <- [
+          {browser(token), "#create-match-form", %{}},
+          {browser(nil, guest_owner()), "#guest-create-form", %{"guest" => %{"name" => "Avery"}}}
         ] do
       {:ok, view, _} = live(conn, "/matches")
 
-      for value <- ["1", "9", "three"] do
-        render_submit(view, "create", %{"match" => %{"capacity" => value}})
-        assert has_element?(view, "[role=alert]", "player limit")
-      end
+      refute has_element?(view, "#match-capacity")
 
       view |> form(selector, fields) |> render_submit()
       {path, _} = assert_redirect(view, 3_000)
       code = List.last(String.split(path, "/"))
-      assert Repo.get_by!(Match, code: code).capacity == capacity
+      assert Repo.get_by!(Match, code: code).capacity == 8
     end
   end
 
   test "host removal closes invite dialogs and allows a ready group to start below capacity" do
     {host, token} = account("host")
-    {:ok, code} = Matches.create(host.id, 8)
+    {:ok, code} = Matches.create(host.id)
     owner = guest_owner()
     guest = Scripguessr.Matches.Identity.new(nil, owner)
     other_owner = guest_owner()
@@ -469,7 +465,7 @@ defmodule ScripguessrWeb.MatchLiveTest do
   test "larger matches rank shared round results and name only the tied winners" do
     owners = Enum.map(1..3, fn _ -> guest_owner() end)
     [host, friend, third] = actors = Enum.map(owners, &Scripguessr.Matches.Identity.new(nil, &1))
-    {:ok, code} = Matches.create(host, 8, "Avery")
+    {:ok, code} = Matches.create(host, "Avery")
     Matches.join(code, friend, "Blake")
     Matches.join(code, third, "Casey")
     for actor <- actors, do: Matches.ready(code, actor, true)
@@ -509,7 +505,7 @@ defmodule ScripguessrWeb.MatchLiveTest do
     host = Scripguessr.Matches.Identity.new(nil, guest_owner())
     owner = guest_owner()
     guest = Scripguessr.Matches.Identity.new(nil, owner)
-    {:ok, code} = Matches.create(host, 8, "Avery")
+    {:ok, code} = Matches.create(host, "Avery")
     Matches.join(code, guest, "Blake")
     conn = browser(nil, owner)
     {:ok, view, _} = live(conn, "/matches/#{code}")

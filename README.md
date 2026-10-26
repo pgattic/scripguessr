@@ -164,7 +164,7 @@ From Play, choose **Play with a friend**, create a room, and copy its invite lin
 for a friend to scan. QR codes are generated locally; no external service sees
 the invite link.
 Play signed in or enter a guest name—accounts are optional for creating and
-joining friendly matches. Choose a player limit from 2 to 8 (default 8). The host
+joining friendly matches. Every room allows up to eight players. The host
 can start with any group of at least two, once everyone present is ready; the
 room does not need to fill. The roster is fixed once the match starts.
 Guests are labeled in the room and round results. Guest names are 1–32 characters

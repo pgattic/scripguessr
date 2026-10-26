@@ -3,15 +3,15 @@ defmodule Scripguessr.MatchFixtures do
   alias Scripguessr.{Matches, Repo}
   alias Scripguessr.Matches.Match
 
-  def match_lobby(capacity \\ 2) do
-    accounts = Enum.map(1..capacity, &account("player#{&1}"))
+  def match_lobby(player_count \\ 2) do
+    accounts = Enum.map(1..player_count, &account("player#{&1}"))
     {host, _} = hd(accounts)
-    {:ok, code} = Matches.create(host.id, capacity)
+    {:ok, code} = Matches.create(host.id)
     {code, accounts}
   end
 
-  def started_match(capacity \\ 2) do
-    {code, accounts} = match_lobby(capacity)
+  def started_match(player_count \\ 2) do
+    {code, accounts} = match_lobby(player_count)
 
     for {user, _} <- accounts do
       {:ok, _} = Matches.join(code, user.id)

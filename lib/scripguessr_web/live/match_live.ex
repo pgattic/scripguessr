@@ -34,7 +34,6 @@ defmodule ScripguessrWeb.MatchLive do
            session["owner"]
          ),
        guest_name: "",
-       capacity: 8,
        invite_qr: nil,
        room: nil,
        code: nil,
@@ -84,14 +83,10 @@ defmodule ScripguessrWeb.MatchLive do
     name = guest_name(params, socket)
     actor = socket.assigns.identity
 
-    with {capacity, ""} when capacity in 2..8 <- parse_capacity(params, socket.assigns.capacity) do
-      {:noreply,
-       socket
-       |> assign(preparing: true, error: nil, guest_name: name, capacity: capacity)
-       |> start_async(:create, fn -> Matches.create(actor, capacity, name) end)}
-    else
-      _ -> {:noreply, assign(socket, error: error_message(:invalid_capacity), guest_name: name)}
-    end
+    {:noreply,
+     socket
+     |> assign(preparing: true, error: nil, guest_name: name)
+     |> start_async(:create, fn -> Matches.create(actor, name) end)}
   end
 
   def handle_event("join", params, socket) do
@@ -388,12 +383,6 @@ defmodule ScripguessrWeb.MatchLive do
     end
   end
 
-  defp parse_capacity(%{"match" => %{"capacity" => value}}, _) when is_binary(value),
-    do: Integer.parse(value)
-
-  defp parse_capacity(%{"match" => _}, _), do: :error
-  defp parse_capacity(_, default), do: {default, ""}
-
   defp guest_name(%{"guest" => %{"name" => name}}, _) when is_binary(name), do: name
   defp guest_name(_, socket), do: socket.assigns.guest_name
   defp user_id(socket), do: socket.assigns.current_user && socket.assigns.current_user.id
@@ -544,7 +533,6 @@ defmodule ScripguessrWeb.MatchLive do
 
   defp error_message(:name_taken), do: "That name is already in this room. Choose another."
   defp error_message(:identity_required), do: "Refresh the page to start a browser session."
-  defp error_message(:invalid_capacity), do: "Choose a player limit between 2 and 8."
   defp error_message(:cannot_remove_host), do: "The host can cancel the room instead."
   defp error_message(:player_not_found), do: "That player is no longer in this room."
   defp error_message(:full), do: "This room is full."

@@ -27,12 +27,6 @@
         maxlength="32"
         autocomplete="nickname"
       />
-      <label for="match-capacity">Player limit</label>
-      <select id="match-capacity" name="match[capacity]" disabled={@preparing}>
-        <option :for={limit <- 2..8} value={limit} selected={limit == @capacity}>
-          {limit} players
-        </option>
-      </select>
       <button id="create-match" class="button" disabled={@preparing} phx-disable-with="Loading…">
         {if @preparing, do: "Loading…", else: "Create room"} →
       </button>

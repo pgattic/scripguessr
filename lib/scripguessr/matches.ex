@@ -10,14 +10,13 @@ defmodule Scripguessr.Matches do
   def topic(id), do: "match:" <> id
   def round_seconds, do: @round_seconds
 
-  def create(actor, capacity \\ 2, name \\ nil) do
+  def create(actor, name \\ nil) do
     with {:ok, attrs} <- player_attributes(actor, name),
-         true <- capacity in 2..8,
          {:ok, snapshot} <- Cache.prepare() do
       Repo.transaction(fn ->
         match =
           Repo.insert!(%Match{
-            capacity: capacity,
+            capacity: 8,
             snapshot: snapshot,
             code: Base.url_encode64(:crypto.strong_rand_bytes(18), padding: false)
           })
@@ -25,9 +24,6 @@ defmodule Scripguessr.Matches do
         Repo.insert!(struct(Player, Map.merge(attrs, %{match_id: match.id, seat: 0, host: true})))
         match.code
       end)
-    else
-      false -> {:error, :invalid_capacity}
-      error -> error
     end
   end
 

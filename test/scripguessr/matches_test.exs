@@ -16,7 +16,6 @@ defmodule Scripguessr.MatchesTest do
     assert {:error, :not_a_player} = Matches.start(code, stranger.id)
     assert {:ok, ^code} = Matches.join(code, friend.id)
     assert {:ok, ^code} = Matches.join(code, friend.id)
-    assert {:error, :full} = Matches.join(code, stranger.id)
     assert {:error, :host_only} = Matches.start(code, friend.id)
     Matches.ready(code, host.id, true)
     assert {:error, :not_ready} = Matches.start(code, host.id)
@@ -32,8 +31,10 @@ defmodule Scripguessr.MatchesTest do
   end
 
   test "concurrent joins cannot overfill a room and a leaving friend frees their seat" do
-    {code, [{host, _}, {friend, _}]} = match_lobby()
+    {code, [{host, _}, {friend, _} | waiting]} = match_lobby(8)
     {other, _} = account("other")
+
+    for {user, _} <- waiting, do: Matches.join(code, user.id)
 
     results =
       [friend.id, other.id]
@@ -42,11 +43,11 @@ defmodule Scripguessr.MatchesTest do
 
     assert Enum.count(results, &match?({:ok, _}, &1)) == 1
     assert {:error, :full} in results
-    assert Repo.aggregate(Player, :count) == 2
-    player = Repo.one!(from p in Player, where: p.user_id != ^host.id)
+    assert Repo.aggregate(Player, :count) == 8
+    player = Repo.one!(from p in Player, where: p.user_id in ^[friend.id, other.id])
     assert {:ok, _} = Matches.leave(code, player.user_id)
     assert {:ok, _} = Matches.join(code, friend.id)
-    assert Repo.aggregate(Player, :count) == 2
+    assert Repo.aggregate(Player, :count) == 8
     assert {:ok, _} = Matches.leave(code, host.id)
     assert {:ok, %{status: "cancelled"}} = Matches.fetch(code, friend.id)
     assert {:error, :already_started} = Matches.join(code, other.id)
@@ -223,7 +224,7 @@ defmodule Scripguessr.MatchesTest do
     {friend, _} = guest()
     {third, _} = guest()
     {stranger, _} = guest()
-    assert {:ok, code} = Matches.create(host, 3, "Avery")
+    assert {:ok, code} = Matches.create(host, "Avery")
     assert {:ok, _} = Matches.join(code, friend, "Blake")
     assert {:ok, _} = Matches.join(code, third, "Casey")
     assert {:ok, view} = Matches.fetch(code, host)
@@ -278,11 +279,11 @@ defmodule Scripguessr.MatchesTest do
           "Avery\nSmith",
           "Avery" <> <<0>>
         ] do
-      assert {:error, :invalid_name} = Matches.create(host, 2, name)
+      assert {:error, :invalid_name} = Matches.create(host, name)
     end
 
     assert Repo.aggregate(Match, :count) == 0
-    assert {:ok, code} = Matches.create(host, 2, " Avery ")
+    assert {:ok, code} = Matches.create(host, " Avery ")
     assert {:error, :name_taken} = Matches.join(code, friend, "avery")
     assert {:ok, _} = Matches.join(code, friend, "Blake")
     assert {:ok, _} = Matches.join(code, friend)
@@ -293,14 +294,14 @@ defmodule Scripguessr.MatchesTest do
     assert {:ok, %{status: "cancelled"}} = Matches.fetch(code, friend)
 
     assert {:error, :identity_required} =
-             Matches.create(Scripguessr.Matches.Identity.new(nil, "bad"), 2, "Avery")
+             Matches.create(Scripguessr.Matches.Identity.new(nil, "bad"), "Avery")
   end
 
   test "signing in preserves a browser's guest seat without merging it into an account" do
     {host, owner} = guest()
     {user, _} = account("friend")
     {other, _} = guest()
-    assert {:ok, code} = Matches.create(host, 2, "Avery")
+    assert {:ok, code} = Matches.create(host, "Avery")
     assert {:ok, _} = Matches.join(code, user.id)
     signed_in = Scripguessr.Matches.Identity.new(user.id, owner)
     # If the account already has its own seat, that seat wins over the browser's guest seat.
@@ -321,7 +322,7 @@ defmodule Scripguessr.MatchesTest do
   test "competing guest joins cannot duplicate a browser's seat" do
     {host, _} = guest()
     {friend, _} = guest()
-    {:ok, code} = Matches.create(host, 2, "Avery")
+    {:ok, code} = Matches.create(host, "Avery")
 
     results =
       Task.async_stream(1..2, fn _ -> Matches.join(code, friend, "Blake") end) |> Enum.to_list()
@@ -335,11 +336,7 @@ defmodule Scripguessr.MatchesTest do
     {friend, _} = guest()
     {third, _} = guest()
 
-    for capacity <- [1, 9, "8", nil, %{}] do
-      assert {:error, :invalid_capacity} = Matches.create(host, capacity, "Avery")
-    end
-
-    {:ok, code} = Matches.create(host, 8, "Avery")
+    {:ok, code} = Matches.create(host, "Avery")
     Matches.ready(code, host, true)
     assert {:error, :not_ready} = Matches.start(code, host)
     Matches.join(code, friend, "Blake")
@@ -358,8 +355,8 @@ defmodule Scripguessr.MatchesTest do
     {host, _} = guest()
     {friend, _} = guest()
     {other, _} = guest()
-    {:ok, code} = Matches.create(host, 8, "Avery")
-    {:ok, other_code} = Matches.create(other, 8, "Casey")
+    {:ok, code} = Matches.create(host, "Avery")
+    {:ok, other_code} = Matches.create(other, "Casey")
     Matches.join(code, friend, "Blake")
     {:ok, room} = Matches.fetch(code, host)
     {:ok, other_room} = Matches.fetch(other_code, other)
@@ -383,7 +380,7 @@ defmodule Scripguessr.MatchesTest do
     {host, _} = guest()
     {friend, _} = guest()
     {late, _} = guest()
-    {:ok, code} = Matches.create(host, 8, "Avery")
+    {:ok, code} = Matches.create(host, "Avery")
     Matches.join(code, friend, "Blake")
     for actor <- [host, friend], do: Matches.ready(code, actor, true)
 
@@ -409,7 +406,7 @@ defmodule Scripguessr.MatchesTest do
   test "eight players can finish five rounds and capacity rejects a ninth" do
     actors = Enum.map(1..9, fn _ -> guest() |> elem(0) end)
     host = hd(actors)
-    {:ok, code} = Matches.create(host, 8, "Player 1")
+    {:ok, code} = Matches.create(host, "Player 1")
 
     for {actor, index} <- actors |> Enum.take(8) |> Enum.with_index(1) do
       assert {:ok, _} = Matches.join(code, actor, "Player #{index}")
