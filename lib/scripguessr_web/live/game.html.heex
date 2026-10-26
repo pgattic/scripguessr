@@ -129,6 +129,22 @@
         answer={reference(@round)}
         round={@snapshot["current"]}
       >
+        <:answer_actions>
+          <.icon_button
+            id="read-chapter"
+            name="book"
+            label="Read chapter"
+            phx-click="read-chapter"
+            phx-value-round={@snapshot["current"]}
+          />
+          <.save_button
+            verse={@round}
+            saved={@saved_verses}
+            user={@current_user}
+            source="round"
+            index={@snapshot["current"]}
+          />
+        </:answer_actions>
         <:player
           name="You"
           self={true}
@@ -137,19 +153,7 @@
           distance={@round["guess"]["distance"]}
         />
         <p :if={@save_error} role="alert" class="error">{@save_error}</p>
-        <button
-          id="read-chapter"
-          class="text-button icon-label game-read-chapter"
-          phx-click="read-chapter"
-          phx-value-round={@snapshot["current"]}
-        ><.icon name="book" /><span>Read chapter</span></button>
-        <.save_button
-          verse={@round}
-          saved={@saved_verses}
-          user={@current_user}
-          source="round"
-          index={@snapshot["current"]}
-        />
+
         <button
           id="next-round"
           class="button full-width"
@@ -225,21 +229,27 @@
     <article :for={{round, index} <- Enum.with_index(@snapshot["rounds"])} class="panel">
       <span class="round-number">{index + 1}</span>
       <div>
-        <h2>{reference(round)}</h2><p>{round["text"]}</p><span class="muted">Guessed {round[
+        <div class="answer-heading">
+          <h2>{reference(round)}</h2>
+          <div class="answer-actions">
+            <.icon_button
+              name="book"
+              label="Read chapter"
+              phx-click="read-chapter"
+              phx-value-round={index}
+            />
+            <.save_button
+              verse={round}
+              saved={@saved_verses}
+              user={@current_user}
+              source="round"
+              index={index}
+            />
+          </div>
+        </div>
+        <p>{round["text"]}</p><span class="muted">Guessed {round[
           "guess"
         ]["book"]} {round["guess"]["chapter"]} · {distance_label(round["guess"]["distance"])}</span>
-        <button
-          class="text-button icon-label game-read-chapter"
-          phx-click="read-chapter"
-          phx-value-round={index}
-        ><.icon name="book" /><span>Read chapter</span></button>
-        <.save_button
-          verse={round}
-          saved={@saved_verses}
-          user={@current_user}
-          source="round"
-          index={index}
-        />
       </div>
       <strong>{round["guess"]["points"]}<small>pts</small></strong>
     </article>

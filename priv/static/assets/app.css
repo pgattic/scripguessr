@@ -447,6 +447,13 @@ footer {
 
 .round-answer { display: grid; gap: 5px; padding-bottom: 18px; border-bottom: 1px solid var(--border); }
 .round-answer strong { font-size: 1.15rem; }
+.answer-heading { display: flex; align-items: center; gap: 12px; }
+.answer-heading > strong, .answer-heading > h2 { flex: 1; min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.answer-actions { display: flex; align-items: center; flex-shrink: 0; gap: 6px; margin-left: auto; }
+.answer-actions .save-verse { margin: 0; }
+.round-list article > div { min-width: 0; }
+.round-list .answer-heading { margin-bottom: 8px; flex-wrap: wrap; }
+.round-list .answer-heading > h2 { flex-basis: 120px; }
 .round-players { list-style: none; margin: 0; padding: 0; }
 .round-player { display: grid; grid-template-columns: minmax(0,1fr) auto; grid-template-areas: "player score" "guess guess" "distance distance" "meter meter"; gap: 6px; padding: 18px 0; min-width: 0; }
 .round-player + .round-player { border-top: 1px solid var(--border-soft); }
@@ -458,12 +465,6 @@ footer {
 .round-player-guess { grid-area: guess; overflow-wrap: anywhere; font-size: .95rem; }
 .round-player .distance { grid-area: distance; margin: 0; font-size: .8rem; }
 .round-player .score-meter { grid-area: meter; margin: 4px 0 0; }
-
-.game-read-chapter {
-  display: block;
-  margin-top: 12px;
-  min-height: 36px;
-}
 
 .account-card { max-width: 460px; margin: 35px auto; padding: 28px; }
 .account-card h1 { font-size: 1.6rem; margin: 0 0 16px; }
@@ -692,7 +693,6 @@ footer {
 .text-button { border: 0; padding: 4px 0; background: transparent; color: var(--accent); cursor: pointer; font: inherit; font-size: .8rem; }
 .ui-icon { display: block; width: 20px; height: 20px; flex: 0 0 20px; }
 .icon-label { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
-.game-read-chapter.icon-label { display: flex; width: fit-content; }
 .icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: transparent; color: var(--muted-strong); }
 .icon-button:hover, .icon-button:focus-visible { color: var(--accent); background: var(--accent-soft); }
 .icon-button::after { content: attr(data-tooltip); position: absolute; top: calc(100% + 6px); right: 0; z-index: 5; width: max-content; max-width: 180px; padding: 6px 9px; border: 1px solid var(--border); border-radius: 5px; background: var(--raised); color: var(--text); font: .75rem/1.4 system-ui, sans-serif; box-shadow: 0 4px 12px var(--dialog-shadow); pointer-events: none; opacity: 0; }
@@ -806,7 +806,7 @@ footer {
 .save-verse { font: .8rem/1.5 system-ui, sans-serif; margin: 8px 0; }
 .atlas-reading-verse:has(.reader-save-verse) { grid-template-columns: 22px minmax(0,1fr) var(--reader-band-width,4px) 44px; }
 .atlas-reading-verse:has(.reader-save-verse) > .atlas-verse-bands { grid-column: 3; grid-row: 1; }
-.reader-save-verse { grid-column: 4; grid-row: 1; align-self: start; display: flex; justify-content: center; width: 44px; min-height: 44px; padding: 6px; margin: 0; border-radius: 4px; }
+.reader-save-verse { grid-column: 4; grid-row: 1; align-self: start; display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; padding: 6px; margin: 0; border-radius: 4px; }
 .reader-save-verse:hover, .reader-save-verse:focus-visible { background: var(--accent-soft); }
 .save-verse[aria-pressed="true"] { color: var(--accent); }
 
@@ -1022,7 +1022,6 @@ footer {
 
 @media (min-width: 761px) {
   .match-group-reveal .match-reveal-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 12px; }
-  .match-group-reveal .match-reveal-actions .game-read-chapter { margin: 0; }
   .match-group-reveal .match-reveal-actions .button { width: auto; margin-left: auto; }
   .match-group-reveal .match-reveal-actions #waiting-for-host { margin-left: auto; }
   .match-group-reveal .match-reveal-actions .error { flex-basis: 100%; }

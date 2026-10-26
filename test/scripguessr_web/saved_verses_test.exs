@@ -37,7 +37,12 @@ defmodule ScripguessrWeb.SavedVersesTest do
     Games.submit(game.id, "owner", 0, "1 Nephi", "1", user.id)
     {:ok, view, _} = live(browser(token), "/game/#{game.id}")
     view |> element("#answer-reveal .save-verse") |> render_click()
-    assert has_element?(view, "#answer-reveal .save-verse[aria-pressed=true]", "Saved")
+
+    assert has_element?(
+             view,
+             "#answer-reveal .save-verse[aria-pressed=true][aria-label='Unsave verse']"
+           )
+
     assert [saved] = SavedVerses.page(user.id).entries
     assert saved.text == hd(game.snapshot["rounds"])["text"]
     view |> element("#read-chapter") |> render_click()
@@ -85,7 +90,7 @@ defmodule ScripguessrWeb.SavedVersesTest do
     {:ok, game} = Games.create("owner")
     Games.submit(game.id, "owner", 0, "1 Nephi", "1")
     {:ok, view, _} = live(browser(), "/game/#{game.id}")
-    assert has_element?(view, "#answer-reveal a.save-verse", "Sign in to save")
+    assert has_element?(view, "#answer-reveal a.save-verse[aria-label='Sign in to save verse']")
     render_click(view, "save-verse", %{"source" => "round", "index" => "0"})
     {user, token} = account("reader")
     {:ok, view, _} = live(browser(token), "/game/#{game.id}")

@@ -62,7 +62,7 @@ defmodule ScripguessrWeb.ChapterReader do
               id={@id <> "-close"}
               data-reader-close
               name="close"
-              label="Close chapter"
+              label="Close reader"
               phx-click="close-chapter"
             />
           </div>

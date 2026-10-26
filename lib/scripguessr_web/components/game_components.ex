@@ -118,13 +118,20 @@ defmodule ScripguessrWeb.GameComponents do
     attr :self, :boolean
   end
 
+  slot :answer_actions
   slot :inner_block
 
   def round_feedback(assigns) do
     ~H"""
     <div id={@id} class={["result", @wide && "round-results-wide"]} role="status">
       <div class="round-answer">
-        <span class="muted">The answer</span><strong>{@answer}</strong>
+        <span class="muted">The answer</span>
+        <div class="answer-heading">
+          <strong>{@answer}</strong>
+          <div :if={@answer_actions != []} class="answer-actions">
+            {render_slot(@answer_actions)}
+          </div>
+        </div>
       </div>
       <div :if={@wide} class="round-results-columns muted" aria-hidden="true">
         <span>Player</span><span>Guess</span><span>Distance</span><span>Points</span>

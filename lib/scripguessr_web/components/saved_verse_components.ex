@@ -17,19 +17,28 @@ defmodule ScripguessrWeb.SavedVerseComponents do
     <button
       :if={@user}
       type="button"
-      class={["text-button save-verse icon-label", @source == "reader" && "reader-save-verse"]}
+      class={[
+        "save-verse",
+        if(@source == "reader", do: "text-button reader-save-verse", else: "icon-button")
+      ]}
       phx-click="save-verse"
       phx-value-source={@source}
       phx-value-index={@index}
       phx-value-verse={@verse["verse"]}
       aria-pressed={to_string(@is_saved)}
       aria-label={if @is_saved, do: "Unsave verse", else: "Save verse"}
-      title={if @is_saved, do: "Unsave verse", else: "Save verse"}
+      title={if @source == "reader", do: if(@is_saved, do: "Unsave verse", else: "Save verse")}
+      data-tooltip={if @is_saved, do: "Unsave verse", else: "Save verse"}
     >
       <.icon name="bookmark" filled={@is_saved} />
-      <span :if={@source != "reader"}>{if @is_saved, do: "Saved", else: "Save verse"}</span>
     </button>
-    <a :if={!@user && @source == "round"} class="text-button save-verse" href="/account/sign-in">Sign in to save</a>
+    <a
+      :if={!@user && @source == "round"}
+      class="icon-button save-verse"
+      href="/account/sign-in"
+      aria-label="Sign in to save verse"
+      data-tooltip="Sign in to save verse"
+    ><.icon name="bookmark" /></a>
     """
   end
 end
