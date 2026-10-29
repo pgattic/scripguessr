@@ -29,7 +29,7 @@ defmodule Scripguessr.Corpus.Atlas do
 
   def chapter(catalog, book, number) do
     if Model.chapter(catalog, book, number) do
-      Scripguessr.Corpus.Chapter.read(book, number, catalog.release)
+      Scripguessr.Corpus.Chapter.read(book, number)
     else
       {:error, :unknown_chapter}
     end

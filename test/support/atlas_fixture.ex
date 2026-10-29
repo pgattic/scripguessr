@@ -74,17 +74,26 @@ defmodule Scripguessr.AtlasFixture do
             do: %{state | mode: :normal, release: "fixture-v2"},
             else: state
 
-        reply(entries(), state)
+        rows =
+          if state.mode == :atlas_shifted,
+            do: Enum.map(entries(), &Map.update!(&1, "id", fn id -> id + 100 end)),
+            else: entries()
+
+        reply(rows, state)
 
       String.contains?(sql, "atlas:layer") ->
         [_, id] = Regex.run(~r/entity=(\d+)/, sql)
 
         state =
-          if state.mode == :atlas_layer_change,
-            do: %{state | mode: :normal, release: "fixture-v2"},
-            else: state
+          case state.mode do
+            :atlas_layer_change -> %{state | mode: :normal, release: "fixture-v2"}
+            :atlas_layer_renumber -> %{state | mode: :atlas_shifted, release: "fixture-v2"}
+            :atlas_layer_always_change -> %{state | release: state.release <> "-next"}
+            _ -> state
+          end
 
-        rows = spans(String.to_integer(id))
+        id = String.to_integer(id)
+        rows = spans(if(state.mode == :atlas_shifted && id > 100, do: id - 100, else: id))
 
         case state.mode do
           :atlas_bad_span ->

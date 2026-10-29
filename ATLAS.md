@@ -73,9 +73,11 @@ requests. Failed requests are not cached and have retry states.
 Chapter text and highlights load independently. Changing filters keeps the open
 chapter visible, and switching or closing chapters cancels obsolete LiveView
 loads. Both views render the same chapter-reader component, with Atlas evidence
-and game answer highlighting supplied by their respective views. Every result
-must match the catalog release. A corpus update mid-request produces an explicit
-reload path instead of mixing editions.
+and game answer highlighting supplied by their respective views. Highlight results
+must match the catalog release because numeric annotation IDs can change. A corpus
+update triggers one automatic catalog refresh and retry using semantic selections;
+repeated updates offer an explicit reload. Chapter reading uses current text
+regardless of the catalog or game release.
 
 URLs carry semantic entry keys derived from type, name, and description, plus
 optional book/chapter state. Numeric entity IDs are used only to query against

@@ -67,7 +67,7 @@ hash. Do not commit build outputs or corpus payloads.
   workers per cache, at most 32 outstanding keys and 64 callers per key, and a
   60-second deadline including queue time. Identical requests share a fetch;
   cached hits bypass waiting work. Failures are not cached.
-- `Scripguessr.Corpus.Chapter` shares release-checked chapter text between games,
+- `Scripguessr.Corpus.Chapter` shares current chapter text between games,
   matches, and the Atlas. All use `ScripguessrWeb.ChapterReader` for the reader dialog.
 - `ScripguessrWeb.GameComponents` shares the verse panel, guess picker, and round
   score reveal between single-player games and matches. Reveals show the answer
@@ -94,8 +94,10 @@ words; no editorial changes are made. A guessed chapter earns
 
 After submitting a guess, use **Read chapter** to read the answer in context with
 the selected verse highlighted. Chapters are also available from the final results.
-Reading fetches the chapter on demand and checks the game's saved corpus release;
-upstream failures do not affect scoring or progression.
+Reading fetches current chapter text on demand, even for games from older corpus
+releases. The game’s saved verses and scoring stay unchanged. Reader bookmarks
+retain the release of the text actually displayed. Upstream failures do not affect
+scoring or progression.
 
 Games belong to an anonymous browser identity in a signed, HttpOnly, SameSite
 cookie, valid for 30 days and Secure over production HTTPS. Keep the browser
@@ -244,8 +246,10 @@ vendored. Selection and reader URLs are shareable and restore on refresh.
 passage ranges across chapters, and `Scripguessr.Atlas.Cache` independently
 caches catalog and evidence for 15 minutes with a 160-entry limit. A separate
 160-entry chapter cache serves both readers. Chapter text loads independently of
-highlights and stays visible when filters change. Detail cache keys include the
-release, and mixed-release results require reloading.
+highlights and stays visible when filters change. Highlight cache keys include the
+release; a changed release automatically refreshes the catalog and retries once,
+preserving semantic selections. Chapter cache keys use edition, book, and chapter
+instead of a game’s historical release.
 URL identities use entry type, name, and description rather than numeric IDs;
 changed or removed entries are reported rather than silently matched elsewhere.
 See [ATLAS.md](ATLAS.md) for the data investigation and design decisions.

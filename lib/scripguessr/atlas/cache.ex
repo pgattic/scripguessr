@@ -6,6 +6,7 @@ defmodule Scripguessr.Atlas.Cache do
     do: %{id: __MODULE__, start: {RequestCache, :start_link, [[name: __MODULE__]]}}
 
   def clear, do: RequestCache.clear(__MODULE__)
+  def invalidate_catalog, do: RequestCache.invalidate(__MODULE__, :catalog)
 
   def catalog do
     RequestCache.fetch(__MODULE__, :catalog, fn ->

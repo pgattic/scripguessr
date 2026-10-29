@@ -55,14 +55,22 @@ defmodule Scripguessr.AtlasTest do
     assert {:error, :unknown_entry} = Atlas.layer(catalog, "not-an-entry")
   end
 
-  test "chapter cache is shared with game readers and scoped to a release" do
+  test "chapter reading uses the current release even with an old Atlas catalog" do
     {:ok, catalog} = Cache.catalog()
-    assert {:ok, verses} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1, catalog.release)
+    Agent.update(Fake, &%{&1 | release: "fixture-v2"})
+    assert {:ok, %{release: "fixture-v2", verses: verses}} = Cache.chapter(catalog, "1 Nephi", 1)
+    assert length(verses) == 3
+    assert catalog.release == "fixture-v1"
+  end
+
+  test "chapter cache is shared across readers regardless of their catalog release" do
+    {:ok, catalog} = Cache.catalog()
+    assert {:ok, verses} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1)
     calls = Fake.calls()
     Fake.reset(:down)
     assert {:ok, ^verses} = Cache.chapter(catalog, "1 Nephi", 1)
     assert Fake.calls() == []
-    assert {:error, :unavailable} = Cache.chapter(%{catalog | release: "another"}, "1 Nephi", 1)
+    assert {:ok, ^verses} = Cache.chapter(%{catalog | release: "another"}, "1 Nephi", 1)
     assert length(calls) > 0
   end
 end

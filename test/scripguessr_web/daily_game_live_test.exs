@@ -36,7 +36,7 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     refute has_element?(lobby, "#start-daily")
 
     {:ok, view, html} = live(browser(token), path)
-    assert has_element?(view, "#daily-game-label", "Daily game")
+    assert has_element?(view, "#daily-game-label", "Daily challenge")
     first = hd(game.snapshot["rounds"])
     refute html =~ "#{first["book"]} #{first["chapter"]}:#{first["verse"]}"
     render_click(view, "read-chapter", %{"round" => "4"})
@@ -104,7 +104,7 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
   test "home features an unplayed daily and starts it directly for accounts" do
     {user, token} = account("reader")
     {:ok, home, _} = live(browser(token), "/")
-    assert has_element?(home, "#home-daily #start-daily", "Play today’s game")
+    assert has_element?(home, "#home-daily #start-daily", "Today’s game")
     assert has_element?(home, "#start-game")
     assert has_element?(home, "#online-matches[href='/matches']")
     home |> element("#start-daily") |> render_click()

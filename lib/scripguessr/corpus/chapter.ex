@@ -1,5 +1,5 @@
 defmodule Scripguessr.Corpus.Chapter do
-  @moduledoc "Chapter text shared by the game and Atlas, checked against the requested corpus release."
+  @moduledoc "Current chapter text shared by games, matches, and the Atlas."
   alias Scripguessr.Corpus
   alias Corpus.RequestCache
 
@@ -8,17 +8,16 @@ defmodule Scripguessr.Corpus.Chapter do
 
   def clear, do: RequestCache.clear(__MODULE__)
 
-  def read(book, number, release) when is_binary(book) and is_integer(number) and number > 0 do
-    RequestCache.fetch(__MODULE__, {release, book, number}, fn -> fetch(book, number, release) end)
+  def read(book, number) when is_binary(book) and is_integer(number) and number > 0 do
+    RequestCache.fetch(__MODULE__, {Corpus.edition(), book, number}, fn -> fetch(book, number) end)
   end
 
-  defp fetch(book, number, release) do
+  defp fetch(book, number) do
     with {:ok, response} <- Corpus.query(chapter_sql(book, number)),
-         true <- response.release == release || {:error, :release_changed},
          false <- response.truncated,
          true <- response.rows != [] and Enum.all?(response.rows, &valid_verse?/1),
          true <- Enum.uniq_by(response.rows, & &1["verse"]) == response.rows do
-      {:ok, response.rows}
+      {:ok, %{verses: response.rows, release: response.release}}
     else
       {:error, _} = error -> error
       _ -> {:error, :invalid_chapter}

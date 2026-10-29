@@ -99,6 +99,30 @@ defmodule ScripguessrWeb.AtlasLiveTest do
     refute has_element?(view, "#atlas-sidebar.mobile-open")
   end
 
+  test "a corpus update refreshes Atlas selections using their semantic identities" do
+    {:ok, view, _} = live(build_conn(), "/atlas?book=1+Nephi&chapter=1")
+    render_async(view)
+    Scripguessr.Corpus.Fake.reset(:atlas_layer_renumber)
+    render_click(view, "toggle", %{"key" => Fixture.key(1)})
+    eventually(fn -> has_element?(view, "#atlas-reader .matched[data-verse='1']") end)
+    assert has_element?(view, ".atlas-chapter.highlighted[aria-label='1 Nephi 2']")
+    refute has_element?(view, "[role=alert]")
+
+    assert Enum.any?(
+             Scripguessr.Corpus.Fake.calls(),
+             &String.contains?(&1, "atlas:layer entity=101")
+           )
+  end
+
+  test "repeated corpus updates stop after one automatic Atlas refresh" do
+    {:ok, view, _} = live(build_conn(), "/atlas")
+    render_async(view)
+    Scripguessr.Corpus.Fake.reset(:atlas_layer_always_change)
+    render_click(view, "toggle", %{"key" => Fixture.key(1)})
+    eventually(fn -> has_element?(view, "[role=alert]", "Reload the Atlas") end)
+    assert Enum.count(Scripguessr.Corpus.Fake.calls(), &String.contains?(&1, "atlas:layer")) == 2
+  end
+
   test "a stalled highlight request does not block opening or switching chapters" do
     {:ok, view, _} = live(build_conn(), "/atlas")
     render_async(view)
@@ -135,7 +159,7 @@ defmodule ScripguessrWeb.AtlasLiveTest do
     send(worker, :release_corpus)
 
     # Wait for that shared fetch to complete, even though its original LiveView task was cancelled.
-    assert {:ok, _} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1, "fixture-v1")
+    assert {:ok, _} = Scripguessr.Corpus.Chapter.read("1 Nephi", 1)
     render_async(view)
     refute has_element?(view, "#atlas-reader")
   end

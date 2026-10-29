@@ -75,15 +75,50 @@ defmodule ScripguessrWeb.SavedVersesTest do
   test "Atlas reader saves a verse without a game" do
     Scripguessr.Atlas.Cache.clear()
     {user, token} = account("reader")
-    {:ok, view, _} = live(browser(token), "/atlas?book=1+Nephi&chapter=1")
+    {:ok, view, _} = live(browser(token), "/atlas")
     render_async(view)
+    Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "fixture-v2"})
+    render_click(view, "open-chapter", %{"book" => "1 Nephi", "chapter" => "1"})
     render_async(view)
     view |> element("#atlas-reader [data-verse='3'] .save-verse") |> render_click()
 
-    assert [%{book: "1 Nephi", chapter: 1, verse: 3, text: "Invented study passage 3."}] =
+    assert [
+             %{
+               book: "1 Nephi",
+               chapter: 1,
+               verse: 3,
+               text: "Invented study passage 3.",
+               release: "fixture-v2"
+             }
+           ] =
              SavedVerses.page(user.id).entries
 
     assert has_element?(view, "#atlas-reader [data-verse='3'] .save-verse[aria-pressed=true]")
+  end
+
+  test "reader bookmarks retain the current text release while round bookmarks retain the game release" do
+    {user, token} = account("reader")
+    {:ok, game} = Games.create("owner", user.id)
+    {:ok, game} = Games.submit(game.id, "owner", 0, "1 Nephi", "1", user.id)
+    Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "fixture-v2"})
+    {:ok, view, _} = live(browser(token), "/game/#{game.id}")
+    view |> element("#read-chapter") |> render_click()
+    render_async(view)
+    view |> element("#game-reader [data-verse='2'] .save-verse") |> render_click()
+
+    assert [%{release: "fixture-v2", text: "Invented study passage 2."}] =
+             SavedVerses.page(user.id).entries
+
+    view |> element("#game-reader-close") |> render_click()
+    view |> element("#answer-reveal .save-verse") |> render_click()
+
+    assert Enum.sort(Enum.map(SavedVerses.page(user.id).entries, & &1.release)) == [
+             "fixture-v1",
+             "fixture-v2"
+           ]
+
+    assert {:ok, saved} = Games.fetch(game.id, "owner", user.id)
+    assert saved.snapshot == game.snapshot
   end
 
   test "anonymous saves and revoked sessions cannot write" do

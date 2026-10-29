@@ -32,6 +32,7 @@ defmodule ScripguessrWeb.GameLive do
        step: :book,
        reading: nil,
        reader: nil,
+       reader_release: nil,
        reader_error: nil,
        progress: nil,
        reward: nil,
@@ -228,7 +229,7 @@ defmodule ScripguessrWeb.GameLive do
          verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
       verse = Map.merge(verse, Map.take(reading, ["book", "chapter"]))
 
-      {:noreply, save_verse(socket, verse, socket.assigns.game.snapshot["release"])}
+      {:noreply, save_verse(socket, verse, socket.assigns.reader_release)}
     else
       _ -> {:noreply, socket}
     end
@@ -255,16 +256,8 @@ defmodule ScripguessrWeb.GameLive do
      )}
   end
 
-  def handle_async(:chapter, {:ok, {:ok, verses}}, socket),
-    do: {:noreply, assign(socket, reader: verses, reader_error: nil)}
-
-  def handle_async(:chapter, {:ok, {:error, :release_changed}}, socket),
-    do:
-      {:noreply,
-       assign(socket,
-         reader_error:
-           "The corpus has changed since this game. This chapter is unavailable for this session."
-       )}
+  def handle_async(:chapter, {:ok, {:ok, %{verses: verses, release: release}}}, socket),
+    do: {:noreply, assign(socket, reader: verses, reader_release: release, reader_error: nil)}
 
   def handle_async(:chapter, _result, socket),
     do: {:noreply, assign(socket, reader_error: "Couldn’t load this chapter. Try again.")}
@@ -291,20 +284,18 @@ defmodule ScripguessrWeb.GameLive do
   end
 
   defp load_chapter(socket, round) do
-    release = socket.assigns.game.snapshot["release"]
-
     socket
     |> cancel_async(:chapter)
-    |> assign(reading: round, reader: nil, reader_error: nil)
+    |> assign(reading: round, reader: nil, reader_release: nil, reader_error: nil)
     |> start_async(:chapter, fn ->
-      Scripguessr.Corpus.Chapter.read(round["book"], round["chapter"], release)
+      Scripguessr.Corpus.Chapter.read(round["book"], round["chapter"])
     end)
   end
 
   defp close_reader(socket) do
     socket
     |> cancel_async(:chapter)
-    |> assign(reading: nil, reader: nil, reader_error: nil)
+    |> assign(reading: nil, reader: nil, reader_release: nil, reader_error: nil)
   end
 
   defp update(socket, {:ok, game}),

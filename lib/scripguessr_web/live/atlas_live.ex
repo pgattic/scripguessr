@@ -11,6 +11,7 @@ defmodule ScripguessrWeb.AtlasLive do
      assign(socket,
        catalog: nil,
        catalog_loading: false,
+       release_retry: false,
        catalog_error: nil,
        params: %{},
        selected: [],
@@ -24,6 +25,7 @@ defmodule ScripguessrWeb.AtlasLive do
        drawer: false,
        chapter: nil,
        reader: nil,
+       reader_release: nil,
        reader_error: nil,
        reader_key: nil,
        saved_verses: SavedVerses.keys(socket.assigns.current_user),
@@ -33,7 +35,7 @@ defmodule ScripguessrWeb.AtlasLive do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    socket = assign(socket, :params, params)
+    socket = assign(socket, params: params, release_retry: false)
 
     cond do
       socket.assigns.catalog -> {:noreply, apply_params(socket)}
@@ -50,13 +52,15 @@ defmodule ScripguessrWeb.AtlasLive do
 
     {:noreply,
      socket
+     |> assign(release_retry: false)
      |> cancel_async(:selection)
      |> cancel_async(:chapter)
-     |> assign(catalog: nil, layers: [], reader: nil, reader_key: nil)
+     |> assign(catalog: nil, layers: [], reader: nil, reader_release: nil, reader_key: nil)
      |> load_catalog()}
   end
 
-  def handle_event("retry-selection", _, socket), do: {:noreply, apply_params(socket)}
+  def handle_event("retry-selection", _, socket),
+    do: {:noreply, socket |> assign(release_retry: false) |> apply_params()}
 
   def handle_event("retry-chapter", _, socket),
     do: {:noreply, load_reader(socket, socket.assigns.chapter, true)}
@@ -131,7 +135,7 @@ defmodule ScripguessrWeb.AtlasLive do
          verses when is_list(verses) <- socket.assigns.reader,
          verse when not is_nil(verse) <- Enum.find(verses, &(&1["verse"] == number)) do
       verse = Map.merge(verse, %{"book" => book, "chapter" => chapter})
-      {:noreply, save_verse(socket, verse, socket.assigns.catalog.release)}
+      {:noreply, save_verse(socket, verse, socket.assigns.reader_release)}
     else
       _ -> {:noreply, socket}
     end
@@ -163,6 +167,27 @@ defmodule ScripguessrWeb.AtlasLive do
   def handle_async(:selection, {:ok, {:ok, layers}}, socket),
     do: {:noreply, assign(socket, layers: layers, loading: false, error: nil)}
 
+  def handle_async(
+        :selection,
+        {:ok, {:error, :release_changed}},
+        %{assigns: %{release_retry: false}} = socket
+      ) do
+    Cache.invalidate_catalog()
+
+    {:noreply,
+     socket
+     |> cancel_async(:chapter)
+     |> assign(
+       catalog: nil,
+       layers: [],
+       reader: nil,
+       reader_release: nil,
+       reader_key: nil,
+       release_retry: true
+     )
+     |> load_catalog()}
+  end
+
   def handle_async(:selection, {:ok, {:error, reason}}, socket),
     do: {:noreply, assign(socket, layers: [], loading: false, error: error_message(reason))}
 
@@ -171,8 +196,8 @@ defmodule ScripguessrWeb.AtlasLive do
       {:noreply,
        assign(socket, loading: false, error: "Couldn’t load the highlights. Please try again.")}
 
-  def handle_async(:chapter, {:ok, {:ok, verses}}, socket),
-    do: {:noreply, assign(socket, reader: verses, reader_error: nil)}
+  def handle_async(:chapter, {:ok, {:ok, %{verses: verses, release: release}}}, socket),
+    do: {:noreply, assign(socket, reader: verses, reader_release: release, reader_error: nil)}
 
   def handle_async(:chapter, {:ok, {:error, reason}}, socket),
     do: {:noreply, assign(socket, reader: nil, reader_error: error_message(reason))}
@@ -240,6 +265,7 @@ defmodule ScripguessrWeb.AtlasLive do
           chapter: chapter,
           reader_key: key,
           reader: nil,
+          reader_release: nil,
           reader_error: nil,
           save_error: nil
         )

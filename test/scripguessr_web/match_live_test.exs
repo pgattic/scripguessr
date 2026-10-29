@@ -249,7 +249,7 @@ defmodule ScripguessrWeb.MatchLiveTest do
     first = hd(snapshot["rounds"])
 
     assert {:ok, _} =
-             Scripguessr.Corpus.Chapter.read(first["book"], first["chapter"], snapshot["release"])
+             Scripguessr.Corpus.Chapter.read(first["book"], first["chapter"])
 
     render_async(view)
     refute has_element?(view, "#match-reader")
@@ -257,7 +257,7 @@ defmodule ScripguessrWeb.MatchLiveTest do
   end
 
   test "chapter failures can be retried without affecting match scores" do
-    {code, [{_host, token}, _], _} = started_match()
+    {code, [{host, token}, _], _} = started_match()
     expire_match(code)
     {:ok, view, _} = live(browser(token), "/matches/#{code}")
     Scripguessr.Corpus.Fake.reset(:down)
@@ -265,10 +265,13 @@ defmodule ScripguessrWeb.MatchLiveTest do
     render_async(view)
     assert has_element?(view, "#match-reader [role=alert]", "Couldn’t load")
     Scripguessr.Corpus.Fake.reset()
+    Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "fixture-v2"})
     render_click(view, "retry-chapter")
     render_async(view)
     assert has_element?(view, "#match-reader .atlas-reading-verse")
     assert has_element?(view, "#answer-reveal .score", "0")
+    view |> element("#match-reader [data-verse='2'] .save-verse") |> render_click()
+    assert [%{release: "fixture-v2"}] = Scripguessr.SavedVerses.page(host.id).entries
   end
 
   defp guest_owner, do: Base.url_encode64(:crypto.strong_rand_bytes(32), padding: false)

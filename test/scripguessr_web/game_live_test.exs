@@ -200,8 +200,10 @@ defmodule ScripguessrWeb.GameLiveTest do
     Agent.update(Scripguessr.Corpus.Fake, &%{&1 | release: "new-release"})
     view |> element("#read-chapter") |> render_click()
     render_async(view)
-    assert has_element?(view, "#game-reader [role=alert]", "corpus has changed")
-    refute has_element?(view, "#game-reader .atlas-reading")
+    refute has_element?(view, "#game-reader [role=alert]")
+    assert has_element?(view, "#game-reader .atlas-reading")
+    assert {:ok, saved} = Scripguessr.Games.fetch(game.id, "owner")
+    assert saved.snapshot == game.snapshot
     view |> element("#game-reader-close") |> render_click()
     view |> element("#next-round") |> render_click()
     assert has_element?(view, "#book-grid")

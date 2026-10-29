@@ -7,7 +7,7 @@ with {:ok, catalog} <- Atlas.catalog(),
      {:ok, layer} <- Atlas.layer(catalog, entry.key),
      true <- map_size(layer.coverage) > 0,
      {{book, number}, _ranges} <- Enum.at(layer.coverage, 0),
-     {:ok, verses} <- Atlas.chapter(catalog, book, number),
+     {:ok, %{verses: verses}} <- Atlas.chapter(catalog, book, number),
      true <- verses != [],
      [_hit] <- Model.hits([layer], {book, number}) do
   IO.puts(

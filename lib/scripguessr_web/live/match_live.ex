@@ -274,13 +274,12 @@ defmodule ScripguessrWeb.MatchLive do
 
     if socket.assigns.reading do
       case result do
-        {:ok, {:ok, verses}} ->
-          {:noreply, assign(socket, reader: verses, reader_error: nil)}
-
-        {:ok, {:error, :release_changed}} ->
+        {:ok, {:ok, %{verses: verses, release: release}}} ->
           {:noreply,
            assign(socket,
-             reader_error: "The corpus has changed since this match. This chapter is unavailable."
+             reader: verses,
+             reading: Map.put(socket.assigns.reading, :release, release),
+             reader_error: nil
            )}
 
         _ ->
@@ -403,18 +402,16 @@ defmodule ScripguessrWeb.MatchLive do
         close_reader(socket)
 
       result ->
-        release = socket.assigns.room.release
-
         socket
         |> cancel_async(:chapter)
         |> assign(
-          reading: Map.put(result, :release, release),
+          reading: result,
           reader: nil,
           reader_error: nil,
           save_error: nil
         )
         |> start_async(:chapter, fn ->
-          Scripguessr.Corpus.Chapter.read(result.book, result.chapter, release)
+          Scripguessr.Corpus.Chapter.read(result.book, result.chapter)
         end)
     end
   end
