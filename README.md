@@ -153,6 +153,13 @@ completed scores for a selected date, with equal scores sharing a rank. Signed-i
 players outside the top 50 can still see their own rank. Daily games earn the
 usual completion and accuracy XP once; they cannot be restarted for extra XP.
 
+Completing consecutive daily challenges builds a streak, regardless of score.
+The current streak remains active while today's challenge is available; missing
+a full UTC day resets it. Home shows an active streak even after the daily card
+disappears, daily results celebrate its extension, and the account page shows
+current and best streaks. Both are derived from existing completed daily games,
+so past completions count automatically. Random games and matches do not count.
+
 The results' **Share result** disclosure offers a copyable score and five colored
 squares: green for an exact chapter, yellow for 750–999 points, orange for
 250–749, and white for fewer than 250. The shared text links to `/daily` and

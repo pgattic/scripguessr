@@ -3,11 +3,25 @@ defmodule ScripguessrWeb.AccountTest do
   import Phoenix.ConnTest
   import Phoenix.LiveViewTest
   import Scripguessr.AccountFixtures
+  import Scripguessr.GameFixtures
   alias Scripguessr.{Accounts, Games, Repo}
   @endpoint ScripguessrWeb.Endpoint
 
   defp browser(owner, session \\ nil) do
     build_conn() |> Plug.Test.init_test_session(%{"owner" => owner, "account_token" => session})
+  end
+
+  test "account shows current and best daily streaks from existing history" do
+    {user, token} = account("reader")
+
+    for offset <- [-10, -9, -8, -7, -2, -1],
+        do: daily_game(user.id, Date.add(Date.utc_today(), offset))
+
+    html = get(browser("owner", token), "/account") |> html_response(200)
+    document = LazyHTML.from_fragment(html)
+    assert document |> LazyHTML.query("#current-streak") |> LazyHTML.text() == "2 days"
+    assert document |> LazyHTML.query("#best-streak") |> LazyHTML.text() == "4 days"
+    assert html =~ "midnight UTC"
   end
 
   test "registration shows a recovery code once and establishes a private session" do

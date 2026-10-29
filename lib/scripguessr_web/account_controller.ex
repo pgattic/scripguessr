@@ -124,6 +124,7 @@ defmodule ScripguessrWeb.AccountController do
     page(conn,
       mode: :account,
       progress: conn.assigns.current_progress,
+      streak: Scripguessr.Streaks.for_user(conn.assigns.current_user.id),
       games: Enum.take(games, 20),
       page_number: page_number,
       more: length(games) > 20,

@@ -14,6 +14,7 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
   test "daily entry is public, requires sign-in, and does not expose any prompts" do
     {:ok, home, _} = live(browser(), "/")
     assert has_element?(home, "#daily-game[href='/daily']")
+    refute has_element?(home, "#home-streak")
     {:ok, daily, _} = live(browser(), "/daily")
     assert has_element?(daily, "#daily-sign-in[href='/account/sign-in']")
     assert has_element?(daily, ".site-nav a[href='/'][aria-current=page]")
@@ -58,6 +59,8 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     end
 
     assert has_element?(view, "#daily-results", "Rank #1")
+    assert has_element?(view, "#daily-streak-result", "Streak started")
+    assert has_element?(view, "#result-streak", "1-day streak")
     assert has_element?(view, "#daily-result", "ScripGuessr Daily")
     assert has_element?(view, "#daily-result", "🟩🟩🟩🟩🟩")
     refute view |> element("#daily-result") |> render() =~ first["text"]
@@ -157,6 +160,34 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     {:ok, results, _} = live(browser(token), "/game/#{fresh.id}")
     assert has_element?(results, "#daily-results", "Rank #1")
     assert has_element?(results, ".final-score", "5000")
+    refute has_element?(results, "#daily-streak-result")
+  end
+
+  test "home keeps a streak visible after daily completion and refreshes it across tabs and midnight" do
+    {user, token} = account("reader")
+    yesterday = daily_game(user.id, Date.add(Date.utc_today(), -1))
+    {:ok, home, _} = live(browser(token), "/")
+    assert has_element?(home, "#home-streak", "1-day streak")
+    assert has_element?(home, "#home-daily")
+    {:ok, daily} = Games.start_daily("owner", user.id)
+    finish_game(daily, "owner", user.id)
+    render_click(home, "refresh-home")
+    assert has_element?(home, "#home-streak", "2-day streak")
+    refute has_element?(home, "#home-daily")
+    {:ok, result, _} = live(browser(token), "/game/#{daily.id}")
+    assert has_element?(result, "#daily-streak-result", "Streak extended")
+
+    Repo.get!(Scripguessr.Challenges.Challenge, yesterday.challenge_id)
+    |> Ecto.Changeset.change(day: Date.add(Date.utc_today(), -4))
+    |> Repo.update!()
+
+    Repo.get!(Scripguessr.Challenges.Challenge, daily.challenge_id)
+    |> Ecto.Changeset.change(day: Date.add(Date.utc_today(), -3))
+    |> Repo.update!()
+
+    send(home.pid, :daily_reset)
+    refute has_element?(home, "#home-streak")
+    assert has_element?(home, "#home-daily")
   end
 
   test "date selection uses URL state and malformed or future dates fall back to today" do

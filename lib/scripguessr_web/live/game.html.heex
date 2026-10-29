@@ -11,8 +11,11 @@
   phx-hook="HomeGames"
 >
   <header class="home-heading">
-    <h1>ScripGuessr</h1>
-    <p class="muted">The classic verse-guessing game!</p>
+    <div>
+      <h1>ScripGuessr</h1>
+      <p class="muted">The classic verse-guessing game!</p>
+    </div>
+    <.streak_badge :if={@streak.current > 0} id="home-streak" count={@streak.current} />
   </header>
 
   <article
@@ -246,6 +249,15 @@
         href={"/leaderboard?" <> URI.encode_query(%{board: "daily", date: Date.to_iso8601(@daily_day)})}
         class="text-button"
       >Daily leaderboard →</a>
+    </div>
+    <div
+      :if={@daily_day == @today && @streak.completed_today}
+      id="daily-streak-result"
+      class="daily-streak-result"
+      role="status"
+    >
+      <.streak_badge id="result-streak" count={@streak.current} />
+      <span class="muted">{if @streak.current == 1, do: "Streak started", else: "Streak extended"}</span>
     </div>
     <details class="daily-share">
       <summary>Share result</summary>

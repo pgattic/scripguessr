@@ -7,7 +7,8 @@ defmodule ScripguessrWeb.GameLive do
 
   alias Scripguessr.SavedVerses
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
-  alias Scripguessr.{Games, Progression, Leaderboards}
+  alias Scripguessr.{Games, Progression, Leaderboards, Streaks}
+  import ScripguessrWeb.StreakComponents
   import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
 
@@ -21,6 +22,7 @@ defmodule ScripguessrWeb.GameLive do
        daily_lobby: false,
        daily_attempt: nil,
        daily_rank: nil,
+       streak: Streaks.for_user(nil),
        owner: session["owner"],
        game: nil,
        resume_game: nil,
@@ -43,7 +45,7 @@ defmodule ScripguessrWeb.GameLive do
 
   @impl true
   def handle_params(params, _uri, socket) do
-    socket = assign(socket, :today, Date.utc_today())
+    socket = assign(socket, today: Date.utc_today(), streak: Streaks.for_user(user_id(socket)))
 
     case params do
       %{"id" => id} ->
@@ -83,6 +85,7 @@ defmodule ScripguessrWeb.GameLive do
       {:noreply,
        assign(socket,
          today: Date.utc_today(),
+         streak: Streaks.for_user(user_id(socket)),
          daily_attempt: Games.daily_for_user(Date.utc_today(), user_id(socket)),
          resume_game: Games.latest_unfinished(socket.assigns.owner, user_id(socket))
        )}
@@ -269,6 +272,7 @@ defmodule ScripguessrWeb.GameLive do
     {:noreply,
      assign(socket,
        today: Date.utc_today(),
+       streak: Streaks.for_user(user_id(socket)),
        daily_attempt: Games.daily_for_user(Date.utc_today(), user_id(socket))
      )}
   end
@@ -330,6 +334,7 @@ defmodule ScripguessrWeb.GameLive do
       progress = Progression.for_user(socket.assigns.current_user.id)
 
       assign(socket,
+        streak: Streaks.for_user(user_id(socket)),
         progress: progress,
         current_progress: progress,
         reward: Progression.for_game(game.id),

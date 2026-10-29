@@ -2,6 +2,7 @@ defmodule ScripguessrWeb.Icons do
   use Phoenix.Component
 
   @paths %{
+    "flame" => ["M12 3c1 5 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 3 1 4 2 4 2-2 3-5 1-10Z"],
     "close" => ["m6 6 12 12M6 18 18 6"],
     "copy" => ["M9 9h12v12H9z", "M15 9V3H3v12h6"],
     "book" => ["M12 5v16", "M12 5C9 3 5 3 2 4v15c3-1 7-1 10 2 3-3 7-3 10-2V4c-3-1-7-1-10 1Z"],
