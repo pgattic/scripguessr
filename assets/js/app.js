@@ -252,9 +252,19 @@ const MatchRound = {
   }
 }
 
+const HomeGames = {
+  mounted() {
+    this.onVisible = () => {
+      if (document.visibilityState === "visible") this.pushEvent("refresh-home", {})
+    }
+    document.addEventListener("visibilitychange", this.onVisible)
+  },
+  destroyed() { document.removeEventListener("visibilitychange", this.onVisible) }
+}
+
 const liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
-  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, InviteQR, MatchRound, MatchCountdown}
+  hooks: {PickerFocus, ChapterReader, AtlasFilters, CopyResult, CopyText, InviteQR, MatchRound, MatchCountdown, HomeGames}
 })
 liveSocket.connect()
 window.liveSocket = liveSocket

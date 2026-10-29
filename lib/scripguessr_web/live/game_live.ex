@@ -77,6 +77,19 @@ defmodule ScripguessrWeb.GameLive do
   end
 
   @impl true
+  def handle_event("refresh-home", _, socket) do
+    if socket.assigns.live_action == :home && is_nil(socket.assigns.game) do
+      {:noreply,
+       assign(socket,
+         today: Date.utc_today(),
+         daily_attempt: Games.daily_for_user(Date.utc_today(), user_id(socket)),
+         resume_game: Games.latest_unfinished(socket.assigns.owner, user_id(socket))
+       )}
+    else
+      {:noreply, socket}
+    end
+  end
+
   def handle_event("start", _, %{assigns: %{preparing: true}} = socket), do: {:noreply, socket}
 
   def handle_event("start", _, socket) do

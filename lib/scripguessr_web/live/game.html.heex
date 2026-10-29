@@ -4,49 +4,100 @@
   <a class="button" href="/">Home</a>
 </section>
 
-<section :if={!@game && !@unavailable && !@daily_lobby} class="welcome">
-  <div class="intro-copy">
-    <span class="pill">Book of Mormon · 5 rounds</span>
-    <h1>How well do you<br /> know the verses?</h1>
-    <p class="lede">Read a verse. Guess its book and chapter.</p>
-    <div class="welcome-actions">
-      <a href="/daily" id="daily-game" class="button secondary">Daily game
-      <span aria-hidden="true">↗</span></a>
-      <a :if={@resume_game} id="resume-game" class="button" href={"/game/#{@resume_game.id}"}>
-        Continue game <span aria-hidden="true">→</span>
-      </a>
-      <button
-        id="start-game"
-        class={if @resume_game, do: "button secondary", else: "button"}
-        phx-click="start"
-        disabled={@preparing}
-        phx-disable-with="Loading…"
-      >
-        {if @preparing, do: "Loading…", else: if(@resume_game, do: "New game", else: "Start game")}
-        <span aria-hidden="true">→</span>
-      </button>
+<section
+  :if={!@game && !@unavailable && !@daily_lobby}
+  id="home-games"
+  class="home-games"
+  phx-hook="HomeGames"
+>
+  <header class="home-heading">
+    <h1>ScripGuessr</h1>
+    <p class="muted">The classic verse-guessing game!</p>
+  </header>
+
+  <article
+    :if={!@daily_attempt || !@daily_attempt.snapshot["finished"]}
+    id="home-daily"
+    class="home-daily panel"
+    aria-labelledby="home-daily-title"
+  >
+    <div class="home-daily-copy">
+      <h2 id="home-daily-title">Daily Challenge</h2>
+      <div class="welcome-actions">
+        <a :if={@daily_attempt} id="daily-game" href={"/game/#{@daily_attempt.id}"} class="button">
+          Continue daily <span aria-hidden="true">→</span>
+        </a>
+        <button
+          :if={@current_user && !@daily_attempt}
+          id="start-daily"
+          class="button"
+          phx-click="start-daily"
+          disabled={@preparing}
+          phx-disable-with="Loading…"
+        >
+          {if @preparing, do: "Loading…", else: "Today’s game"}
+          <span aria-hidden="true">→</span>
+        </button>
+        <a :if={!@current_user} id="daily-game" href="/daily" class="button">Play
+        <span aria-hidden="true">→</span></a>
+        <a href="/leaderboard?board=daily" class="text-button">Leaderboard
+        <span aria-hidden="true">↗</span></a>
+      </div>
+      <p :if={@daily_attempt} class="home-daily-note">
+        Round {@daily_attempt.snapshot["current"] + 1} of 5 · Finish before midnight UTC
+      </p>
+      <p :if={!@current_user} class="home-daily-note">Sign in to take part.</p>
     </div>
-    <p :if={@resume_game} class="resume-hint muted">
-      Round {@resume_game.current + 1} of 5
-    </p>
-    <div class="welcome-links">
-      <a href="/matches" id="online-matches" class="text-button">Play with a friend
-      <span aria-hidden="true">↗</span></a>
-      <a href="/atlas" class="text-button">Explore the Atlas <span aria-hidden="true">↗</span></a>
-    </div>
-    <p :if={@error} role="alert" class="error">{@error}</p>
+    <time
+      datetime={Date.to_iso8601(@today)}
+      class="home-daily-date"
+      aria-label={Calendar.strftime(@today, "%B %-d, %Y") <> " · UTC"}
+    >
+      <span>{Calendar.strftime(@today, "%b")}</span>
+      <strong>{Calendar.strftime(@today, "%-d")}</strong>
+      <span>Daily · UTC</span>
+    </time>
+  </article>
+
+  <div class="home-modes">
+    <article class="home-mode panel" aria-labelledby="random-game-title">
+      <span class="eyebrow">Singleplayer</span>
+      <h2 id="random-game-title">Solo game</h2>
+      <div class="home-mode-actions">
+        <a :if={@resume_game} id="resume-game" class="button" href={"/game/#{@resume_game.id}"}>
+          Continue game <span aria-hidden="true">→</span>
+        </a>
+        <button
+          id="start-game"
+          class={if @resume_game, do: "text-button", else: "button secondary"}
+          phx-click="start"
+          disabled={@preparing}
+          phx-disable-with="Loading…"
+        >
+          {if @preparing,
+            do: "Loading…",
+            else: if(@resume_game, do: "New game", else: "Start game")}
+          <span aria-hidden="true">→</span>
+        </button>
+      </div>
+      <p :if={@resume_game} class="home-mode-note muted">Round {@resume_game.current + 1} of 5</p>
+    </article>
+    <article class="home-mode panel" aria-labelledby="friends-game-title">
+      <span class="eyebrow">2–8 players</span>
+      <h2 id="friends-game-title">Multiplayer game</h2>
+      <div class="home-mode-actions">
+        <a href="/matches" id="online-matches" class="button secondary">Find your room
+        <span aria-hidden="true">→</span></a>
+      </div>
+    </article>
   </div>
-  <aside class="intro-art" aria-hidden="true">
-    <div class="art-orbit"></div>
-    <div class="art-book"><span></span><span></span></div>
-    <span class="art-star">✳</span>
-  </aside>
+  <p :if={@error} role="alert" class="error home-error">{@error}</p>
+  <a href="/atlas" class="home-study text-button icon-label"><.icon name="book" /><span>Explore the Atlas</span><span aria-hidden="true">→</span></a>
 </section>
 
 <section :if={!@game && !@unavailable && @daily_lobby} class="daily-page">
   <span class="pill">{@today} · UTC</span>
-  <h1>The daily five.</h1>
-  <p class="lede">Same verses. A new challenge every day.</p>
+  <h1>Daily Challenge</h1>
   <div class="panel daily-card">
     <h2>Book of Mormon · 5 rounds</h2>
     <p class="muted">One ranked attempt per account. Finish before midnight UTC.</p>
@@ -72,7 +123,7 @@
         <span aria-hidden="true">→</span>
       </button>
       <a :if={!@current_user} id="daily-sign-in" href="/account/sign-in" class="button">Sign in to play →</a>
-      <a href="/leaderboard?board=daily" class="text-button">Today’s leaderboard →</a>
+      <a href="/leaderboard?board=daily" class="text-button">Leaderboard →</a>
     </div>
     <p :if={!@current_user} class="muted daily-note">
       New here? <a href="/account/register">Create an account</a>
@@ -97,7 +148,7 @@
 
 <section :if={@game && !@snapshot["finished"] && !@daily_closed} class="game-page">
   <p :if={@daily_day} id="daily-game-label" class="daily-game-label">
-    Daily game · {@daily_day} <span class="muted">· Closes at midnight UTC</span>
+    Daily challenge · {@daily_day} <span class="muted">· Closes at midnight UTC</span>
   </p>
   <div class="progress-header">
     <span>Round <strong>{@snapshot["current"] + 1}</strong> / 5</span>
@@ -170,7 +221,7 @@
   <div class="summary-heading">
     <div>
       <p class="eyebrow">
-        {if @daily_day, do: "Daily game · #{@daily_day}", else: "5 rounds complete"}
+        {if @daily_day, do: "Daily challenge · #{@daily_day}", else: "5 rounds complete"}
       </p><h1>Final score</h1>
     </div><button
       id="play-again"

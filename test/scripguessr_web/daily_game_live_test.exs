@@ -101,6 +101,48 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     assert_redirect(view, 3_000)
   end
 
+  test "home features an unplayed daily and starts it directly for accounts" do
+    {user, token} = account("reader")
+    {:ok, home, _} = live(browser(token), "/")
+    assert has_element?(home, "#home-daily #start-daily", "Play today’s game")
+    assert has_element?(home, "#start-game")
+    assert has_element?(home, "#online-matches[href='/matches']")
+    home |> element("#start-daily") |> render_click()
+    {path, _} = assert_redirect(home, 3_000)
+    assert path == "/game/#{Games.daily_for_user(Date.utc_today(), user.id).id}"
+  end
+
+  test "home resumes unfinished dailies and hides completed ones without hiding random games" do
+    {user, token} = account("reader")
+    {:ok, daily} = Games.start_daily("owner", user.id)
+    {:ok, random} = Games.create("owner", user.id)
+    {:ok, home, _} = live(browser(token), "/")
+
+    assert has_element?(
+             home,
+             "#home-daily #daily-game[href='/game/#{daily.id}']",
+             "Continue daily"
+           )
+
+    assert has_element?(home, "#resume-game[href='/game/#{random.id}']")
+    refute has_element?(home, "#start-daily")
+    finish_game(daily, "owner", user.id)
+    render_click(home, "refresh-home")
+    refute has_element?(home, "#home-daily")
+    refute has_element?(home, "a[href='/daily']")
+    assert has_element?(home, "#resume-game[href='/game/#{random.id}']")
+    assert has_element?(home, "#online-matches")
+
+    {:ok, reloaded, _} = live(browser(token), "/")
+    refute has_element?(reloaded, "#home-daily")
+    {:ok, review, _} = live(browser(token), "/daily")
+    assert has_element?(review, "#daily-attempt", "Review results")
+
+    Repo.update!(Ecto.Changeset.change(daily.challenge, day: Date.add(Date.utc_today(), -1)))
+    send(home.pid, :daily_reset)
+    assert has_element?(home, "#home-daily #start-daily")
+  end
+
   test "expired attempts are read-only and completed past results stay reviewable" do
     {user, token} = account("reader")
     {:ok, game} = Games.start_daily("owner", user.id)
