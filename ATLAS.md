@@ -26,7 +26,7 @@ witness testimonies. Book order and chapter numbers are read from the edition.
 
 The Atlas is a separate study feature at `/atlas`. It has no dependency on game
 rules, account ownership, or study-set generation. The only shared application
-boundary is the corpus HTTP client and site navigation.
+boundary is the corpus client and site navigation.
 
 The map retains the original geometry: 181px-wide book blocks containing five
 columns of 33px chapter buttons with 4px gaps; CSS columns balance whole books
@@ -93,6 +93,8 @@ this boundary later; none are required to use the chapter Atlas.
 The regular Nix test suite includes dynamic taxonomy, namesakes, semantic keys,
 cross-chapter and cross-book ranges, disjoint evidence, cache reuse, pagination,
 release changes, failures, direct links, overlap indicators, and reader behavior.
-`nix run .#atlas-smoke` exercises the real API separately from offline checks.
+`nix run .#atlas-smoke` exercises the pinned SQLite corpus, including games,
+categories, highlights, and chapter reading. The same check runs inside the
+sandboxed Nix test build.
 Desktop and mobile browser checks verify column geometry, actual corpus
 highlights, refresh recovery, the filter drawer, and the chapter reader.

@@ -1,4 +1,3 @@
-Application.ensure_all_started(:req)
 alias Scripguessr.Corpus.Atlas
 alias Scripguessr.Atlas.Model
 

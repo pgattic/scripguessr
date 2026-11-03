@@ -1,5 +1,7 @@
 import Config
-config :scripguessr, ecto_repos: [Scripguessr.Repo], corpus_client: Scripguessr.Corpus.HTTP
+config :scripguessr, ecto_repos: [Scripguessr.Repo], corpus_client: Scripguessr.Corpus.SQLite
+
+config :exqlite, force_build: true
 
 config :scripguessr, Scripguessr.Repo,
   migration_primary_key: [type: :binary_id],

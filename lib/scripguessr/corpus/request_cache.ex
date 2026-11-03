@@ -1,5 +1,5 @@
 defmodule Scripguessr.Corpus.RequestCache do
-  @moduledoc "Bounded, single-flight cache. Network work runs in supervised tasks, never in the server."
+  @moduledoc "Bounded, single-flight cache. Corpus work runs in supervised tasks, never in the server."
   use GenServer
 
   def start_link(opts), do: GenServer.start_link(__MODULE__, opts, Keyword.take(opts, [:name]))

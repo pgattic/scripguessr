@@ -3,6 +3,12 @@
 Status: initial implementation scope  
 Date: 2026-10-21
 
+Corpus update, 2026-11-02: the application now bundles a pinned Standard Works
+Corpus SQLite release through Nix. This supersedes the original API-only and
+no-corpus-build-input requirements below. Queries run locally through a read-only
+adapter; PostgreSQL continues to store game and account data. See README.md and
+DEPLOYING.md for the current build and update workflow.
+
 ## Purpose
 
 Rebuild ScripGuessr in Elixir, Phoenix, and LiveView, using Standard Works Corpus

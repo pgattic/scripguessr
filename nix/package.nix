@@ -2,6 +2,7 @@
   pkgs,
   beam,
   src,
+  corpus,
 }:
 let
   deps = beam.fetchMixDeps {
@@ -9,7 +10,7 @@ let
     version = "0.1.0";
     inherit src;
     mixEnv = "test";
-    hash = "sha256-XW8OXrlwqMIUnxGDRu9sifjLFgCTu4xeQvrdxVkkxmg=";
+    hash = "sha256-5IiXVmhRT44/GEJv7VoBPAgBKBuqzAez9ls97W8cSHw=";
   };
   lexbor = pkgs.fetchFromGitHub {
     owner = "lexbor";
@@ -23,6 +24,10 @@ let
     inherit src;
     mixFodDeps = deps;
     nativeBuildInputs = [ pkgs.esbuild ];
+    env.ELIXIR_MAKE_FORCE_BUILD = "true";
+    postPatch = ''
+      ln -s ${corpus} priv/corpus
+    '';
     compileFlags = [ "--warnings-as-errors" ];
     postBuild = "mix assets.deploy";
     meta.mainProgram = "scripguessr";
@@ -59,6 +64,7 @@ let
         mix ecto.create
         mix ecto.migrate
         mix test
+        mix run --no-start scripts/corpus_smoke.exs
       '';
       installPhase = ''
         mkdir -p "$out"

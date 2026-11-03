@@ -37,7 +37,7 @@ defmodule Scripguessr.MixProject do
       {:bandit, "~> 1.5"},
       {:jason, "~> 1.4"},
       {:eqrcode, "~> 0.2.1"},
-      {:req, "~> 0.7"},
+      {:exqlite, "~> 0.43.0"},
       {:pbkdf2_elixir, "~> 2.3"},
       {:lazy_html, ">= 0.1.0", only: :test}
     ]

@@ -2,8 +2,9 @@
 
 The flake exports `nixosModules.default` and a production Phoenix release as
 `packages.<system>.default`. The release contains Erlang and compiled assets;
-production does not need Mix, a compiler, Node, or an upstream corpus download
-at build time. Runtime access to the corpus API is required to prepare new games.
+production does not need Mix, a compiler, or Node. Nix fetches a pinned corpus
+release archive during the build and bundles its read-only SQLite database,
+license, and credits. Games and the Atlas need no runtime corpus network access.
 
 ## Host configuration
 
@@ -71,9 +72,11 @@ Accounts use usernames, passwords, and saved recovery codes. No mail server,
 email provider, or additional runtime credentials are needed.
 
 The module supplies `PHX_HOST`, `PHX_SERVER`, `PORT`, and PostgreSQL connection
-settings. An optional `CORPUS_URL` in the environment file overrides the API SQL
-endpoint for an explicitly managed upstream. Production uses a local PostgreSQL
-Unix socket with peer authentication.
+settings. The default corpus database is bundled under the release's `priv/corpus`.
+An optional `CORPUS_PATH` can point to a separately managed SQLite file, accompanied
+by a sibling `release.txt`; ensure the service can read both files. A missing
+database or release identifier prevents startup. Production uses a local
+PostgreSQL Unix socket with peer authentication.
 
 ## Build and activate
 
@@ -85,7 +88,13 @@ host or modify any machine configuration automatically.
 The systemd service runs `Scripguessr.Release.migrate` before starting Phoenix.
 Migration failure prevents startup. Application restarts retain game snapshots
 and accepted guesses in PostgreSQL. Prepared games can finish without a
-working corpus API.
+working corpus database.
+
+To update scripture data, change the release tag and archive hash in
+`nix/corpus.nix`, run the checks, and deploy the resulting package. Restarting the
+service opens the new bundled database and clears runtime caches. Previous game
+snapshots and saved verses keep their original text and release. NixOS rollback
+restores the previous bundled corpus along with the application.
 
 ## Health and operations
 

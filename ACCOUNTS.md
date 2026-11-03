@@ -77,7 +77,7 @@ attached to an account.
 
 Saved verses are private to their account. Each edition/book/chapter/verse can be
 saved once. The stored text and corpus release preserve the passage independently
-of API availability. The list uses pages of 20, newest first; bookmark state loads
+of corpus availability. The list uses pages of 20, newest first; bookmark state loads
 only references and updates the changed reference after each successful action.
 
 ## Limits and deployment

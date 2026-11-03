@@ -1,7 +1,9 @@
 import Config
 
 config :scripguessr,
-  corpus_url: System.get_env("CORPUS_URL", "https://api.standardworkscorpus.org/v1/sql")
+  corpus_path:
+    System.get_env("CORPUS_PATH") ||
+      Application.app_dir(:scripguessr, "priv/corpus/scripture.db")
 
 if config_env() == :prod do
   secret = System.fetch_env!("SECRET_KEY_BASE")

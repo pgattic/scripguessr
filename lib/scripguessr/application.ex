@@ -15,6 +15,11 @@ defmodule Scripguessr.Application do
     ]
 
     children =
+      if Application.fetch_env!(:scripguessr, :corpus_client) == Scripguessr.Corpus.SQLite,
+        do: [Scripguessr.Corpus.SQLite | children],
+        else: children
+
+    children =
       if Application.get_env(:scripguessr, :match_clock, true),
         do: children ++ [Scripguessr.Matches.Clock],
         else: children

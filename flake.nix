@@ -35,7 +35,15 @@
                 "result-checks"
               ]);
           };
-          packages = import ./nix/package.nix { inherit pkgs beam src; };
+          corpus = import ./nix/corpus.nix { inherit pkgs; };
+          packages = import ./nix/package.nix {
+            inherit
+              pkgs
+              beam
+              src
+              corpus
+              ;
+          };
           tools = with pkgs; [
             beam.elixir
             beam.erlang
@@ -58,6 +66,7 @@
             export ERL_LIBS="${beam.hex}/lib/erlang/lib''${ERL_LIBS:+:$ERL_LIBS}"
             export MIX_REBAR3="${beam.rebar3}/bin/rebar3"
             export HEX_CACERTS_PATH="${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+            export CORPUS_PATH="''${CORPUS_PATH:-${corpus}/scripture.db}"
           '';
           command = name: text: {
             type = "app";
@@ -74,6 +83,7 @@
         {
           packages.default = packages.release;
           packages.deps = packages.deps;
+          packages.corpus = corpus;
           checks.game = packages.tests;
           checks.release = packages.release;
           checks.nix-format = pkgs.runCommand "nix-format" { nativeBuildInputs = [ pkgs.nixfmt ]; } ''
@@ -109,11 +119,11 @@
           '';
           apps.smoke = command "scripguessr-smoke" ''
             mix deps.get
-            mix run --no-start scripts/smoke.exs
+            mix run --no-start scripts/corpus_smoke.exs
           '';
           apps.atlas-smoke = command "scripguessr-atlas-smoke" ''
             mix deps.get
-            mix run --no-start scripts/atlas_smoke.exs
+            mix run --no-start scripts/corpus_smoke.exs
           '';
           devShells.default = pkgs.mkShell {
             packages = tools;

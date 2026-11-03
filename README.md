@@ -2,7 +2,8 @@
 
 A quiet scripture game built with Phoenix LiveView. Read five randomly selected
 Book of Mormon verses, guess their book and chapter, and discover how close you
-came. Scripture content comes from [Standard Works Corpus](https://standardworkscorpus.org).
+came. Scripture content comes from a bundled, read-only
+[Standard Works Corpus](https://standardworkscorpus.org) SQLite release.
 
 The rewrite's goals and first milestone are in [SCOPE.md](SCOPE.md).
 
@@ -41,14 +42,15 @@ nix run .#test             # PostgreSQL-backed tests; no live corpus requests
 nix fmt                   # Format Elixir, HEEx, and Nix after fetching Mix deps
 nix flake check           # Sandboxed tests, formatting, and production build
 nix build                 # Production release at ./result
-nix run .#smoke            # Separately check the real corpus API; needs network
-nix run .#atlas-smoke      # Check real Atlas categories, highlights, and reading
+nix run .#smoke           # Check games, Atlas highlights, and reading against the bundled corpus
+nix run .#atlas-smoke     # Alias for the same complete corpus smoke check
 ```
 
 The development and test commands fetch dependencies automatically. For a fresh
 checkout where you only want to format, first run `nix develop -c mix deps.get`.
-CI uses the same flake checks and build. The real corpus smoke test is deliberately
-outside CI's offline checks.
+CI uses the same flake checks and build, including a smoke test against the real
+pinned corpus. Once Nix has fetched its fixed-output dependencies, these checks
+and all scripture queries run without network access.
 
 Nix pins nixpkgs through the nixexprs channel input and uses flake-parts. Mix
 packages are fixed-output Nix dependencies. The test HTML parser's native source
@@ -57,9 +59,19 @@ After changing `mix.lock`, update the dependency hash in `nix/package.nix`:
 replace it with `pkgs.lib.fakeHash`, run `nix build .#deps`, and use the reported
 hash. Do not commit build outputs or corpus payloads.
 
+`nix/corpus.nix` pins the corpus release URL and archive SHA-256. Nix extracts
+`scripture.db`, its license, source credits, and a release identifier into a
+separate store path. Production bundles that path under `priv/corpus`; development
+shells set `CORPUS_PATH` to the same database. To update scripture data, change the
+release and hash in `nix/corpus.nix`, run the checks, rebuild, and deploy. A custom
+`CORPUS_PATH` must point to a database with a sibling `release.txt` identifying its
+release. Corpus files are opened read-only and never migrated by this application.
+
 ## Architecture
 
-- `Scripguessr.Corpus` owns upstream SQL and converts responses to application data.
+- `Scripguessr.Corpus` owns corpus SQL and converts responses to application data.
+- `Scripguessr.Corpus.SQLite` queries the bundled database through four read-only
+  Exqlite connections and reports the pinned release with every result.
 - `Scripguessr.Corpus.Cache` shares verse-pool and book/chapter metadata for 15
   minutes while preparing each game's selection independently. It retries once
   if a release changes mid-fetch.
@@ -88,7 +100,7 @@ hash. Do not commit build outputs or corpus payloads.
 Only numbered, nonempty verses from the Book of Mormon (2013) edition are eligible.
 Five distinct references are sampled locally and their text fetched in one batch.
 A prepared game includes the corpus release and chapter order needed to score
-without another upstream request. Text is reconstructed from ordered corpus
+without another corpus query. Text is reconstructed from ordered corpus
 words; no editorial changes are made. A guessed chapter earns
 `max(0, 1000 - 22 * chapter_distance)` points, up to 5,000 per game.
 
@@ -96,7 +108,7 @@ After submitting a guess, use **Read chapter** to read the answer in context wit
 the selected verse highlighted. Chapters are also available from the final results.
 Reading fetches current chapter text on demand, even for games from older corpus
 releases. The game’s saved verses and scoring stay unchanged. Reader bookmarks
-retain the release of the text actually displayed. Upstream failures do not affect
+retain the release of the text actually displayed. Corpus failures do not affect
 scoring or progression.
 
 Games belong to an anonymous browser identity in a signed, HttpOnly, SameSite
@@ -276,7 +288,7 @@ when redistributing data. Attribution and credits are linked in the application.
 Signed-in readers can save verses from revealed game answers or chapter readers.
 **Saved verses**, available from the account menu and the account-page tabs,
 lists them newest first in pages of 20, with links to read each chapter in the Atlas. Saves are private and retain their corpus text and release
-so they remain readable during API outages.
+so they remain readable independently of the corpus database.
 
 The main navigation offers **Play**, **Atlas**, and **Leaderboard**. The account tag shows the
 username, level, and lifetime XP, and opens account, saved-verse, and sign-out

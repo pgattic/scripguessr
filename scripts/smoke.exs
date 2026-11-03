@@ -1,5 +1,3 @@
-Application.ensure_all_started(:req)
-
 with {:ok, catalog} <- Scripguessr.Corpus.catalog(),
      {:ok, snapshot} <- Scripguessr.Corpus.prepare(catalog),
      5 <- length(snapshot["rounds"]) do
