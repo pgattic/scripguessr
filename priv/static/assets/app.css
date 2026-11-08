@@ -216,7 +216,7 @@ footer {
   .home-daily-date { position: absolute; top: 20px; right: 20px; padding: 8px 12px; gap: 1px; border-radius: 8px; }
   .home-daily-date strong { font-size: 1.8rem; }
   .home-daily-date > span:first-child { font-size: .65rem; }
-  .home-daily-date > span:last-child { display: none; }
+  .home-daily-date > span:last-child { font-size: .6rem; }
   .home-modes { grid-template-columns: 1fr; gap: 16px; }
   .home-mode { padding: 24px; }
 }

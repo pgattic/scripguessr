@@ -1,6 +1,7 @@
 defmodule ScripguessrWeb.StreakComponents do
   use Phoenix.Component
   import ScripguessrWeb.Icons
+  import ScripguessrWeb.DailyComponents
 
   attr :id, :string, required: true
   attr :count, :integer, required: true
@@ -25,7 +26,10 @@ defmodule ScripguessrWeb.StreakComponents do
           <dt>Best streak</dt><dd id="best-streak">{days(@streak.best)}</dd>
         </div>
       </dl>
-      <p class="muted">Complete a daily challenge each day. Days reset at midnight UTC.</p>
+      <p class="muted">Complete all five rounds before each daily reset to keep your streak.</p>
+      <p class="muted">
+        <.daily_deadline id="streak-deadline" day={Date.utc_today()} label="Next reset:" />
+      </p>
     </section>
     """
   end

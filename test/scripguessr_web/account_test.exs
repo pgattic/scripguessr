@@ -21,7 +21,8 @@ defmodule ScripguessrWeb.AccountTest do
     document = LazyHTML.from_fragment(html)
     assert document |> LazyHTML.query("#current-streak") |> LazyHTML.text() == "2 days"
     assert document |> LazyHTML.query("#best-streak") |> LazyHTML.text() == "4 days"
-    assert html =~ "midnight UTC"
+    assert document |> LazyHTML.query("#streak-deadline time") |> LazyHTML.text() =~ "00:00 UTC"
+    assert html =~ "data-daily-deadline"
   end
 
   test "registration shows a recovery code once and establishes a private session" do

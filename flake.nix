@@ -51,6 +51,7 @@
             beam.rebar3
             postgresql
             esbuild
+            nodejs
             nixfmt
             git
             curl
@@ -116,6 +117,7 @@
             mix ecto.create
             mix ecto.migrate
             mix test "$@"
+            node --test test/assets/*_test.mjs
           '';
           apps.smoke = command "scripguessr-smoke" ''
             mix deps.get

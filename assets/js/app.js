@@ -1,6 +1,15 @@
 import {Socket} from "../../deps/phoenix/priv/static/phoenix.mjs"
 import {LiveSocket} from "../../deps/phoenix_live_view/priv/static/phoenix_live_view.esm.js"
+import {updateDailyDeadlines} from "./daily_deadline.mjs"
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
+// Also enhance controller pages, including account streaks, without a LiveView hook.
+updateDailyDeadlines()
+setInterval(() => updateDailyDeadlines(), 1000)
+document.addEventListener("phx:update", () => updateDailyDeadlines())
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") updateDailyDeadlines()
+})
+window.addEventListener("pageshow", () => updateDailyDeadlines())
 const PickerFocus = {
   mounted() { this.step = this.el.dataset.step },
   updated() {

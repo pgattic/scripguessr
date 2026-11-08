@@ -17,6 +17,11 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     refute has_element?(home, "#home-streak")
     {:ok, daily, _} = live(browser(), "/daily")
     assert has_element?(daily, "#daily-sign-in[href='/account/sign-in']")
+    deadline = Date.add(Date.utc_today(), 1) |> Date.to_iso8601()
+    assert has_element?(home, "#home-daily-deadline[data-deadline='#{deadline}T00:00:00Z']")
+    assert has_element?(daily, "#daily-lobby-deadline[data-deadline='#{deadline}T00:00:00Z']")
+    assert has_element?(daily, "#daily-lobby-deadline time", "00:00 UTC")
+    assert has_element?(daily, ".daily-note", "shares the same reset time")
     assert has_element?(daily, ".site-nav a[href='/'][aria-current=page]")
     refute has_element?(daily, "#start-daily")
     refute has_element?(daily, "#verse-text")
@@ -38,6 +43,7 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
 
     {:ok, view, html} = live(browser(token), path)
     assert has_element?(view, "#daily-game-label", "Daily challenge")
+    assert has_element?(view, "#daily-play-deadline[data-daily-deadline]", "Finish by")
     first = hd(game.snapshot["rounds"])
     refute html =~ "#{first["book"]} #{first["chapter"]}:#{first["verse"]}"
     render_click(view, "read-chapter", %{"round" => "4"})
@@ -72,6 +78,7 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     {:ok, board, _} = live(browser(token), "/leaderboard?board=daily")
     assert has_element?(board, "#leaderboard .leaderboard-self", "reader")
     assert has_element?(board, "#leaderboard .leaderboard-xp", "5,000")
+    assert has_element?(board, "#daily-board-deadline[data-daily-deadline]", "Scores close")
 
     assert has_element?(
              board,
@@ -152,6 +159,9 @@ defmodule ScripguessrWeb.DailyGameLiveTest do
     Repo.update!(Ecto.Changeset.change(game.challenge, day: Date.add(Date.utc_today(), -1)))
     {:ok, expired, _} = live(browser(token), "/game/#{game.id}")
     assert has_element?(expired, "#daily-expired")
+    cutoff = Date.to_iso8601(Date.utc_today())
+    assert has_element?(expired, "#daily-expired-deadline time[datetime='#{cutoff}T00:00:00Z']")
+    refute has_element?(expired, "#daily-expired-deadline [data-deadline-countdown]")
     refute has_element?(expired, "#book-grid")
     refute has_element?(expired, "#verse-text")
     {:ok, fresh} = Games.start_daily("owner", user.id)

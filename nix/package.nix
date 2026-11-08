@@ -41,6 +41,7 @@ let
       nativeBuildInputs = [
         pkgs.esbuild
         pkgs.postgresql
+        pkgs.nodejs
         pkgs.cmake
         pkgs.pkg-config
       ];
@@ -64,6 +65,7 @@ let
         mix ecto.create
         mix ecto.migrate
         mix test
+        node --test test/assets/*_test.mjs
         mix run --no-start scripts/corpus_smoke.exs
       '';
       installPhase = ''

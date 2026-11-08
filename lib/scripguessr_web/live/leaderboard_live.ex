@@ -1,6 +1,7 @@
 defmodule ScripguessrWeb.LeaderboardLive do
   use ScripguessrWeb, :live_view
   import ScripguessrWeb.Layouts, only: [avatar: 1]
+  import ScripguessrWeb.DailyComponents
   alias Scripguessr.Leaderboards
 
   @impl true
@@ -44,6 +45,14 @@ defmodule ScripguessrWeb.LeaderboardLive do
         <.link patch="/leaderboard" aria-current={if !@daily?, do: "page"}>Lifetime XP</.link>
         <.link patch="/leaderboard?board=daily" aria-current={if @daily?, do: "page"}>Daily game</.link>
       </nav>
+      <p :if={@daily?} class="muted">
+        <.daily_deadline
+          id="daily-board-deadline"
+          day={@day}
+          label={if @day == @today, do: "Scores close", else: "Scores closed"}
+          countdown={@day == @today}
+        />
+      </p>
       <form
         :if={@daily?}
         id="daily-board-date"

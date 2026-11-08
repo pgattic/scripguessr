@@ -22,7 +22,7 @@ browser assets, and starts Phoenix. Database files and tool caches live in
 command started it. Existing data is retained.
 
 `nix develop` opens a shell with Elixir 1.19, Erlang, Hex, Rebar, PostgreSQL,
-esbuild, and formatting/build tools. There is no separate Node/npm installation
+esbuild, Node for JavaScript tests, and formatting/build tools. There is no separate Node/npm installation
 or frontend dependency set. The Phoenix clients ship with the locked Hex packages.
 
 Elixir modules reload during development. After changing JavaScript, run
@@ -159,6 +159,9 @@ start and frozen with its corpus release, so subsequent players get the same
 verses and order even if the corpus changes or becomes unavailable.
 
 Finish all five rounds before **midnight UTC** to enter that day's score board.
+The home card, daily lobby, game, leaderboard, and account streaks display that
+deadline in your browser's timezone, with the time remaining. Dates include the
+local timezone so the shared UTC day and your local deadline stay clear.
 Unfinished attempts close at the reset and aren't ranked. Completed results stay
 available in your game history. **Leaderboard → Daily game** shows the top 50
 completed scores for a selected date, with equal scores sharing a rank. Signed-in

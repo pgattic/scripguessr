@@ -47,7 +47,10 @@
         <span aria-hidden="true">↗</span></a>
       </div>
       <p :if={@daily_attempt} class="home-daily-note">
-        Round {@daily_attempt.snapshot["current"] + 1} of 5 · Finish before midnight UTC
+        Round {@daily_attempt.snapshot["current"] + 1} of 5
+      </p>
+      <p class="home-daily-note">
+        <.daily_deadline id="home-daily-deadline" day={@today} label="Finish by" />
       </p>
       <p :if={!@current_user} class="home-daily-note">Sign in to take part.</p>
     </div>
@@ -58,7 +61,7 @@
     >
       <span>{Calendar.strftime(@today, "%b")}</span>
       <strong>{Calendar.strftime(@today, "%-d")}</strong>
-      <span>Daily · UTC</span>
+      <span>UTC</span>
     </time>
   </article>
 
@@ -103,7 +106,15 @@
   <h1>Daily Challenge</h1>
   <div class="panel daily-card">
     <h2>Book of Mormon · 5 rounds</h2>
-    <p class="muted">One ranked attempt per account. Finish before midnight UTC.</p>
+    <p class="muted">
+      One ranked attempt per account. Finish all five rounds before the daily reset.
+    </p>
+    <p class="muted">
+      <.daily_deadline id="daily-lobby-deadline" day={@today} label="Next reset:" />
+    </p>
+    <p class="muted daily-note">
+      Everyone plays the same challenge and shares the same reset time.
+    </p>
     <div class="welcome-actions">
       <a
         :if={@daily_attempt}
@@ -144,14 +155,24 @@
 >
   <h1>This daily has ended.</h1>
   <p class="muted">
-    The {@daily_day} challenge closed at midnight UTC. Unfinished attempts aren’t ranked.
+    The {@daily_day} challenge has closed. Unfinished attempts aren’t ranked.
+  </p>
+  <p class="muted">
+    <.daily_deadline
+      id="daily-expired-deadline"
+      day={@daily_day}
+      label="Closed"
+      countdown={false}
+    />
   </p>
   <a href="/daily" class="button">Play today’s game →</a>
 </section>
 
 <section :if={@game && !@snapshot["finished"] && !@daily_closed} class="game-page">
   <p :if={@daily_day} id="daily-game-label" class="daily-game-label">
-    Daily challenge · {@daily_day} <span class="muted">· Closes at midnight UTC</span>
+    Daily challenge · {@daily_day} (UTC)
+    <span class="muted">·
+    <.daily_deadline id="daily-play-deadline" day={@daily_day} label="Finish by" /></span>
   </p>
   <div class="progress-header">
     <span>Round <strong>{@snapshot["current"] + 1}</strong> / 5</span>

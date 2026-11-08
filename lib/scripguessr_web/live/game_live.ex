@@ -9,6 +9,7 @@ defmodule ScripguessrWeb.GameLive do
   import ScripguessrWeb.SavedVerseComponents, only: [save_button: 1]
   alias Scripguessr.{Games, Progression, Leaderboards, Streaks}
   import ScripguessrWeb.StreakComponents
+  import ScripguessrWeb.DailyComponents
   import ScripguessrWeb.ProgressionComponents
   alias Scripguessr.Games.Rules
 
